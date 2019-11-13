@@ -184,3 +184,18 @@ void Utils::merge(SimplifySwarm* arr, int l, int m, int r){
 	delete [] L.eval;
 	delete [] R.eval;
 }
+
+// Utility function to create a new tree node
+Node* Utils::newNode(Node* parent, int numSubNodos, int id, long double valor) {
+	Node *node = new Node;
+	node->id = valor;
+	node->function_eval = valor;
+	node->parent= parent;
+	node->numSubNodos = numSubNodos; // <<--- AQUI
+	if (numSubNodos > 0)
+		//node->hijo =  malloc( numSubNodos * sizeof(Nodo*) );
+		node->child = new Node*;
+	else
+		node->child = NULL;
+	return node;
+}

@@ -20,7 +20,7 @@ Discus::Discus(Configuration* config, int variantID):Problem(config, variantID){
 		dim_name << dimension;
 		string file_m = "supportData/input_data/M_2_D" + dim_name.str() + ".txt";
 
-		rotation_matrix  = allocateMemory2D(dimension, dimension);
+		rotation_matrix = allocateMemory2D(dimension, dimension);
 		shift_vector = new double[dimension];
 		z = new double[dimension];
 		m_r = new double[dimension];

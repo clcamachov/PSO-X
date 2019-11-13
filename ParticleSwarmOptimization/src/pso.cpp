@@ -542,7 +542,7 @@ Problem* initializeProblem() {
 /* Termination condition */
 bool terminationCondition() {
 	//Budget based on iterations
-	if (config->getMaxIterations() != 0 && iterations > config->getMaxIterations()) {
+	if (config->getMaxIterations() != 0 && iterations > config->getMaxIterations()-1) {
 		return true;
 	}
 	//Budget based on evaluations of the objective function
@@ -559,7 +559,9 @@ void freeMemory(){
 	RNG::deallocatePermutation();
 	delete problem;
 	delete config;
-	delete swarm;
+	//~Swarm() is called automatically when we use hierarchical topology
+	if (!swarm->isHierarchical())
+		delete swarm;
 }
 
 int main(int argc, char *argv[] ){
@@ -570,7 +572,6 @@ int main(int argc, char *argv[] ){
 	config = new Configuration();
 	if(!config->getConfig(argc, argv)){
 		exit(-1);
-
 	}
 
 	//Random number generator

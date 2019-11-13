@@ -32,6 +32,7 @@ Particle::Particle(){
 	minVelLimit = -100;					//minimum velocity -v_max = (x_max-x_min)/2
 	maxVelLimit = 100;					//maximum velocity  v_max
 	ranking = 0;
+	parent =0;
 }
 
 /* Constructor*/
@@ -67,11 +68,11 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier){
 
 /* Copy constructor */
 Particle::Particle (const Particle &p){
-
 	size = problem->getProblemDimension();
 	problem = p.problem;
 	id = p.id;
 	ranking = p.ranking;
+	parent = p.parent;
 
 	hasVelocitybounds = p.hasVelocitybounds;
 	minVelLimit = p.minVelLimit;
@@ -190,38 +191,38 @@ void Particle::setRanking(int rank){
 	ranking = rank;
 }
 
+int Particle::getParent(){
+	return parent;
+}
+
+void Particle::setParent(int node){
+	parent = node;
+}
+
 /* Generate a new solution by updating the particle's position */
-void Particle::move(Configuration* config, double minBound, double maxBound, long int iteration){
+void Particle::move(Configuration* config, double minBound, double maxBound, long int iteration, double inertia, int *parentNodes, int lastLevelComplete){
 	//For VEL_LINEAR all entries of the random matrix are the same
 	double u1=problem->getRandom01(); //random value for the personal component
 	double u2=problem->getRandom01(); //random value for the social component
 	double V2[size];
 	double V1[size];
+	int numberParents = 0;
 
 	//Find Gbest in the particle's topological neighborhood
 	checkNeibourhood();
 
-	//Inertia weight has to be computed for every particle in the swarm
-	if (config->getinertiaCS() == IW_DOUBLE_EXP) {
-		double R =0.0;
-		if (iteration == 1){
-			config->setInertia(config->getFinalIW());
-		}
-		else {
-			R = computeDistPbestGbest()*((((double)config->getMaxIterations())-iteration)/config->getMaxIterations());
-			config->setInertia( exp(-1*exp((R*-1))) );
-		}
-	}
-	//Inertia weight has to be computed for every particle in the swarm
-	if (config->getinertiaCS() == IW_RANKS_BASED){
-		config->setInertia( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
-				((double)ranking/config->getSwarmSize()))
-		);
-	}
-
 	if (config->getVelocityRule() == VEL_STANDARD2011){
 		//random vector from a hyperspherical distribution with center G and radius G-X
 		getHypersphericalVector(V2, V1);
+	}
+	//For hierarchical topology
+	if (config->getTopology() == TOP_HIERARCHICAL){
+		for (int i=1; i<=lastLevelComplete; i++){
+			if (parentNodes[i] != -2)
+				numberParents++;
+			else
+				break;
+		}
 	}
 
 	//Compute new position
@@ -260,47 +261,64 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	computeEvaluation();
 }
 
+//double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf, double socInf, double pos, double additionalVal){
+//	double new_vel = 0.0;
+//
+//	//Very first rule
+//	if (config->getVelocityRule() == VEL_BASIC){
+//		new_vel = vel +
+//				(phi_1 * problem->getRandom01() * perInf) +
+//				(phi_2 * problem->getRandom01() * socInf);
+//	}
+//	//Standard PSO
+//	else if (config->getVelocityRule() == VEL_STANDARD){
+//		new_vel = (inertia * vel) +
+//				(phi_1 * problem->getRandom01() * perInf) +
+//				(phi_2 * problem->getRandom01() * socInf);
+//
+//	}
+//	//Linear PSO
+//	else if (config->getVelocityRule() == VEL_LINEAR){
+//		new_vel = (inertia * vel) +
+//				(phi_1 * u1 * perInf) +
+//				(phi_2 * u2 * socInf);
+//	}
+//	//Constriction coefficient PSO
+//	else if (config->getVelocityRule() == VEL_CONSTRICTED){
+//		new_vel = CONSTRICTION_COEFFICIENT * (vel +
+//				(phi_1 * problem->getRandom01() * perInf) +
+//				(phi_2 * problem->getRandom01() * socInf));
+//	}
+//	else if (config->getVelocityRule() == VEL_GUARAN_CONVERG){
+//		//if (pbest.eval == gbest.eval)
+//	}
+//	//Standard 2011 PSO - Uses a Hypersphere distribution to generate new points
+//	else if (config->getVelocityRule() == VEL_STANDARD2011){
+//		//in this case additionalVal = (H(G||G-X||) - G-X) -> see StandarPSO Maurice Clerc for details
+//		new_vel = (inertia * vel) + additionalVal;
+//	}
+//	//Use standard PSO
+//	else
+//		new_vel = (inertia * vel) +
+//		(phi_1 * problem->getRandom01() * perInf) +
+//		(phi_2 * problem->getRandom01() * socInf);
+//
+//
+//	return new_vel;
+//}
+
 double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf, double socInf, double pos, double additionalVal){
 	double new_vel = 0.0;
 
-	//Very first rule
-	if (config->getVelocityRule() == VEL_BASIC){
-		new_vel = vel +
-				(phi_1 * problem->getRandom01() * perInf) +
-				(phi_2 * problem->getRandom01() * socInf);
-	}
-	//Standard PSO
-	else if (config->getVelocityRule() == VEL_STANDARD){
-		new_vel = (inertia * vel) +
-				(phi_1 * problem->getRandom01() * perInf) +
-				(phi_2 * problem->getRandom01() * socInf);
-
-	}
-	//Linear PSO
-	else if (config->getVelocityRule() == VEL_LINEAR){
-		new_vel = (inertia * vel) +
-				(phi_1 * u1 * perInf) +
-				(phi_2 * u2 * socInf);
-	}
+	//Configurable PSO velocity equation
 	//Constriction coefficient PSO
-	else if (config->getVelocityRule() == VEL_CONSTRICTION_COF){
-		new_vel = CONSTRICTION_FACTOR * (vel +
-				(phi_1 * problem->getRandom01() * perInf) +
-				(phi_2 * problem->getRandom01() * socInf));
-	}
-	else if (config->getVelocityRule() == VEL_GUARAN_CONVERG){
-		//if (pbest.eval == gbest.eval)
-	}
-	//Standard 2011 PSO - Uses a Hypersphere distribution to generate new points
-	else if (config->getVelocityRule() == VEL_STANDARD2011){
-		//in this case additionalVal = (H(G||G-X||) - G-X) -> see StandarPSO Maurice Clerc for details
-		new_vel = (inertia * vel) + additionalVal;
-	}
-	//Use standard PSO
-	else
-		new_vel = (inertia * vel) +
-		(phi_1 * problem->getRandom01() * perInf) +
-		(phi_2 * problem->getRandom01() * socInf);
+	//if (config->getVelocityRule() == VEL_CONSTRICTED){
+	new_vel = CONSTRICTION_COEFFICIENT * (
+			(inertia * vel) +
+			(phi_1 * problem->getRandom01() * perInf) +
+			(phi_2 * problem->getRandom01() * socInf)
+	);
+	//}
 
 
 	return new_vel;
@@ -380,7 +398,8 @@ void Particle::updateGlobalBest(double* x, double eval){
 double Particle::computeDistPbestGbest(){
 	double sumDistSqr = 0.0;
 	for(int i=0;i<size;i++){
-		sumDistSqr += pow((gbest.x[i]-pbest.x[i]),2);
+		sumDistSqr += pow((this->gbest.x[i]-this->pbest.x[i]),2);
+		//sumDistSqr += pow((gbest.x[i]-pbest.x[i]),2);
 	}
 	return sqrt(sumDistSqr);
 }
@@ -445,6 +464,28 @@ void Particle::checkNeibourhood(){
 	//New best particle in the neighborhood
 	if(best!=-1)
 		updateGlobalBest(neighbours[best]->getPbestPosition(), neighbours[best]->getPbestEvaluation());
+}
+
+/*Check the neighborhood for the best particle */
+void Particle::checkNeibourhood2(){
+	double aux_eval;
+	int best=-1;
+
+	//Check first personal best
+	if(this->pbest.eval < this->gbest.eval){
+		updateGlobalBest(this->pbest.x, this->pbest.eval);
+	}
+	//Check after the rest of the neighborhood
+	aux_eval=this->gbest.eval;
+	for(unsigned int i=0; i<this->neighbours.size();i++){
+		if(aux_eval > this->neighbours[i]->getPbestEvaluation()){
+			best = i;
+		}
+	}
+
+	//New best particle in the neighborhood
+	if(best!=-1)
+		updateGlobalBest(this->neighbours[best]->getPbestPosition(), this->neighbours[best]->getPbestEvaluation());
 }
 
 int Particle::getRandomNeighbor(){

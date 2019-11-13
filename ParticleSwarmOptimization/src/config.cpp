@@ -72,11 +72,14 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		} else if (strcmp(argv[i], "--fullyConnected") == 0){
 			topology = TOP_FULLYCONNECTED;
 			//cout << "\n topology has been received \n";
+		} else if (strcmp(argv[i], "--star") == 0){
+			topology = TOP_FULLYCONNECTED;
+			//cout << "\n topology has been received \n";
 		} else if (strcmp(argv[i], "--ring") == 0){
 			topology = TOP_RING;
 			//cout << "\n topology has been received \n";
-		} else if (strcmp(argv[i], "--star") == 0){
-			topology = TOP_STAR;
+		} else if (strcmp(argv[i], "--wheel") == 0){
+			topology = TOP_WHEEL;
 			//cout << "\n topology has been received \n";
 		} else if (strcmp(argv[i], "--random") == 0){
 			topology = TOP_RANDOM;
@@ -87,8 +90,8 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		} else if (strcmp(argv[i], "--timevarying") == 0){
 			topology = TOP_TIMEVARYING;
 			//cout << "\n topology has been received \n";
-		} else if (strcmp(argv[i], "--scalefree") == 0){
-			topology = TOP_SCALEFREE;
+		} else if (strcmp(argv[i], "--hierarchical") == 0){
+			topology = TOP_HIERARCHICAL;
 			//cout << "\n topology has been received \n";
 		} else if (strcmp(argv[i], "--clamped") == 0){
 			useVelClamping = true;
@@ -111,6 +114,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			//cout << "\n inertia weight schedule has been received \n";
 		} else if (strcmp(argv[i], "--tSchedule") == 0) {
 			tSchedule = atol(argv[i+1]);
+			i++;
+			//cout << "\n topology schedule has been received \n";
+		} else if (strcmp(argv[i], "--branching") == 0) {
+			branching = atoi(argv[i+1]);
 			i++;
 			//cout << "\n topology schedule has been received \n";
 		} else if (strcmp(argv[i], "--vRule") == 0) {
@@ -139,6 +146,11 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	if (tSchedule < 1)
 		tSchedule = 1;
 	tSchedule = particles*tSchedule;
+
+	if (branching < 2)
+		branching = 2;
+	if (branching > particles)
+		branching = floor(particles/2);
 
 	//The inertia weight schedule
 	if (iwSchedule > 4)
@@ -173,7 +185,7 @@ double Configuration::getStartTime(){
 //TODO: Update with all the parameters
 void Configuration::printUsage(){
 	cout << "" << endl;
-	cout << "PSO-X: A flexible and configurable particle swarm optimization framework" << endl;
+	cout << "PSO-something: A flexible and configurable particle swarm optimization framework" << endl;
 	cout << "" << endl;
 	cout << "General parameters:" << endl;
 	cout << "\t--competition <competitionID>" << endl;
@@ -254,6 +266,7 @@ void Configuration::setDefaultParameters(){
 	finalIW = 0.4;							//final inertia weight
 	iwSchedule = 2*pow(particles,2);		//inertia weight schedule
 	tSchedule = 2*particles;				//topology update schedule
+	branching = 4;							//branching degree for the hierarchical topology
 	vRule = 1;
 
 	//When the maxInitRange and minInitRange are different from 100
@@ -390,6 +403,9 @@ short Configuration::getTopology(){
 }
 unsigned int Configuration::getTopologySchedule(){
 	return tSchedule;
+}
+int Configuration::getBranchingDegree(){
+	return branching;
 }
 double Configuration::getPhi1(){
 	return phi_1;

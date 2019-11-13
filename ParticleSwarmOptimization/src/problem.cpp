@@ -327,7 +327,7 @@ void Problem::deallocateMemory3D(double *** array3D, unsigned int h, unsigned in
 void Problem::oszfunc (double *x, double *xosz, int dim)
 {
 	int i,sx;
-	double c1,c2,xx;
+	double c1,c2,xx=0;
 	for (i=0; i<dim; i++)
 	{
 		if (i==0||i==dim-1)

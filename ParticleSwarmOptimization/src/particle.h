@@ -33,14 +33,13 @@ protected:
 	int  id;
 	bool hasVelocitybounds;
 	int ranking;
+	int parent;
 
 	/*Solution variables*/
 	//Each particle has to remember this three vectors at each iteration
 	struct Solution current;  /* current solution */
 	struct Solution pbest;    /* personal best solution */
 	struct Solution gbest;    /* global best solution (According to the topology) */
-
-	vector < Particle* > neighbours;  /* vector of neighbors particles */
 
 	/*Velocity variables*/
 	double* velocity;               /* velocity */
@@ -53,13 +52,14 @@ protected:
 
 public:
 
+	vector < Particle* > neighbours;  /* vector of neighbors particles */
 	Particle ();  														/* empty constructor */
 	~Particle();  														/* destructor */
 	Particle (Problem* problem, Configuration* config, int identifier);	/* constructor */
 	Particle (const Particle &p);  										/* copy constructor */
 	Particle& operator= (const Particle& p);  							/* overriding of '=' */
 
-	void  move(Configuration* config, double minBound, double maxBound, long int iteration);
+	void  move(Configuration* config, double minBound, double maxBound, long int iteration, double inertia, int *parentNodes, int lastLevelComplete);
 	double computeNewVelocity(Configuration* config, double vel, double rand1, double rand2,double perInf, double socInf, double pos, double additionalVal);
 
 	double* getCurrentPosition();
@@ -71,6 +71,8 @@ public:
 
 	void addNeighbour(Particle* p);
 	void checkNeibourhood();
+	void checkNeibourhood2();
+
 	void updateGlobalBest(double* x, double eval);
 	unsigned int getNeighborhoodSize();
 
@@ -96,6 +98,10 @@ public:
 	//inertia
 	int getRanking();
 	void setRanking(int rank);
+
+	//hierarchical topology
+	int getParent();
+	void setParent(int papa);
 
 };
 

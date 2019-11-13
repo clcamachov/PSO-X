@@ -146,7 +146,7 @@
 #define E  exp(1)
 #define EPSILON 1E-15
 #define DELTA 1E-30
-#define CONSTRICTION_FACTOR 0.7298
+#define CONSTRICTION_COEFFICIENT 0.7298
 #define MAX_DIMENSION 	1000
 
 /*PSO definitions*/
@@ -154,13 +154,13 @@
 #define TRACE( x )
 
 // available topologies
-#define TOP_FULLYCONNECTED 	0
+#define TOP_FULLYCONNECTED 	0	//or STAR
 #define TOP_RING 			1
-#define TOP_STAR 			2
+#define TOP_WHEEL 			2
 #define TOP_RANDOM 			3
 #define TOP_VONNEUMANN		4
 #define TOP_TIMEVARYING		5
-#define TOP_SCALEFREE		6
+#define TOP_HIERARCHICAL	6
 
 // available inertia control strategies
 // non adaptive
@@ -187,13 +187,31 @@
 #define VEL_BASIC				0
 #define VEL_STANDARD			1
 #define VEL_LINEAR				2
-#define VEL_CONSTRICTION_COF	3
+#define VEL_CONSTRICTED			3
 #define VEL_GUARAN_CONVERG		4
 #define VEL_FULLY_INFORMED		5
 #define VEL_LOC_CON_TRANS_INV	6
 #define VEL_STANDARD2011		7	//ratation invariant
-#define VEL_ROTATION_INV		8	// random matrix
+#define VEL_ROTATION_INV		8	//random matrix
 
+#define DIST_RECTANGULAR		0
+#define DIST_SPHERICAL			1
+#define DIST_MULTISPHERICAL		2
+#define DIST_ADD_STOCH 			3
+
+#define PERT_ADD_RECT			0
+#define PERT_ADD_NOISY			1
+#define PERT_DIST_NORMAL		2
+
+#define Q_STANDARD				0
+#define Q_GAUSSIAN				1
+#define Q_DISCRETE				2
+#define Q_NORMAL				3
+
+#define	MATRIX_DIAGONAL			0
+#define	MATRIX_LINEAR			1
+#define	MATRIX_RRM_EXP_MAP		2
+#define	MATRIX_RRM_EUCLIDEAN	3
 
 class Configuration {
 
@@ -225,6 +243,7 @@ private:
 	unsigned int tSchedule;		//n, 2n, 3n, 4n, etc. (the lower the value the faster)
 	unsigned int esteps;
 	int topologyUpdatePeriod;
+	int branching;
 
 	//Inertia control parameters
 	short inertiaCS;			// inertia control strategy indicator
@@ -293,6 +312,7 @@ public:
 	//Topology
 	short getTopology();
 	unsigned int getTopologySchedule();
+	int getBranchingDegree();
 
 	void setEsteps(unsigned int num_esteps);
 	unsigned int getEsteps();

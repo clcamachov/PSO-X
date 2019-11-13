@@ -26,19 +26,25 @@ protected:
 
 	struct Solution global_best;    /* best solution in the swarm*/
 	Particle *best_particle;        /* best particle */
+	bool init;
 	bool ranked;					/* implement particle rankings */
+	bool hierarchical;				/* hierarchical topology flag */
 
 public:
 	Swarm ();
 	~Swarm();
 	Swarm (Problem* problem, Configuration* config); /*Create swarm structure*/
+	Swarm (const Swarm &s, Configuration* config);
+
+	Swarm& operator= (const Swarm& s);
 
 	void updateGlobalBest(double* new_x, double eval);
 	void moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound);
-	//void (*setNeighborhood)();		// pointer to neighborhood function
+	void moveSwarmSR_IW(Configuration* config, long int iteration, const double minBound, const double maxBound, int *parentNodes, int lastLevelComplete);
+	void moveSwarmCB_IW(Configuration* config, long int iteration, const double minBound, const double maxBound, double prev_eval, int *parentNodes, int lastLevelComplete);
 
 	// Inertia
-	void computeInertia(Configuration* config, long int iteration);
+	double computeOmega1(Configuration* config, long int iteration, long int id, bool newIteration);
 	double computeAvgVelocity(Configuration* config);
 	void rankParticles(SimplifySwarm* particles);
 
@@ -49,10 +55,20 @@ public:
 	/* Available topologies*/
 	void createFullyConnectedTopology();
 	void createRingTopology();
-	void createStarTopology();
+	void createWheelTopology();
 	void createRandomTopology();
 	void createVonNeumannTopology();
 	void updateTimeVaryingTopology(Configuration* config, long int iterations);
+	void createHierarchical(int branching);
+	//void freeNodes(Node *node);
+	//void LevelOrderTraversal(Node* root);
+	//void addNextNode(Node* root, int newChild, int height, Configuration* config)
+	void printTree(int branching);
+	void swapNodes(int newParent, int newH, int newWidth, int parentNode, int parentH, int parentWidth, int branching, int h, int width, int iterCount);
+	void updateTree(int branching);
+	bool isHierarchical();
+	void getParticleParentsIDs(int particleID, int *ParentsArray1D);
+	void printAllParentNodes();
 };
 
 #endif /* SWARM_H_ */
