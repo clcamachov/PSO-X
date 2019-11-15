@@ -133,11 +133,11 @@ double Problem::getRandomX(){
 	return(rr);
 };
 
-///* get a random number in the range [lower_bound, upper_bound] */
-//double Problem::getRandomX(){
-//	double rr = ((double) rand()/RAND_MAX) * (config->getMaxInitBound()-config->getMinInitBound()) + config->getMinInitBound();
-//	return(rr);
-//};
+/* get a random number in the range [lower_bound, upper_bound] */
+double Problem::getRandomX(double lowerBound, double upperBound){
+	double rr = RNG::randVal(lowerBound,upperBound);;
+	return(rr);
+};
 
 /* random function for values in [0,1] */
 double Problem::getRandom01(){

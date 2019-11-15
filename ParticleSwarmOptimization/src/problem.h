@@ -118,6 +118,7 @@ public:
 	 * Function from Optim.h
 	 */
 	double getRandomX();
+	double getRandomX(double lowerBound, double upperBound);
 	double getRandom01();
 	void printProblem();
 };

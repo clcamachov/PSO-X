@@ -34,6 +34,7 @@ protected:
 	bool hasVelocitybounds;
 	int ranking;
 	int parent;
+	int stereotype;
 
 	/*Solution variables*/
 	//Each particle has to remember this three vectors at each iteration
@@ -72,6 +73,7 @@ public:
 	void addNeighbour(Particle* p);
 	void checkNeibourhood();
 	void checkNeibourhood2();
+	int getBestOfNeibourhood();
 
 	void updateGlobalBest(double* x, double eval);
 	unsigned int getNeighborhoodSize();

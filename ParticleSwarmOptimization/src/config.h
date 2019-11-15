@@ -162,7 +162,13 @@
 #define TOP_TIMEVARYING		5
 #define TOP_HIERARCHICAL	6
 
-// available inertia control strategies
+// available models of influence
+#define MOI_BEST_OF_N		0
+#define MOI_FI				1
+#define MOI_RANKED_FI		2
+#define MOI_HIERARCHICAL	3
+
+// available inertia control strategies (omega1)
 // non adaptive
 #define IW_CONSTANT			 0
 #define IW_L_INC			 1
@@ -182,6 +188,16 @@
 #define IW_RANKS_BASED 		 14
 #define IW_SUCCESS_BASED 	 15
 #define IW_CONVERGE_BASED 	 16
+
+// available omega2 strategies
+#define O2_EQUALS_IW			0
+#define O2_ZERO					1  //if you don't want to use the component
+#define O2_RANDOM				2
+
+// available omega3 strategies
+#define O3_EQUALS_IW			0
+#define O3_ZERO					1  //if you don't want to use the component
+#define O3_RANDOM				2
 
 // available velocity update rules
 #define VEL_BASIC				0
@@ -245,12 +261,19 @@ private:
 	int topologyUpdatePeriod;
 	int branching;
 
-	//Inertia control parameters
+	//Inertia control parameters (omega1 in the GVU)
 	short inertiaCS;			// inertia control strategy indicator
 	double inertia;				// actual variable to used in the velocity update formula. If no inertiaCS is given, this value is fixed during the
 	double initialIW;
 	double finalIW;
 	unsigned int iwSchedule;	//n^2 , 2n^2 , 3n^2 , 4n^2, etc. (the lower the value the faster)
+
+	//Omega2 and omega3 in the GVU
+	short omega2CS;
+	short omega3CS;
+
+	//Model of influence
+	short modelOfInfluence;
 
 	//velocity rules
 	int vRule;
@@ -304,6 +327,13 @@ public:
 	short getinertiaCS();
 	bool isVelocityClamped();
 	void setVelocityClamped(bool clamping);
+
+	//Omega2 and Omega3
+	short getomega2CS();
+	short getomega3CS();
+
+	//Model of influence
+	short getModelOfInfluence();
 
 	//Cognitive and social influence control
 	double getPhi1();

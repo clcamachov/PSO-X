@@ -40,11 +40,12 @@ public:
 
 	void updateGlobalBest(double* new_x, double eval);
 	void moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound);
-	void moveSwarmSR_IW(Configuration* config, long int iteration, const double minBound, const double maxBound, int *parentNodes, int lastLevelComplete);
-	void moveSwarmCB_IW(Configuration* config, long int iteration, const double minBound, const double maxBound, double prev_eval, int *parentNodes, int lastLevelComplete);
+	void getInformants(Configuration* config, int particleID, long int iteration);
 
 	// Inertia
 	double computeOmega1(Configuration* config, long int iteration, long int id, bool newIteration);
+	double computeOmega2(Configuration* config);
+	double computeOmega3(Configuration* config);
 	double computeAvgVelocity(Configuration* config);
 	void rankParticles(SimplifySwarm* particles);
 
@@ -59,10 +60,9 @@ public:
 	void createRandomTopology();
 	void createVonNeumannTopology();
 	void updateTimeVaryingTopology(Configuration* config, long int iterations);
+
+	//Hierarchical topology
 	void createHierarchical(int branching);
-	//void freeNodes(Node *node);
-	//void LevelOrderTraversal(Node* root);
-	//void addNextNode(Node* root, int newChild, int height, Configuration* config)
 	void printTree(int branching);
 	void swapNodes(int newParent, int newH, int newWidth, int parentNode, int parentH, int parentWidth, int branching, int h, int width, int iterCount);
 	void updateTree(int branching);

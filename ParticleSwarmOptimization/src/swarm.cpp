@@ -35,8 +35,9 @@ double deltaOmega = 0.1;					//small positive constant		IW_VELOCITY_BASED - 12
 struct SimplifySwarm simpSwarm;				//								IW_RANKS_BASED - 14
 double alpha_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
 double beta_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
-int** hierarchy;							//hierarchical model-of-influence
+int** hierarchy;							//tree structure for the hierarchical model of influence
 int lastLevelComplete = 0;					//global variable for the hierarchy
+int* Informants;							//variable length array that contains the informants of a particle
 
 //Default constructor
 Swarm::Swarm(){
@@ -55,6 +56,7 @@ Swarm::~Swarm(){
 			delete swarm.at(i);
 
 		delete [] global_best.x;
+		delete [] Informants;
 
 		if (ranked){
 			//free memory reserved to the use rankings
@@ -120,7 +122,7 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 
 	//rankings
 	if (config->getinertiaCS() == IW_RANKS_BASED || config->getinertiaCS() == IW_SUCCESS_BASED
-			|| config->getinertiaCS() == IW_CONVERGE_BASED)
+			|| config->getinertiaCS() == IW_CONVERGE_BASED || config->getModelOfInfluence() == MOI_RANKED_FI)
 		ranked = true;
 
 	init=true;
@@ -173,7 +175,7 @@ Swarm::Swarm (const Swarm &s, Configuration* config){
 
 		//rankings
 		if (config->getinertiaCS() == IW_RANKS_BASED || config->getinertiaCS() == IW_SUCCESS_BASED
-				|| config->getinertiaCS() == IW_CONVERGE_BASED)
+				|| config->getinertiaCS() == IW_CONVERGE_BASED || config->getModelOfInfluence() == MOI_RANKED_FI)
 			ranked = true;
 	}
 	else {
@@ -214,9 +216,12 @@ void Swarm::printGbest(unsigned int dimensions){
 /*Move the swarm to new solutions */
 void Swarm::moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound) {
 	int * ParentsArray1D = NULL; //Array that contains the parentNodes of a particle in the hierarchical topology
+	//int * Informants = NULL;
 
-	//compute the inertia weight according to the strategy chosen (-1 is just place holder for the id of the particle)
-	computeOmega1(config, iteration, -1, true);
+	// If the entire swarm uses the same inertia, we compute its value only once using flag = true
+	computeOmega1(config, iteration, -1, true); // -1 is just place holder for the id of the particle
+
+	//getInformants(config,-1,iteration);	// -1 is just place holder for the id of the particle
 
 	//Move particles
 	cout << "iteration: " << iteration << endl; //remove
@@ -236,15 +241,8 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 			//cout << endl;
 		}
 
-		//particles move applying the rules for new velocity and new position
-		swarm.at(i)->move(config, minBound, maxBound, iteration, computeOmega1(config, iteration, i, false), ParentsArray1D, lastLevelComplete);
-
-		if (hierarchical){
-			delete [] ParentsArray1D;
-			updateTree(config->getBranchingDegree());
-			//if (iteration == config->getMaxIterations())
-				//printTree(config->getBranchingDegree());
-		}
+		//Note that here computeOmega1 receives the number of the particle and the flag = false
+		swarm.at(i)->move(config, minBound, maxBound, iteration, computeOmega1(config, iteration, i, false), ParentsArray1D, lastLevelComplete); //Move the swarm
 	}
 
 	//Update Global best particle
@@ -255,9 +253,88 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		}
 	}
 
-	//if(prev_eval > global_best.eval) {
-	//cout << "Iteration "<< iteration << " [ New global best: " << global_best.eval << " ]" << endl;
-	//}
+	//Update topology
+	if (hierarchical){
+		//delete [] ParentsArray1D;
+		updateTree(config->getBranchingDegree());
+	}
+}
+
+void Swarm::getInformants(Configuration* config, int particleID, long int iteration){
+	if (particleID != -1){
+		//Best of neighborhood
+		if (config->getModelOfInfluence() == MOI_BEST_OF_N){ //Just one particle
+			if (iteration == 1) //allocate memory only first time
+				Informants = new int [1];
+			Informants[0] = swarm.at(particleID)->getBestOfNeibourhood();
+			cout << "\nSize of Informants is: " << (sizeof(Informants)/sizeof(*Informants)) << endl;
+			//return Informants;
+		}
+		//Fully informed
+		else if (config->getModelOfInfluence() == MOI_FI) {
+			//Since some topologies are dynamic, the size of informants may change from iteration to iteration
+			if (iteration == 1)
+				Informants = new int[swarm.size()];
+			else {
+				delete [] Informants;
+				Informants = new int[swarm.size()];
+			}
+			for (unsigned int i=0;i<swarm.size();i++){
+				Informants[i] = swarm.at(particleID)->neighbours[i]->getID();
+			}
+			cout << "\nSize of Informants is: " << (sizeof(Informants)/sizeof(*Informants)) << endl;
+			//return Informants;
+		}
+		//Hierarchical
+		else if (config->getModelOfInfluence() == MOI_HIERARCHICAL){
+			int size = 0;		//variable to the the size of Informants
+			int * TMP_Array;
+			TMP_Array = new int[lastLevelComplete];
+			getParticleParentsIDs(particleID, TMP_Array); //Get parents of the particle
+			for (int i=0; i<=lastLevelComplete; i++){
+				if (TMP_Array[i] != -2){		//-2 indicates an empty position
+					size++;
+				}
+				else
+					break;
+			}
+			//This is the actual array with the ID of the informants
+			Informants = new int[size];
+			for (int i=0; i<size; i++){
+				Informants[i] = TMP_Array[i];
+			}
+			delete [] TMP_Array;
+			cout << "\nSize of Informants is: " << (sizeof(Informants)/sizeof(*Informants)) << endl;
+		}
+		else {
+			cerr << "No model of influence matches the available options" << endl;
+			exit (-1);
+		}
+	}
+	else{
+		//Ranked fully informed
+		if (config->getModelOfInfluence() == MOI_RANKED_FI){
+			Informants = new int[swarm.size()];
+			if (iteration == 1 && !ranked){
+				ranked = true;
+				//Memory allocation to rank particles
+				simpSwarm.eval = new long double [config->getSwarmSize()];
+				simpSwarm.id = new int [config->getSwarmSize()];
+				//Rank particles
+				rankParticles(&simpSwarm);
+			}
+			for (unsigned int i=0;i<swarm.size();i++){
+				//This is the same as Fully informed, but the array is sorted according to the ranks
+				Informants[swarm.at(i)->getRanking()] = swarm.at(i)->getID();
+			}
+			cout << "\nSize of Informants is: " << (sizeof(Informants)/sizeof(*Informants)) << endl;
+			//return Informants;
+		}
+		else {
+			cerr << "No model of influence matches the available options" << endl;
+			exit (-1);
+		}
+	}
 }
 
 /* Topologies */
@@ -729,6 +806,46 @@ void Swarm::rankParticles(SimplifySwarm* simpSwarm){
 	}
 }
 
+double Swarm::computeOmega2(Configuration* config){
+	//Same as Omega1
+	if (config->getomega2CS() == O2_EQUALS_IW){
+		//		if (config->getinertiaCS() == IW_SELF_REGULATING) {
+		//		}
+		//		else if (config->getinertiaCS() == IW_DOUBLE_EXP) {
+		//		}
+		//		else if (config->getinertiaCS() == IW_RANKS_BASED){
+		//		}
+		//		else if (config->getinertiaCS() == IW_CONVERGE_BASED) {
+		//		}
+		//		else
+		return config->getInertia();
+	}
+	//Random value
+	else if (config->getomega2CS() == O2_RANDOM)
+		return 0.5 * (problem->getRandom01()/2.0);
+	//Zero -- component is not being used
+	else if (config->getomega2CS() == O2_ZERO)
+		return 0.0;
+	//One -- Omega2 is not being used
+	else
+		return 1.0;
+}
+
+double Swarm::computeOmega3(Configuration* config){
+	//Same as Omega1
+	if (config->getomega3CS() == O3_EQUALS_IW)
+		return config->getInertia();
+	//Random value
+	else if (config->getomega3CS() == O3_RANDOM)
+		return 0.5 * (problem->getRandom01()/2.0);
+	//Zero -- component is not being used
+	else if (config->getomega3CS() == O3_ZERO)
+		return 0.0;
+	//One -- Omega3 is not being used
+	else
+		return 1.0;
+}
+
 // This function computes the inertia weight according to the selected strategy
 double Swarm::computeOmega1(Configuration* config, long int iteration, long int id, bool newIteration){
 	//If all particle use the same inertia value, it is more efficient
@@ -1024,8 +1141,10 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				return config->getInertia();
 			}
 		}
-		else
+		else{
 			cerr << "Unexpected error while computing the value of inertia" << endl;
+			exit (-1);
+		}
 	}
 	return config->getInertia();
 }

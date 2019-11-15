@@ -27,6 +27,7 @@ Configuration::Configuration(){
 
 //Program
 //TODO: Update with all the parameters
+//TODO: Check the integrity of all the parameters here (values and combination with other parameters)
 bool Configuration::getConfig(int argc, char *argv[]){
 	for(int i=1; i<argc; i++){
 		if(strcmp(argv[i], "--competition") == 0){
@@ -99,19 +100,31 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		} else if (strcmp(argv[i], "--inertiaCS") == 0) {
 			inertiaCS = atoi(argv[i+1]);
 			i++;
-			//cout << "\n initial inertia weight has been received \n";
+			//cout << "\n inertia control strategy has been received \n";
 		} else if (strcmp(argv[i], "--initialIW") == 0) {
 			initialIW = atof(argv[i+1]);
 			i++;
-			//cout << "\n initial inertia weight has been received \n";
+			//cout << "\n initial inertia value has been received \n";
 		} else if (strcmp(argv[i], "--finalIW") == 0) {
 			finalIW = atof(argv[i+1]);
 			i++;
-			//cout << "\n final inertia weight has been received \n";
+			//cout << "\n final inertia value has been received \n";
 		} else if (strcmp(argv[i], "--iwSchedule") == 0) {
 			iwSchedule = atol(argv[i+1]);
 			i++;
 			//cout << "\n inertia weight schedule has been received \n";
+		} else if (strcmp(argv[i], "--omega2CS") == 0) {
+			omega2CS = atoi(argv[i+1]);
+			i++;
+			//cout << "\n omega2 strategy has been received \n";
+		} else if (strcmp(argv[i], "--omega3CS") == 0) {
+			omega3CS = atoi(argv[i+1]);
+			i++;
+			//cout << "\n omega3 strategy has been received \n";
+		} else if (strcmp(argv[i], "--mof") == 0) {
+			modelOfInfluence = atoi(argv[i+1]);
+			i++;
+			//cout << "\n model of influence has been received \n";
 		} else if (strcmp(argv[i], "--tSchedule") == 0) {
 			tSchedule = atol(argv[i+1]);
 			i++;
@@ -119,7 +132,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		} else if (strcmp(argv[i], "--branching") == 0) {
 			branching = atoi(argv[i+1]);
 			i++;
-			//cout << "\n topology schedule has been received \n";
+			//cout << "\n branching degree has been received \n";
 		} else if (strcmp(argv[i], "--vRule") == 0) {
 			vRule = atol(argv[i+1]);
 			i++;
@@ -151,6 +164,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		branching = 2;
 	if (branching > particles)
 		branching = floor(particles/2);
+
+	//Hierarchical topology has it own model of infuence
+	if (topology == TOP_HIERARCHICAL)
+		modelOfInfluence = MOI_HIERARCHICAL;
 
 	//The inertia weight schedule
 	if (iwSchedule > 4)
@@ -262,9 +279,12 @@ void Configuration::setDefaultParameters(){
 	maxInitRange = 100;						//upper bound of the function
 	useVelClamping = true;					//clamp velocity (step size)
 	inertiaCS = 0;							//inertia control strategy
-	initialIW =  0.9;						//initial inertia weight
-	finalIW = 0.4;							//final inertia weight
+	initialIW =  0.9;						//initial inertia value
+	finalIW = 0.4;							//final inertia value
 	iwSchedule = 2*pow(particles,2);		//inertia weight schedule
+	omega2CS = 0;
+	omega3CS = 0;
+	modelOfInfluence = 0;
 	tSchedule = 2*particles;				//topology update schedule
 	branching = 4;							//branching degree for the hierarchical topology
 	vRule = 1;
@@ -390,13 +410,22 @@ unsigned int Configuration::getIWSchedule(){
 short Configuration::getinertiaCS(){
 	return inertiaCS;
 }
-
+short Configuration::getomega2CS(){
+	return omega2CS;
+}
+short Configuration::getomega3CS(){
+	return omega3CS;
+}
 bool Configuration::isVelocityClamped(){
 	return useVelClamping;
 }
 void Configuration::setVelocityClamped(bool clamping){
 	useVelClamping = clamping;
 }
+short Configuration::getModelOfInfluence(){
+	return modelOfInfluence;
+}
+
 
 short Configuration::getTopology(){
 	return topology;

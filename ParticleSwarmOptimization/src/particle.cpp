@@ -33,6 +33,7 @@ Particle::Particle(){
 	maxVelLimit = 100;					//maximum velocity  v_max
 	ranking = 0;
 	parent =0;
+	stereotype = 0;
 }
 
 /* Constructor*/
@@ -42,6 +43,8 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier){
 	size= problem->getProblemDimension();
 	id = identifier;
 	ranking = 0;
+	parent = 0;
+	stereotype = 0;
 
 	hasVelocitybounds = config->useVelocityClamping();
 	setVelocityLimits(config); //Set velocity clamping limits
@@ -68,11 +71,12 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier){
 
 /* Copy constructor */
 Particle::Particle (const Particle &p){
-	size = problem->getProblemDimension();
 	problem = p.problem;
+	size = p.size;
 	id = p.id;
 	ranking = p.ranking;
 	parent = p.parent;
+	stereotype = p.stereotype;
 
 	hasVelocitybounds = p.hasVelocitybounds;
 	minVelLimit = p.minVelLimit;
@@ -121,6 +125,9 @@ Particle& Particle::operator= (const Particle& p){
 		problem = p.problem;
 		size = p.size;
 		id = p.id;
+		ranking = p.ranking;
+		parent = p.parent;
+		stereotype = p.stereotype;
 
 		hasVelocitybounds = p.hasVelocitybounds;
 		minVelLimit = p.minVelLimit;
@@ -156,11 +163,9 @@ Particle& Particle::operator= (const Particle& p){
 void Particle::initializeUniform(){
 	for(int i=0; i<size; i++){
 		current.x[i] = problem->getRandomX(); //random values within the bounds of the function
-		//cout << current.x[i] << " ";
 		pbest.x[i]=current.x[i];
 		velocity[i]=0;
 	}
-	//cout << "]" << endl;
 	computeEvaluation();
 }
 
@@ -264,7 +269,7 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 //double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf, double socInf, double pos, double additionalVal){
 //	double new_vel = 0.0;
 //
-//	//Very first rule
+//	//Original PSO
 //	if (config->getVelocityRule() == VEL_BASIC){
 //		new_vel = vel +
 //				(phi_1 * problem->getRandom01() * perInf) +
@@ -486,6 +491,29 @@ void Particle::checkNeibourhood2(){
 	//New best particle in the neighborhood
 	if(best!=-1)
 		updateGlobalBest(this->neighbours[best]->getPbestPosition(), this->neighbours[best]->getPbestEvaluation());
+}
+
+/*Check the neighborhood for the best particle */
+int Particle::getBestOfNeibourhood(){
+	double aux_eval;
+	int best=-1;
+
+	//Check first personal best
+	if(this->pbest.eval < this->gbest.eval){
+		updateGlobalBest(this->pbest.x, this->pbest.eval);
+	}
+	//Check after the rest of the neighborhood
+	aux_eval=this->gbest.eval;
+	for(unsigned int i=0; i<this->neighbours.size();i++){
+		if(aux_eval > this->neighbours[i]->getPbestEvaluation()){
+			best = i;
+		}
+	}
+
+	//New best particle in the neighborhood
+	if(best!=-1)
+		updateGlobalBest(this->neighbours[best]->getPbestPosition(), this->neighbours[best]->getPbestEvaluation());
+	return best;
 }
 
 int Particle::getRandomNeighbor(){
