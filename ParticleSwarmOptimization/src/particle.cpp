@@ -205,7 +205,7 @@ void Particle::setParent(int node){
 }
 
 /* Generate a new solution by updating the particle's position */
-void Particle::move(Configuration* config, double minBound, double maxBound, long int iteration, double inertia, int *parentNodes, int lastLevelComplete){
+void Particle::move(Configuration* config, double minBound, double maxBound, long int iteration, double inertia, int numInformants, int *theInformants, int lastLevelComplete){
 	//For VEL_LINEAR all entries of the random matrix are the same
 	double u1=problem->getRandom01(); //random value for the personal component
 	double u2=problem->getRandom01(); //random value for the social component
@@ -223,7 +223,7 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	//For hierarchical topology
 	if (config->getTopology() == TOP_HIERARCHICAL){
 		for (int i=1; i<=lastLevelComplete; i++){
-			if (parentNodes[i] != -2)
+			if (theInformants[i] != -2)
 				numberParents++;
 			else
 				break;

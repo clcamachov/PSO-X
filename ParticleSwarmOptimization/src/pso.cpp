@@ -594,12 +594,17 @@ int main(int argc, char *argv[] ){
 	while(!terminationCondition()){
 		iterations++;
 
+		swarm->moveSwarm(config, iterations, config->getMinInitBound(),config->getMaxInitBound());
+		evaluations=evaluations + config->getSwarmSize();
+
+		//Update topology
 		if (config->getTopology() == TOP_TIMEVARYING) {
 			swarm->updateTimeVaryingTopology(config, iterations) ;
 		}
+		if (config->getTopology() == TOP_HIERARCHICAL){
+			swarm->updateTree(config->getBranchingDegree());
+		}
 
-		swarm->moveSwarm(config, iterations, config->getMinInitBound(),config->getMaxInitBound());
-		evaluations=evaluations + config->getSwarmSize();
 	}
 
 	cout << "\nBest value found:\t" << scientific << swarm->getGlobalBest().eval << endl;

@@ -121,7 +121,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			omega3CS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n omega3 strategy has been received \n";
-		} else if (strcmp(argv[i], "--mof") == 0) {
+		} else if (strcmp(argv[i], "--modInfluence") == 0) {
 			modelOfInfluence = atoi(argv[i+1]);
 			i++;
 			//cout << "\n model of influence has been received \n";
@@ -320,6 +320,9 @@ void Configuration::printParameters(){
 			<< "  iwSchedule       " << getIWSchedule() << "\n"
 			<< "  tSchedule        " << getTopologySchedule() << "\n"
 			<< "  vRule            " << getVelocityRule() << "\n"
+			<< "  omega2CS         " << getomega2CS() << "\n"
+			<< "  omega3CS         " << getomega3CS() << "\n"
+			<< "  modelOfInfluence " << getModelOfInfluence() << "\n"
 			<< endl;
 }
 
@@ -425,8 +428,6 @@ void Configuration::setVelocityClamped(bool clamping){
 short Configuration::getModelOfInfluence(){
 	return modelOfInfluence;
 }
-
-
 short Configuration::getTopology(){
 	return topology;
 }
@@ -449,7 +450,6 @@ void Configuration::setEsteps(unsigned int num_esteps){
 void Configuration::setTopologyUpdatePeriod(int period){
 	topologyUpdatePeriod = period;
 }
-
 unsigned int Configuration::getEsteps(){
 	return esteps;
 }

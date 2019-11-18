@@ -31,6 +31,7 @@ protected:
 	bool hierarchical;				/* hierarchical topology flag */
 
 public:
+
 	Swarm ();
 	~Swarm();
 	Swarm (Problem* problem, Configuration* config); /*Create swarm structure*/
@@ -40,7 +41,7 @@ public:
 
 	void updateGlobalBest(double* new_x, double eval);
 	void moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound);
-	void getInformants(Configuration* config, int particleID, long int iteration);
+	int getInformants(Configuration* config, int particleID, long int iteration);	//returns the number of informants of a particle
 
 	// Inertia
 	double computeOmega1(Configuration* config, long int iteration, long int id, bool newIteration);

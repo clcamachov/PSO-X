@@ -113,7 +113,6 @@ void Utils::mergeSort(SimplifySwarm* arr, int l, int r){
 		// Sort first and second halves
 		mergeSort(arr, l, m);
 		mergeSort(arr, m+1, r);
-
 		merge(arr, l, m, r);
 	}
 }
@@ -179,10 +178,10 @@ void Utils::merge(SimplifySwarm* arr, int l, int m, int r){
 		j++;
 		k++;
 	}
-	delete [] L.id;
-	delete [] R.id;
-	delete [] L.eval;
-	delete [] R.eval;
+	//delete [] L.id;
+	//delete [] R.id;
+	//delete [] L.eval;
+	//delete [] R.eval;
 }
 
 // Utility function to create a new tree node

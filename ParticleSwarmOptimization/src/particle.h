@@ -23,7 +23,6 @@ using namespace std;
 
 class Particle {
 
-
 protected:
 
 	Problem* problem;		/* the optimization problem */
@@ -60,7 +59,7 @@ public:
 	Particle (const Particle &p);  										/* copy constructor */
 	Particle& operator= (const Particle& p);  							/* overriding of '=' */
 
-	void  move(Configuration* config, double minBound, double maxBound, long int iteration, double inertia, int *parentNodes, int lastLevelComplete);
+	void  move(Configuration* config, double minBound, double maxBound, long int iteration, double inertia, int numInformants, int *theInformants, int lastLevelComplete);
 	double computeNewVelocity(Configuration* config, double vel, double rand1, double rand2,double perInf, double socInf, double pos, double additionalVal);
 
 	double* getCurrentPosition();

@@ -29,11 +29,6 @@ struct Node { // Represents a node of an n-ary tree
 	struct Node **child;
 };
 
-//struct Node { // Represents a node of an n-ary tree
-//	int key;
-//	vector<Node*>child;
-//};
-
 class Utils{
 
 public:
