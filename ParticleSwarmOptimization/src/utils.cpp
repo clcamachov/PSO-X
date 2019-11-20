@@ -127,20 +127,20 @@ void Utils::merge(SimplifySwarm* arr, int l, int m, int r){
 
 	/* create temp arrays */
 	//struct SimplifySwarm L[n1], R[n2];
-	struct SimplifySwarm L, R;
-	L.eval = new long double [n1];
-	L.id = new int [n1];
-	R.eval = new long double [n2];
-	R.id = new int [n2];
+	//struct SimplifySwarm L, R;
+	long double L_eval [n1];
+	int L_id [n1];
+	long double R_eval [n2];
+	int R_id [n2];
 
 	/* Copy data to temp arrays L[] and R[] */
 	for (i = 0; i < n1; i++){
-		L.eval[i] = arr->eval[l + i];
-		L.id[i] = arr->id[l + i];
+		L_eval[i] = arr->eval[l + i];
+		L_id[i] = arr->id[l + i];
 	}
 	for (j = 0; j < n2; j++){
-		R.eval[j] = arr->eval[m + 1+ j];
-		R.id[j] = arr->id[m + 1+ j];
+		R_eval[j] = arr->eval[m + 1+ j];
+		R_id[j] = arr->id[m + 1+ j];
 	}
 
 	/* Merge the temp arrays back into arr[l..r]*/
@@ -148,14 +148,14 @@ void Utils::merge(SimplifySwarm* arr, int l, int m, int r){
 	j = 0; // Initial index of second subarray
 	k = l; // Initial index of merged subarray
 	while (i < n1 && j < n2) {
-		if (L.eval[i] <= R.eval[j]) {
-			arr->eval[k] = L.eval[i];
-			arr->id[k] = L.id[i];
+		if (L_eval[i] <= R_eval[j]) {
+			arr->eval[k] = L_eval[i];
+			arr->id[k] = L_id[i];
 			i++;
 		}
 		else {
-			arr->eval[k] = R.eval[j];
-			arr->id[k] = R.id[j];
+			arr->eval[k] = R_eval[j];
+			arr->id[k] = R_id[j];
 			j++;
 		}
 		k++;
@@ -164,8 +164,8 @@ void Utils::merge(SimplifySwarm* arr, int l, int m, int r){
 	/* Copy the remaining elements of L[], if there
        are any */
 	while (i < n1) {
-		arr->eval[k] = L.eval[i];
-		arr->id[k] = L.id[i];
+		arr->eval[k] = L_eval[i];
+		arr->id[k] = L_id[i];
 		i++;
 		k++;
 	}
@@ -173,16 +173,79 @@ void Utils::merge(SimplifySwarm* arr, int l, int m, int r){
 	/* Copy the remaining elements of R[], if there
        are any */
 	while (j < n2) {
-		arr->eval[k] = R.eval[j];
-		arr->id[k] = R.id[j];
+		arr->eval[k] = R_eval[j];
+		arr->id[k] = R_id[j];
 		j++;
 		k++;
 	}
-	//delete [] L.id;
-	//delete [] R.id;
-	//delete [] L.eval;
-	//delete [] R.eval;
 }
+
+// Merges two subarrays of arr[].
+// First subarray is arr[l..m]
+// Second subarray is arr[m+1..r]
+//void Utils::merge(SimplifySwarm* arr, int l, int m, int r){
+//	int i, j, k;
+//	int n1 = m - l + 1;
+//	int n2 =  r - m;
+//
+//	/* create temp arrays */
+//	//struct SimplifySwarm L[n1], R[n2];
+//	struct SimplifySwarm L, R;
+//	L.eval = new long double [n1];
+//	L.id = new int [n1];
+//	R.eval = new long double [n2];
+//	R.id = new int [n2];
+//
+//	/* Copy data to temp arrays L[] and R[] */
+//	for (i = 0; i < n1; i++){
+//		L.eval[i] = arr->eval[l + i];
+//		L.id[i] = arr->id[l + i];
+//	}
+//	for (j = 0; j < n2; j++){
+//		R.eval[j] = arr->eval[m + 1+ j];
+//		R.id[j] = arr->id[m + 1+ j];
+//	}
+//
+//	/* Merge the temp arrays back into arr[l..r]*/
+//	i = 0; // Initial index of first subarray
+//	j = 0; // Initial index of second subarray
+//	k = l; // Initial index of merged subarray
+//	while (i < n1 && j < n2) {
+//		if (L.eval[i] <= R.eval[j]) {
+//			arr->eval[k] = L.eval[i];
+//			arr->id[k] = L.id[i];
+//			i++;
+//		}
+//		else {
+//			arr->eval[k] = R.eval[j];
+//			arr->id[k] = R.id[j];
+//			j++;
+//		}
+//		k++;
+//	}
+//
+//	/* Copy the remaining elements of L[], if there
+//       are any */
+//	while (i < n1) {
+//		arr->eval[k] = L.eval[i];
+//		arr->id[k] = L.id[i];
+//		i++;
+//		k++;
+//	}
+//
+//	/* Copy the remaining elements of R[], if there
+//       are any */
+//	while (j < n2) {
+//		arr->eval[k] = R.eval[j];
+//		arr->id[k] = R.id[j];
+//		j++;
+//		k++;
+//	}
+//	//delete [] L.id;
+//	//delete [] R.id;
+//	//delete [] L.eval;
+//	//delete [] R.eval;
+//}
 
 // Utility function to create a new tree node
 Node* Utils::newNode(Node* parent, int numSubNodos, int id, long double valor) {

@@ -10,6 +10,8 @@
 #include <float.h>
 #include <string.h>
 #include <iostream>
+#include <stdio.h>
+
 /****************************************************************************
  * The Configuration class contains the methods for importing the parameters
  * required for the program and the methods for exporting them.
@@ -17,6 +19,11 @@
 //TCLAP makes it easy to import parameters from a certain format
 
 using namespace std;
+
+void printer(char *name, int value) {
+    printf("name: %s\tvalue: %d\n", name, value);
+}
+
 
 Configuration::~Configuration(){}
 
@@ -70,6 +77,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			phi_2 = atof(argv[i+1]);
 			i++;
 			//cout << "\n phi2 has been received \n";
+		} else if (strcmp(argv[i], "--topology") == 0){
+			topology = atoi(argv[i+1]);
+			i++;
+			//cout << "\n topology has been received \n";
 		} else if (strcmp(argv[i], "--fullyConnected") == 0){
 			topology = TOP_FULLYCONNECTED;
 			//cout << "\n topology has been received \n";
@@ -165,9 +176,12 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	if (branching > particles)
 		branching = floor(particles/2);
 
-	//Hierarchical topology has it own model of infuence
+	//Hierarchical topology has it own model of influence
 	if (topology == TOP_HIERARCHICAL)
 		modelOfInfluence = MOI_HIERARCHICAL;
+
+	if (modelOfInfluence == MOI_HIERARCHICAL && topology != TOP_HIERARCHICAL)
+		modelOfInfluence = MOI_FI;
 
 	//The inertia weight schedule
 	if (iwSchedule > 4)
@@ -177,8 +191,8 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	iwSchedule = iwSchedule*pow(particles,2);
 
 	//Check problem dimensions
-	if (problemDimension < 2 || problemDimension > 100) {
-		cerr << "\nError: Dimension should be between 2 and 100.\n";
+	if (problemDimension < 2 || problemDimension > 50) {
+		cerr << "\nError: Dimension should be between 2 and 50.\n";
 		return(false);
 	}
 	//--competition 0 --problem 20 --dimensions 30 --seed 123456 --particles 20 --iterations 2003 --evaluations 20000 --inertiaCS 12 --iwSchedule 2 --initialIW 0.4 --finalIW 0.9 --inertia 0.75 --phi1 0.5 --phi2 0.5 --ring

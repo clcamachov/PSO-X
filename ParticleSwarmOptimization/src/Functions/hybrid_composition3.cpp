@@ -95,10 +95,26 @@ HC_3::HC_3(Configuration* config, int variantID):Problem(config, variantID){
 	stringstream dim_name;
 	dim_name << dimension;
 
-	if(vID == ROTATED_WITH_HIGH_CONDITION_NUMBER_MATRIX)
-		file_m = "supportData/hybrid_func3_HM_D" + dim_name.str() + ".txt";
-	else if (vID == ROTATED || vID == NONCONTINUOUS_ROTATED)
-		file_m = "supportData/hybrid_func3_M_D" + dim_name.str() + ".txt";
+	if(vID == ROTATED_WITH_HIGH_CONDITION_NUMBER_MATRIX){
+		if (dimension > 2 && dimension < 10)
+			file_m = "supportData/hybrid_func3_HM_D10.txt";
+		else if (dimension > 10 && dimension < 30)
+			file_m = "supportData/hybrid_func3_HM_D30.txt";
+		else if (dimension > 30 && dimension < 50)
+			file_m = "supportData/hybrid_func3_HM_D50.txt";
+		else
+			file_m = "supportData/hybrid_func3_HM_D" + dim_name.str() + ".txt";
+	}
+	else if (vID == ROTATED || vID == NONCONTINUOUS_ROTATED){
+		if (dimension > 2 && dimension < 10)
+			file_m = "supportData/hybrid_func3_M_D10.txt";
+		else if (dimension > 10 && dimension < 30)
+			file_m = "supportData/hybrid_func3_M_D30.txt";
+		else if (dimension > 30 && dimension < 50)
+			file_m = "supportData/hybrid_func3_M_D50.txt";
+		else
+			file_m = "supportData/hybrid_func3_M_D" + dim_name.str() + ".txt";
+	}
 
 	Utils::loadMatrixFromFile(file_data, NUM_OF_FUNC, dimension, shift_vector2D);
 

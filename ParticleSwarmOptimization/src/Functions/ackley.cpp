@@ -34,7 +34,17 @@ Ackley::Ackley(Configuration* config, int variantID):Problem(config, variantID){
 			m_r = new double[dimension];
 			stringstream dim_name;
 			dim_name << dimension;
-			string file_m = "supportData/ackley_M_D" + dim_name.str() + ".txt";
+			string file_m;
+
+			if (dimension > 2 && dimension < 10)
+				file_m = "supportData/ackley_M_D10.txt";
+			else if (dimension > 10 && dimension < 30)
+				file_m = "supportData/ackley_M_D30.txt";
+			else if (dimension > 30 && dimension < 50)
+				file_m = "supportData/ackley_M_D50.txt";
+			else
+				file_m = "supportData/ackley_M_D" + dim_name.str() + ".txt";
+
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}
 	}else if(config->getCompetitionID() == CEC14 || config->getCompetitionID() == SOFT_COMPUTING
@@ -57,7 +67,19 @@ Ackley::Ackley(Configuration* config, int variantID):Problem(config, variantID){
 			m_r = new double[dimension];
 			stringstream dim_name;
 			dim_name << dimension;
-			string file_m = "supportData/input_data/ackley_M_D" + dim_name.str() + ".txt";
+			string file_m;
+
+			if (dimension > 2 && dimension < 10)
+				file_m = "supportData/input_data/ackley_M_D10.txt";
+			else if (dimension > 10 && dimension < 20)
+				file_m = "supportData/input_data/ackley_M_D20.txt";
+			else if (dimension > 20 && dimension < 30)
+				file_m = "supportData/input_data/ackley_M_D30.txt";
+			else if (dimension > 30 && dimension < 50)
+				file_m = "supportData/input_data/ackley_M_D50.txt";
+			else
+				file_m = "supportData/input_data/ackley_M_D" + dim_name.str() + ".txt";
+
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}
 	}

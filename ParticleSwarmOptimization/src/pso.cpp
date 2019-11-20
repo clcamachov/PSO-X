@@ -559,9 +559,7 @@ void freeMemory(){
 	RNG::deallocatePermutation();
 	delete problem;
 	delete config;
-	//~Swarm() is called automatically when we use hierarchical topology
-	if (!swarm->isHierarchical())
-		delete swarm;
+	delete swarm;
 }
 
 int main(int argc, char *argv[] ){

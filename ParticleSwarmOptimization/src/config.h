@@ -152,6 +152,7 @@
 /*PSO definitions*/
 #define LINE_BUF_LEN    100
 #define TRACE( x )
+#define PRINTER(name) printer(#name, (name))
 
 // available topologies
 #define TOP_FULLYCONNECTED 	0	//or STAR
@@ -166,7 +167,7 @@
 #define MOI_BEST_OF_N		0
 #define MOI_FI				1
 #define MOI_RANKED_FI		2
-#define MOI_HIERARCHICAL	3
+#define MOI_HIERARCHICAL	3	//Only available for TOP_HIERARCHICAL
 
 // available inertia control strategies (omega1)
 // non adaptive

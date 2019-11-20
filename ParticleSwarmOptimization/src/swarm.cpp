@@ -231,24 +231,27 @@ void Swarm::printGbest(unsigned int dimensions){
 
 /*Move the swarm to new solutions */
 void Swarm::moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound) {
-	// If the entire swarm uses the same inertia, we compute its value only once using flag = true
+	//For the cases in which the entire swarm is using omega1 with the same value
 	computeOmega1(config, iteration, -1, true); // -1 is just place holder for the id of the particle
-	//cout << "\nSo far, so good...\n"<< endl;
-	//We call this method here because some model of influence need to initialize things
+
+	//We call this method here because some models of influence need to initialize things
 	getInformants(config,-1,iteration);	// -1 is just place holder for the id of the particle
 
 	//Move particles
 	cout << "iteration: " << iteration << endl; //remove
 	for (unsigned int i=0;i<swarm.size();i++){
-		//Get informants
-		int sizeInformants = getInformants(config, i, iteration);
+
+		int sizeInformants = getInformants(config, i, iteration); //Get informants
+		double omega1 = computeOmega1(config, iteration, i, false);
 
 		//Note that here computeOmega1 receives the number of the particle and the flag = false
 		swarm.at(i)->move(config, minBound, maxBound, iteration,
-				computeOmega1(config, iteration, i, false),
+				omega1,
+				computeOmega2(config),
+				computeOmega3(config),
 				sizeInformants,
 				Informants,
-				lastLevelComplete); //Move the swarm
+				lastLevelComplete);
 	}
 
 	//Update Global best particle
@@ -323,7 +326,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				Informants[i] = TMP_Array[i];
 			}
 			delete [] TMP_Array;
-			cout << "Size of Informants of " << particleID << " is " << Array_size << endl;
+			//cout << "Size of Informants of " << particleID << " is " << Array_size << endl;
 			return Array_size;
 		}
 		else {
@@ -823,28 +826,16 @@ void Swarm::rankParticles(SimplifySwarm* sS){
 }
 
 double Swarm::computeOmega2(Configuration* config){
-	//Same as Omega1
-	if (config->getomega2CS() == O2_EQUALS_IW){
-		//		if (config->getinertiaCS() == IW_SELF_REGULATING) {
-		//		}
-		//		else if (config->getinertiaCS() == IW_DOUBLE_EXP) {
-		//		}
-		//		else if (config->getinertiaCS() == IW_RANKS_BASED){
-		//		}
-		//		else if (config->getinertiaCS() == IW_CONVERGE_BASED) {
-		//		}
-		//		else
+	switch(config->getomega2CS()){
+	case O2_EQUALS_IW:
 		return config->getInertia();
-	}
-	//Random value
-	else if (config->getomega2CS() == O2_RANDOM)
+	case O2_RANDOM:
 		return 0.5 * (problem->getRandom01()/2.0);
-	//Zero -- component is not being used
-	else if (config->getomega2CS() == O2_ZERO)
-		return 0.0;
-	//One -- Omega2 is not being used
-	else
-		return 1.0;
+	case O2_ZERO:
+		return 0.0; //the component is not used
+	default :
+		return 1.0; //Omega2 is not used
+	}
 }
 
 double Swarm::computeOmega3(Configuration* config){
