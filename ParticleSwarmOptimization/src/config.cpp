@@ -21,7 +21,7 @@
 using namespace std;
 
 void printer(char *name, int value) {
-    printf("name: %s\tvalue: %d\n", name, value);
+	printf("name: %s\tvalue: %d\n", name, value);
 }
 
 
@@ -105,11 +105,23 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		} else if (strcmp(argv[i], "--hierarchical") == 0){
 			topology = TOP_HIERARCHICAL;
 			//cout << "\n topology has been received \n";
+		} else if (strcmp(argv[i], "--modInfluence") == 0) {
+			modelOfInfluence = atoi(argv[i+1]);
+			i++;
+			//cout << "\n model of influence has been received \n";
+		} else if (strcmp(argv[i], "--tSchedule") == 0) {
+			tSchedule = atol(argv[i+1]);
+			i++;
+			//cout << "\n topology schedule has been received \n";
+		} else if (strcmp(argv[i], "--branching") == 0) {
+			branching = atoi(argv[i+1]);
+			i++;
+			//cout << "\n branching degree has been received \n";
 		} else if (strcmp(argv[i], "--clamped") == 0){
 			useVelClamping = true;
 			//cout << "\n velocity clamping has been set to true \n";
 		} else if (strcmp(argv[i], "--inertiaCS") == 0) {
-			inertiaCS = atoi(argv[i+1]);
+			omega1CS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n inertia control strategy has been received \n";
 		} else if (strcmp(argv[i], "--initialIW") == 0) {
@@ -132,18 +144,18 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			omega3CS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n omega3 strategy has been received \n";
-		} else if (strcmp(argv[i], "--modInfluence") == 0) {
-			modelOfInfluence = atoi(argv[i+1]);
+		} else if (strcmp(argv[i], "--perturbation") == 0) {
+			perturbation = atoi(argv[i+1]);
 			i++;
-			//cout << "\n model of influence has been received \n";
-		} else if (strcmp(argv[i], "--tSchedule") == 0) {
-			tSchedule = atol(argv[i+1]);
+			//cout << "\n perturbation strategy has been received \n";
+		} else if (strcmp(argv[i], "--randomMatrix") == 0) {
+			randomMatrix = atoi(argv[i+1]);
 			i++;
-			//cout << "\n topology schedule has been received \n";
-		} else if (strcmp(argv[i], "--branching") == 0) {
-			branching = atoi(argv[i+1]);
+			//cout << "\n randomMatrix type has been received \n";
+		} else if (strcmp(argv[i], "--operator_q") == 0) {
+			operator_q = atoi(argv[i+1]);
 			i++;
-			//cout << "\n branching degree has been received \n";
+			//cout << "\n operator_q has been received \n";
 		} else if (strcmp(argv[i], "--vRule") == 0) {
 			vRule = atol(argv[i+1]);
 			i++;
@@ -161,7 +173,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	//Some velocity update rules have special requirements
 	if (vRule == 0 ){ //do not require inertia
 		inertia = 1.0;
-		inertiaCS = 0;
+		omega1CS = 0;
 	}
 
 	//The topology schedule should be maximum six times the swarm size, i.e. it goes from n to 6n
@@ -292,7 +304,7 @@ void Configuration::setDefaultParameters(){
 	minInitRange = -100;					//lower bound of the function
 	maxInitRange = 100;						//upper bound of the function
 	useVelClamping = true;					//clamp velocity (step size)
-	inertiaCS = 0;							//inertia control strategy
+	omega1CS = 0;							//inertia control strategy
 	initialIW =  0.9;						//initial inertia value
 	finalIW = 0.4;							//final inertia value
 	iwSchedule = 2*pow(particles,2);		//inertia weight schedule
@@ -301,6 +313,9 @@ void Configuration::setDefaultParameters(){
 	modelOfInfluence = 0;
 	tSchedule = 2*particles;				//topology update schedule
 	branching = 4;							//branching degree for the hierarchical topology
+	perturbation = 0;
+	randomMatrix = 0;
+	operator_q = 0;
 	vRule = 1;
 
 	//When the maxInitRange and minInitRange are different from 100
@@ -328,7 +343,7 @@ void Configuration::printParameters(){
 			<< "  minInitRange:    " << getMinInitBound() << "\n"
 			<< "  maxInitRange:    " << getMaxInitBound() << "\n"
 			<< "  useVelClamping:  " << useVelocityClamping() << "\n"
-			<< "  inertiaCS:       " << getinertiaCS() << "\n"
+			<< "  omega1CS:        " << getinertiaCS() << "\n"
 			<< "  initialIW        " << getInitialIW() << "\n"
 			<< "  finalIW          " << getFinalIW() << "\n"
 			<< "  iwSchedule       " << getIWSchedule() << "\n"
@@ -425,7 +440,7 @@ unsigned int Configuration::getIWSchedule(){
 	return iwSchedule;
 }
 short Configuration::getinertiaCS(){
-	return inertiaCS;
+	return omega1CS;
 }
 short Configuration::getomega2CS(){
 	return omega2CS;
@@ -441,6 +456,15 @@ void Configuration::setVelocityClamped(bool clamping){
 }
 short Configuration::getModelOfInfluence(){
 	return modelOfInfluence;
+}
+short Configuration::getPerturbation(){
+	return perturbation;
+}
+short Configuration::getRandomMatrix(){
+	return randomMatrix;
+}
+short Configuration::getOperator_q(){
+	return operator_q;
 }
 short Configuration::getTopology(){
 	return topology;

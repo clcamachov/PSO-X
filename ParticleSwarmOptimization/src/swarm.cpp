@@ -35,11 +35,19 @@ double deltaOmega = 0.1;					//small positive constant		IW_VELOCITY_BASED - 12
 struct SimplifySwarm simpSwarm;				//								IW_RANKS_BASED - 14
 double alpha_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
 double beta_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
+/* Variable for the topology and model of influence */
 int** hierarchy;							//tree structure for the hierarchical model of influence
 int lastLevelComplete = 0;					//global variable for the hierarchy
-int* Informants;							//variable length array that contains the informants of a particle
-struct SimplifySwarm rankedSwarm;			//								IW_RANKS_BASED - 14
-bool modInfRanked = false;
+int* Informants;							//variable length array that contains the ID of informants of a particle
+struct SimplifySwarm rankedSwarm;			//ranked FI model of influence
+bool modInfRanked = false;					//flag to indicate that the rankedSwarm structure was used and delete it
+/* Variable for the perturbation strategies */
+int success = 15, failure = 5;				//success and failure thresholds for the additive rectangular perturbation
+int sc = 0, fc = 0;							//success and failure counters
+double alpha_t = 1.0;						//side length of the rectangle for the success-rate perturbation
+double delta = 1.0;							//side length of the rectangle for the uniform random perturbation
+double l = 0.01;							//scaling factor for the perturbation
+
 
 //Default constructor
 Swarm::Swarm(){
@@ -228,7 +236,6 @@ void Swarm::printGbest(unsigned int dimensions){
 	cout << " ]\n" << endl;
 }
 
-
 /*Move the swarm to new solutions */
 void Swarm::moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound) {
 	//For the cases in which the entire swarm is using omega1 with the same value
@@ -251,15 +258,47 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 				computeOmega3(config),
 				sizeInformants,
 				Informants,
-				lastLevelComplete);
+				lastLevelComplete,
+				alpha_t, l, delta);
 	}
 
-	//Update Global best particle
+	long double prev_Gbest_eval = global_best.eval; //best solution at iteration t-1
+
+	//Update Global of the Swarm (not to be confused with the gbest of a particle)
 	for (unsigned int i=0;i<swarm.size();i++){
 		if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
-			updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
+			Swarm::updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
 			best_particle = swarm[i];
 		}
+	}
+
+	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval);
+}
+
+void Swarm::updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval){
+	switch(config->getPerturbation()){
+	case PERT_ADD_RECT:
+		if (previousGbest_eval != currentGbest_eval){ //success
+			sc++;
+			fc=0;
+			if (sc > success){
+				alpha_t = alpha_t * 2.0;
+				cout << "\n DOUBLE alpha_t for success" << alpha_t << endl;
+			}
+		}
+		else{ //failure
+			fc++;
+			sc=0;
+			if (fc > failure){
+				alpha_t = alpha_t * 0.5;
+				cout << "\n HALF alpha_t update for failure: " << alpha_t << endl;
+			}
+		}
+		break;
+	case PERT_DIST_NORMAL:
+		break;
+	case PERT_ADD_NOISY:
+		break;
 	}
 }
 
@@ -289,6 +328,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 			for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
 				Informants[i] = swarm.at(particleID)->neighbours[i]->getID();
 			}
+			swarm.at(particleID)->getBestOfNeibourhood();  //update particle's gbest
 			//cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
 			return swarm.at(particleID)->neighbours.size();
 		}
@@ -304,6 +344,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				//This is the same as Fully informed, but the array is sorted according to the ranks
 				Informants[i] = swarm.at(particleID)->neighbours.at(i)->getRanking();
 			}
+			swarm.at(particleID)->getBestOfNeibourhood();  //update particle's gbest
 			//cout << "\nSize of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
 			return swarm.at(particleID)->neighbours.size();
 		}
@@ -326,6 +367,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				Informants[i] = TMP_Array[i];
 			}
 			delete [] TMP_Array;
+			swarm.at(particleID)->getBestOfNeibourhood(); //update particle's gbest
 			//cout << "Size of Informants of " << particleID << " is " << Array_size << endl;
 			return Array_size;
 		}
@@ -1096,7 +1138,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			//IW_DOUBLE_EXP - 13 - Double exponential self-adaptive
 			else if (config->getinertiaCS() == IW_DOUBLE_EXP) {
 				double R =0.0;
-				swarm.at(id)->checkNeibourhood2();
+				swarm.at(id)->getBestOfNeibourhood();  //update particle's gbest
 				if (iteration == 1){
 					config->setInertia(config->getFinalIW());
 					//cout << id << endl;

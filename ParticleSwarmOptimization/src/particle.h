@@ -34,6 +34,7 @@ protected:
 	int ranking;
 	int parent;
 	int stereotype;
+	double perturbationVal;
 
 	/*Solution variables*/
 	//Each particle has to remember this three vectors at each iteration
@@ -60,7 +61,7 @@ public:
 	Particle& operator= (const Particle& p);  							/* overriding of '=' */
 
 	void move(Configuration* config, double minBound, double maxBound, long int iteration,
-			double omega1, double omega2, double omega3, int numInformants, int *theInformants, int lastLevelComplete);
+			double omega1, double omega2, double omega3, int numInformants, int *theInformants, int lastLevelComplete, double alpha_t, double l, double delta);
 	double computeNewVelocity(Configuration* config, double vel, double rand1, double rand2,double perInf, double socInf, double pos, double additionalVal);
 
 	double* getCurrentPosition();
@@ -72,13 +73,13 @@ public:
 
 	void addNeighbour(Particle* p);
 	void checkNeibourhood();
-	void checkNeibourhood2();
 	int getBestOfNeibourhood();
 
 	void updateGlobalBest(double* x, double eval);
 	unsigned int getNeighborhoodSize();
 
 	double computeDistPbestGbest();
+	double computeDistance(double * x, double * p);
 
 	//Velocity
 	void setVelocityLimits(Configuration* config);
@@ -91,6 +92,10 @@ public:
 
 	void getHypersphericalVector(double* H, double* V1);
 	int getRandomNeighbor();
+
+	//Perturbation
+	double computePerturbation(Configuration* config, double * pos_x, double * pbest_x, int alpha_t,
+			double l, double delta, bool newIteration);
 
 	//Frankenstein's members
 	int getID();

@@ -16,6 +16,7 @@
 using namespace std;
 
 double additionalVal= 0.0; //variable in case some additional value has to be use to update the formula
+double prev_D = 0.0;		//dispersion value used for normal distribution
 
 /* Default constructor*/
 Particle::Particle(){
@@ -34,6 +35,7 @@ Particle::Particle(){
 	ranking = 0;
 	parent =0;
 	stereotype = 0;
+	perturbationVal = 0;
 }
 
 /* Constructor*/
@@ -45,6 +47,7 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier){
 	ranking = 0;
 	parent = 0;
 	stereotype = 0;
+	perturbationVal = 0;
 
 	hasVelocitybounds = config->useVelocityClamping();
 	setVelocityLimits(config); //Set velocity clamping limits
@@ -77,6 +80,7 @@ Particle::Particle (const Particle &p){
 	ranking = p.ranking;
 	parent = p.parent;
 	stereotype = p.stereotype;
+	perturbationVal = p.perturbationVal;
 
 	hasVelocitybounds = p.hasVelocitybounds;
 	minVelLimit = p.minVelLimit;
@@ -128,6 +132,7 @@ Particle& Particle::operator= (const Particle& p){
 		ranking = p.ranking;
 		parent = p.parent;
 		stereotype = p.stereotype;
+		perturbationVal = p.perturbationVal;
 
 		hasVelocitybounds = p.hasVelocitybounds;
 		minVelLimit = p.minVelLimit;
@@ -206,34 +211,28 @@ void Particle::setParent(int node){
 
 /* Generate a new solution by updating the particle's position */
 void Particle::move(Configuration* config, double minBound, double maxBound, long int iteration,
-		double omega1, double omega2, double omega3, int numInformants, int *theInformants, int lastLevelComplete){
+		double omega1, double omega2, double omega3, int numInformants, int *theInformants, int lastLevelComplete,
+		double alpha_t, double l, double delta){
 	//For VEL_LINEAR all entries of the random matrix are the same
 	double u1=problem->getRandom01(); //random value for the personal component
 	double u2=problem->getRandom01(); //random value for the social component
 	double V2[size];
 	double V1[size];
-	int numberParents = 0;
-
-	//Find Gbest in the particle's topological neighborhood
-	checkNeibourhood();
 
 	if (config->getVelocityRule() == VEL_STANDARD2011){
 		//random vector from a hyperspherical distribution with center G and radius G-X
 		getHypersphericalVector(V2, V1);
 	}
-	//For hierarchical topology
-	if (config->getTopology() == TOP_HIERARCHICAL){
-		for (int i=1; i<=lastLevelComplete; i++){
-			if (theInformants[i] != -2)
-				numberParents++;
-			else
-				break;
-		}
-	}
+
+	//cout << "\n alpha_t recived is: " << alpha_t << endl;
+	//perturbationVal = computePerturbation(config, current.x, neighbours[0]->current.x, alpha_t, l, delta, true);
+	cout << "\n perturbationVal: "  << scientific << perturbationVal << endl;
 
 	//Compute new position
 	for (int i=0;i<size;i++) {
 		//TODO: Here I could modify this to determine the parameters sent to computeNewVelocity() using a switch statement
+		perturbationVal = computePerturbation(config, current.x, neighbours[0]->current.x, alpha_t, l, delta, false);
+		//cout << "\n perturbationVal: "  << scientific << perturbationVal << endl;
 
 		double PersonalInfluence = pbest.x[i]-current.x[i];
 		double SocialInfluence = gbest.x[i]-current.x[i];
@@ -264,54 +263,36 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 		if(current.x[i] > maxBound)
 			current.x[i]= maxBound;
 	}
-	computeEvaluation();
+	computeEvaluation(); //evaluate the objective function and update pbest if a new pbest has been found
 }
 
-//double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf, double socInf, double pos, double additionalVal){
-//	double new_vel = 0.0;
-//
-//	//Original PSO
-//	if (config->getVelocityRule() == VEL_BASIC){
-//		new_vel = vel +
-//				(phi_1 * problem->getRandom01() * perInf) +
-//				(phi_2 * problem->getRandom01() * socInf);
-//	}
-//	//Standard PSO
-//	else if (config->getVelocityRule() == VEL_STANDARD){
-//		new_vel = (inertia * vel) +
-//				(phi_1 * problem->getRandom01() * perInf) +
-//				(phi_2 * problem->getRandom01() * socInf);
-//
-//	}
-//	//Linear PSO
-//	else if (config->getVelocityRule() == VEL_LINEAR){
-//		new_vel = (inertia * vel) +
-//				(phi_1 * u1 * perInf) +
-//				(phi_2 * u2 * socInf);
-//	}
-//	//Constriction coefficient PSO
-//	else if (config->getVelocityRule() == VEL_CONSTRICTED){
-//		new_vel = CONSTRICTION_COEFFICIENT * (vel +
-//				(phi_1 * problem->getRandom01() * perInf) +
-//				(phi_2 * problem->getRandom01() * socInf));
-//	}
-//	else if (config->getVelocityRule() == VEL_GUARAN_CONVERG){
-//		//if (pbest.eval == gbest.eval)
-//	}
-//	//Standard 2011 PSO - Uses a Hypersphere distribution to generate new points
-//	else if (config->getVelocityRule() == VEL_STANDARD2011){
-//		//in this case additionalVal = (H(G||G-X||) - G-X) -> see StandarPSO Maurice Clerc for details
-//		new_vel = (inertia * vel) + additionalVal;
-//	}
-//	//Use standard PSO
-//	else
-//		new_vel = (inertia * vel) +
-//		(phi_1 * problem->getRandom01() * perInf) +
-//		(phi_2 * problem->getRandom01() * socInf);
-//
-//
-//	return new_vel;
-//}
+double Particle::computePerturbation(Configuration* config, double * pos_x, double * pbest_x, int alpha_t,
+		double l, double delta, bool newInformant){
+	//return value
+	double returnVal = 0.0;
+
+	switch(config->getPerturbation()){
+	case PERT_ADD_RECT:
+		returnVal = alpha_t*(1-(2*problem->getRandom01()));
+		break;
+	case PERT_DIST_NORMAL:
+		if (newInformant){
+			double distance = computeDistance(pos_x, pbest_x);
+			if (distance == 0)
+				returnVal = this->perturbationVal;
+			else
+				returnVal = l*distance;
+		}
+		else
+			returnVal = this->perturbationVal;
+		break;
+	case PERT_ADD_NOISY:
+		returnVal = problem->getRandomX(-delta/2,delta/2);
+		break;
+	}
+
+	return returnVal;
+}
 
 double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf, double socInf, double pos, double additionalVal){
 	double new_vel = 0.0;
@@ -405,11 +386,17 @@ double Particle::computeDistPbestGbest(){
 	double sumDistSqr = 0.0;
 	for(int i=0;i<size;i++){
 		sumDistSqr += pow((this->gbest.x[i]-this->pbest.x[i]),2);
-		//sumDistSqr += pow((gbest.x[i]-pbest.x[i]),2);
 	}
 	return sqrt(sumDistSqr);
 }
 
+double Particle::computeDistance(double * x, double * p){
+	double sumDistSqr = 0.0;
+	for(int i=0;i<size;i++){
+		sumDistSqr += pow((x[i]-p[i]),2);
+	}
+	return sqrt(sumDistSqr);
+}
 
 double* Particle::getCurrentPosition() {
 	return(current.x);
@@ -470,28 +457,6 @@ void Particle::checkNeibourhood(){
 	//New best particle in the neighborhood
 	if(best!=-1)
 		updateGlobalBest(neighbours[best]->getPbestPosition(), neighbours[best]->getPbestEvaluation());
-}
-
-/*Check the neighborhood for the best particle */
-void Particle::checkNeibourhood2(){
-	double aux_eval;
-	int best=-1;
-
-	//Check first personal best
-	if(this->pbest.eval < this->gbest.eval){
-		updateGlobalBest(this->pbest.x, this->pbest.eval);
-	}
-	//Check after the rest of the neighborhood
-	aux_eval=this->gbest.eval;
-	for(unsigned int i=0; i<this->neighbours.size();i++){
-		if(aux_eval > this->neighbours[i]->getPbestEvaluation()){
-			best = i;
-		}
-	}
-
-	//New best particle in the neighborhood
-	if(best!=-1)
-		updateGlobalBest(this->neighbours[best]->getPbestPosition(), this->neighbours[best]->getPbestEvaluation());
 }
 
 /*Check the neighborhood for the best particle */
@@ -603,3 +568,50 @@ int Particle::getRandomNonAdjacentNeighborID(Configuration* config){
 	else
 		return -1;
 }
+
+//double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf, double socInf, double pos, double additionalVal){
+//	double new_vel = 0.0;
+//
+//	//Original PSO
+//	if (config->getVelocityRule() == VEL_BASIC){
+//		new_vel = vel +
+//				(phi_1 * problem->getRandom01() * perInf) +
+//				(phi_2 * problem->getRandom01() * socInf);
+//	}
+//	//Standard PSO
+//	else if (config->getVelocityRule() == VEL_STANDARD){
+//		new_vel = (inertia * vel) +
+//				(phi_1 * problem->getRandom01() * perInf) +
+//				(phi_2 * problem->getRandom01() * socInf);
+//
+//	}
+//	//Linear PSO
+//	else if (config->getVelocityRule() == VEL_LINEAR){
+//		new_vel = (inertia * vel) +
+//				(phi_1 * u1 * perInf) +
+//				(phi_2 * u2 * socInf);
+//	}
+//	//Constriction coefficient PSO
+//	else if (config->getVelocityRule() == VEL_CONSTRICTED){
+//		new_vel = CONSTRICTION_COEFFICIENT * (vel +
+//				(phi_1 * problem->getRandom01() * perInf) +
+//				(phi_2 * problem->getRandom01() * socInf));
+//	}
+//	else if (config->getVelocityRule() == VEL_GUARAN_CONVERG){
+//		//if (pbest.eval == gbest.eval)
+//	}
+//	//Standard 2011 PSO - Uses a Hypersphere distribution to generate new points
+//	else if (config->getVelocityRule() == VEL_STANDARD2011){
+//		//in this case additionalVal = (H(G||G-X||) - G-X) -> see StandarPSO Maurice Clerc for details
+//		new_vel = (inertia * vel) + additionalVal;
+//	}
+//	//Use standard PSO
+//	else
+//		new_vel = (inertia * vel) +
+//		(phi_1 * problem->getRandom01() * perInf) +
+//		(phi_2 * problem->getRandom01() * socInf);
+//
+//
+//	return new_vel;
+//}
+

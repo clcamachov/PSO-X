@@ -70,6 +70,10 @@ public:
 	bool isHierarchical();
 	void getParticleParentsIDs(int particleID, int *ParentsArray1D);
 	void printAllParentNodes();
+
+	//Perturbation
+	void updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval);
+
 };
 
 #endif /* SWARM_H_ */

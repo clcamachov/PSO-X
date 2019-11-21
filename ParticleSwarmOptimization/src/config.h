@@ -263,7 +263,7 @@ private:
 	int branching;
 
 	//Inertia control parameters (omega1 in the GVU)
-	short inertiaCS;			// inertia control strategy indicator
+	short omega1CS;			// inertia control strategy indicator
 	double inertia;				// actual variable to used in the velocity update formula. If no inertiaCS is given, this value is fixed during the
 	double initialIW;
 	double finalIW;
@@ -275,6 +275,10 @@ private:
 
 	//Model of influence
 	short modelOfInfluence;
+
+	short perturbation;
+	short randomMatrix;
+	short operator_q;
 
 	//velocity rules
 	int vRule;
@@ -335,6 +339,11 @@ public:
 
 	//Model of influence
 	short getModelOfInfluence();
+
+	//Perturbation
+	short getPerturbation();
+	short getRandomMatrix();
+	short getOperator_q();
 
 	//Cognitive and social influence control
 	double getPhi1();
