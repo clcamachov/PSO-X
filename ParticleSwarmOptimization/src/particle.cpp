@@ -16,7 +16,6 @@
 using namespace std;
 
 double additionalVal= 0.0; //variable in case some additional value has to be use to update the formula
-double prev_D = 0.0;		//dispersion value used for normal distribution
 
 /* Default constructor*/
 Particle::Particle(){
@@ -213,6 +212,7 @@ void Particle::setParent(int node){
 void Particle::move(Configuration* config, double minBound, double maxBound, long int iteration,
 		double omega1, double omega2, double omega3, int numInformants, int *theInformants, int lastLevelComplete,
 		double alpha_t, double l, double delta){
+
 	//For VEL_LINEAR all entries of the random matrix are the same
 	double u1=problem->getRandom01(); //random value for the personal component
 	double u2=problem->getRandom01(); //random value for the social component
@@ -224,15 +224,16 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 		getHypersphericalVector(V2, V1);
 	}
 
-	//cout << "\n alpha_t recived is: " << alpha_t << endl;
-	//perturbationVal = computePerturbation(config, current.x, neighbours[0]->current.x, alpha_t, l, delta, true);
-	cout << "\n perturbationVal: "  << scientific << perturbationVal << endl;
+	//For the distribution-based perturbation strategies we compute std. deviation in advance,
+	//which is given by the distance between current.x and neighbours[h].x multiply by a constant
+	perturbationVal = computePerturbation(config, current.x, neighbours[0]->current.x, alpha_t, l, delta, true);
 
 	//Compute new position
 	for (int i=0;i<size;i++) {
 		//TODO: Here I could modify this to determine the parameters sent to computeNewVelocity() using a switch statement
 		perturbationVal = computePerturbation(config, current.x, neighbours[0]->current.x, alpha_t, l, delta, false);
-		//cout << "\n perturbationVal: "  << scientific << perturbationVal << endl;
+		//cout << "\n Normal_perturbed: " << RNG::randGaussWithMean(pow(perturbationVal,2), current.x[i]) << endl;
+		cout << "\n perturbationVal: "  << scientific << perturbationVal << endl;
 
 		double PersonalInfluence = pbest.x[i]-current.x[i];
 		double SocialInfluence = gbest.x[i]-current.x[i];
@@ -266,32 +267,27 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	computeEvaluation(); //evaluate the objective function and update pbest if a new pbest has been found
 }
 
-double Particle::computePerturbation(Configuration* config, double * pos_x, double * pbest_x, int alpha_t,
-		double l, double delta, bool newInformant){
-	//return value
-	double returnVal = 0.0;
-
+double Particle::computePerturbation(Configuration* config, double * pos_x, double * pbest_x, double alpha_t, double l, double delta, bool newInformant){
 	switch(config->getPerturbation()){
-	case PERT_ADD_RECT:
-		returnVal = alpha_t*(1-(2*problem->getRandom01()));
-		break;
-	case PERT_DIST_NORMAL:
+	case PERT_NONE: //Do not apply perturbation
+		return 1.0;
+	case PERT_ADD_RECT || PERT_DIST_SUCCESS: //Additional rectangular
+		return alpha_t*(1-(2*problem->getRandomX(0,1)));
+	case PERT_ADD_NOISY: //Additional noisy
+		return problem->getRandomX(-delta/2,delta/2);
+	case PERT_DIST_NORMAL: //Normally distributed (here, we only compute the std. deviation
 		if (newInformant){
 			double distance = computeDistance(pos_x, pbest_x);
 			if (distance == 0)
-				returnVal = this->perturbationVal;
+				return (this->perturbationVal);
 			else
-				returnVal = l*distance;
+				return (l*distance);
 		}
 		else
-			returnVal = this->perturbationVal;
-		break;
-	case PERT_ADD_NOISY:
-		returnVal = problem->getRandomX(-delta/2,delta/2);
-		break;
+			return (this->perturbationVal);
+	default:
+		return 0.001;
 	}
-
-	return returnVal;
 }
 
 double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf, double socInf, double pos, double additionalVal){

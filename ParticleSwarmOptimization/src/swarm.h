@@ -72,7 +72,7 @@ public:
 	void printAllParentNodes();
 
 	//Perturbation
-	void updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval);
+	void updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration);
 
 };
 

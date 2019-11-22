@@ -36,6 +36,10 @@ double RNG::randGauss(double sd){
 	return gsl_ran_gaussian( RNG::R, sd);
 }
 
+double RNG::randGaussWithMean(double sd, double mean){
+	return gsl_ran_gaussian( RNG::R, sd)+ mean;
+}
+
 void RNG::randHypersphere( double * G){
 	gsl_ran_dir_nd (RNG::R, sizeof(size_t), G);
 }

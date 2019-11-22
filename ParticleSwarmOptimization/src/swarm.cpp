@@ -16,6 +16,8 @@
 
 #include "rng.h"
 
+#define ALPHA_T_PRECISION  0.00001
+
 using namespace std;
 
 /* Variables to compute the inertia weight using the available control strategies */
@@ -48,6 +50,11 @@ double alpha_t = 1.0;						//side length of the rectangle for the success-rate p
 double delta = 1.0;							//side length of the rectangle for the uniform random perturbation
 double l = 0.01;							//scaling factor for the perturbation
 
+
+bool sortcol( const vector<int>& v1,
+		const vector<int>& v2 ) {
+	return v1[1] < v2[1];
+}
 
 //Default constructor
 Swarm::Swarm(){
@@ -272,18 +279,18 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		}
 	}
 
-	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval);
+	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval, iteration);
 }
 
-void Swarm::updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval){
+void Swarm::updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration){
 	switch(config->getPerturbation()){
-	case PERT_ADD_RECT:
+	case PERT_ADD_RECT || PERT_DIST_SUCCESS:
 		if (previousGbest_eval != currentGbest_eval){ //success
 			sc++;
 			fc=0;
 			if (sc > success){
 				alpha_t = alpha_t * 2.0;
-				cout << "\n DOUBLE alpha_t for success" << alpha_t << endl;
+				//cout << "\n DOUBLE alpha_t for success" << alpha_t << endl;
 			}
 		}
 		else{ //failure
@@ -291,8 +298,16 @@ void Swarm::updatePerturbationVariables(Configuration* config, double previousGb
 			sc=0;
 			if (fc > failure){
 				alpha_t = alpha_t * 0.5;
-				cout << "\n HALF alpha_t update for failure: " << alpha_t << endl;
+				//cout << "\n HALF alpha_t update for failure: " << alpha_t << endl;
 			}
+		}
+		//if alpha_t becomes too small, we reinitialize it to 0.15, if we are in the first half of the
+		//iterations, or to 0.001 if we are in the second half of the iterations.
+		if (alpha_t < ALPHA_T_PRECISION){
+			if (iteration < config->getMaxIterations()/2) //first half
+				alpha_t = 0.15;
+			else
+				alpha_t = 0.001;
 		}
 		break;
 	case PERT_DIST_NORMAL:
@@ -340,10 +355,28 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				delete [] Informants;
 				Informants = new int[swarm.at(particleID)->neighbours.size()];
 			}
+
+			//Container to sort the neighbors
+			vector< vector<int> > TMP_vect;
+			//Resize vector
+			TMP_vect.resize((swarm.at(particleID)->neighbours.size()), vector<int>(2));
+
+			//This is the same as Fully informed
 			for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
-				//This is the same as Fully informed, but the array is sorted according to the ranks
-				Informants[i] = swarm.at(particleID)->neighbours.at(i)->getRanking();
+				TMP_vect.at(i).at(0) = swarm.at(particleID)->neighbours[i]->getID();
+				TMP_vect.at(i).at(1) = swarm.at(particleID)->neighbours.at(i)->getRanking();
 			}
+
+			//we sort by the second column (see sortcol driver function above )
+			sort(TMP_vect.begin(), TMP_vect.end(),sortcol);
+
+			//copy informants ID to Informants sorted
+			for (unsigned int i=0; i<TMP_vect.size(); i++){ //rows
+					Informants[i] = TMP_vect[i][0];
+					TMP_vect[i].clear();
+			}
+			TMP_vect.clear();
+
 			swarm.at(particleID)->getBestOfNeibourhood();  //update particle's gbest
 			//cout << "\nSize of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
 			return swarm.at(particleID)->neighbours.size();

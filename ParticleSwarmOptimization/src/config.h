@@ -216,9 +216,12 @@
 #define DIST_MULTISPHERICAL		2
 #define DIST_ADD_STOCH 			3
 
-#define PERT_ADD_RECT			0
-#define PERT_ADD_NOISY			1
-#define PERT_DIST_NORMAL		2
+#define PERT_NONE				0
+#define PERT_ADD_RECT			1
+#define PERT_ADD_NOISY			2
+#define PERT_DIST_NORMAL		3
+#define PERT_DIST_SUCCESS		4
+
 
 #define Q_STANDARD				0
 #define Q_GAUSSIAN				1
