@@ -90,12 +90,15 @@ public:
 	void printPosition();
 	void printNeighborByID(int id);
 
-	void getHypersphericalVector(double* H, double* V1);
+	void getHypersphericalVector(int modOfInf, double* H, double* V1, int numInformants);
 	int getRandomNeighbor();
 
 	//Perturbation
 	double computePerturbation(Configuration* config, double * pos_x, double * pbest_x, double alpha_t,
 			double l, double delta, bool newIteration);
+
+	//Random Matrix
+	void computeRndMatrix(double ** rndMatrix, int RmatrixType);
 
 	//Frankenstein's members
 	int getID();

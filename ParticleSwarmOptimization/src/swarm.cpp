@@ -51,8 +51,7 @@ double delta = 1.0;							//side length of the rectangle for the uniform random 
 double l = 0.01;							//scaling factor for the perturbation
 
 
-bool sortcol( const vector<int>& v1,
-		const vector<int>& v2 ) {
+bool sortcol(const vector<int>& v1, const vector<int>& v2) {
 	return v1[1] < v2[1];
 }
 
@@ -285,31 +284,31 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 void Swarm::updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration){
 	switch(config->getPerturbation()){
 	case PERT_ADD_RECT || PERT_DIST_SUCCESS:
-		if (previousGbest_eval != currentGbest_eval){ //success
-			sc++;
-			fc=0;
-			if (sc > success){
-				alpha_t = alpha_t * 2.0;
-				//cout << "\n DOUBLE alpha_t for success" << alpha_t << endl;
-			}
+	if (previousGbest_eval != currentGbest_eval){ //success
+		sc++;
+		fc=0;
+		if (sc > success){
+			alpha_t = alpha_t * 2.0;
+			//cout << "\n DOUBLE alpha_t for success" << alpha_t << endl;
 		}
-		else{ //failure
-			fc++;
-			sc=0;
-			if (fc > failure){
-				alpha_t = alpha_t * 0.5;
-				//cout << "\n HALF alpha_t update for failure: " << alpha_t << endl;
-			}
+	}
+	else{ //failure
+		fc++;
+		sc=0;
+		if (fc > failure){
+			alpha_t = alpha_t * 0.5;
+			//cout << "\n HALF alpha_t update for failure: " << alpha_t << endl;
 		}
-		//if alpha_t becomes too small, we reinitialize it to 0.15, if we are in the first half of the
-		//iterations, or to 0.001 if we are in the second half of the iterations.
-		if (alpha_t < ALPHA_T_PRECISION){
-			if (iteration < config->getMaxIterations()/2) //first half
-				alpha_t = 0.15;
-			else
-				alpha_t = 0.001;
-		}
-		break;
+	}
+	//if alpha_t becomes too small, we reinitialize it to 0.15, if we are in the first half of the
+	//iterations, or to 0.001 if we are in the second half of the iterations.
+	if (alpha_t < ALPHA_T_PRECISION){
+		if (iteration < config->getMaxIterations()/2) //first half
+			alpha_t = 0.15;
+		else
+			alpha_t = 0.001;
+	}
+	break;
 	case PERT_DIST_NORMAL:
 		break;
 	case PERT_ADD_NOISY:
@@ -372,13 +371,13 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 
 			//copy informants ID to Informants sorted
 			for (unsigned int i=0; i<TMP_vect.size(); i++){ //rows
-					Informants[i] = TMP_vect[i][0];
-					TMP_vect[i].clear();
+				Informants[i] = TMP_vect[i][0];
+				TMP_vect[i].clear();
 			}
 			TMP_vect.clear();
 
 			swarm.at(particleID)->getBestOfNeibourhood();  //update particle's gbest
-			//cout << "\nSize of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
+			cout << "\nSize of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
 			return swarm.at(particleID)->neighbours.size();
 		}
 		//Hierarchical
@@ -463,10 +462,15 @@ void Swarm::createWheelTopology(){        //Particles are neighbors of one centr
 }
 
 void Swarm::createRandomTopology(){			//Or random edge topology
-	int randomEdge;
+	long int randomEdge;
 	for(unsigned int i=0;i<swarm.size();i++){
 		randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
-		swarm.at(i)->addNeighbour(swarm.at(randomEdge));
+		if (randomEdge == i){
+			randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
+			swarm.at(i)->addNeighbour(swarm.at(randomEdge));
+		}
+		else
+			swarm.at(i)->addNeighbour(swarm.at(randomEdge));
 	}
 }
 

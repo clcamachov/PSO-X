@@ -222,7 +222,6 @@
 #define PERT_DIST_NORMAL		3
 #define PERT_DIST_SUCCESS		4
 
-
 #define Q_STANDARD				0
 #define Q_GAUSSIAN				1
 #define Q_DISCRETE				2
