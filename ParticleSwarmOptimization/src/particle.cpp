@@ -213,18 +213,19 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 		double omega1, double omega2, double omega3, int numInformants, int *theInformants, int lastLevelComplete,
 		double alpha_t, double l, double delta){
 
-	//Compute the random matrix
-	double *rndMatrix[size];
-	for(int i=0; i<size; i++)
-		rndMatrix[i] = new double[size];
+	//number of rotation matrices to rotate in all possible planes
+	int numMatrices =(int)floor(((size*(size-1))/2));
+	double **rndMatrix[numMatrices];
+	for(int i=0; i<numMatrices; i++){
+		rndMatrix[i] = new double*[size];
+		for (unsigned int j=0; j<size; j++)
+			rndMatrix[i][j] = new double[size];
+	}
 	computeRndMatrix(rndMatrix, config->getRandomMatrix());
 
-	//if (config->getVelocityRule() == VEL_STANDARD2011){
-	//random vector from a hyperspherical distribution with center G and radius G-X
 	double V2[size];
 	double V1[size];
 	getHypersphericalVector(config->getModelOfInfluence(), V2, V1, numInformants);
-	//	}
 
 	//For the distribution-based perturbation strategies we compute std. deviation in advance,
 	//which is given by the distance between current.x and neighbours[h].x multiply by a constant
@@ -273,77 +274,111 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	}
 	computeEvaluation(); //evaluate the objective function and update pbest if a new pbest has been found
 
-	for(int i=0; i<size; i++)
+	for(int i=0; i<numMatrices; i++){
+		for (unsigned int j=0; j<size; j++)
+			delete [] rndMatrix[i][j];
 		delete [] rndMatrix[i];
+	}
 }
 
 //Compute the random matrix to employ
-void Particle::computeRndMatrix(double ** rndMatrix, int RmatrixType){
+void Particle::computeRndMatrix(double *** rndMatrix, int RmatrixType){
 	switch(RmatrixType){
 	case MATRIX_DIAGONAL: //Random diagonal matrix
 		for (int i=0; i<size; i++)
-			rndMatrix[i][i] = problem->getRandom01();
+			rndMatrix[0][i][i] = problem->getRandom01();
 		break;
 	case MATRIX_LINEAR:{ //Random linear matrix
 		double rnd = problem->getRandom01();
 		for (int i=0; i<size; i++)
-			rndMatrix[i][i] = rnd;
+			rndMatrix[0][i][i] = rnd;
 	}
 	break;
 	case MATRIX_RRM_EXP_MAP:{ //Random rotation matrix using exponential method
 		//1.- Generate a random matrix
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++)
-				rndMatrix[i][j] = problem->getRandomX(-0.5,0.5);
+				rndMatrix[0][i][j] = problem->getRandomX(-0.5,0.5);
 		}
 		//2.- Generate the transpose of the rndMatrix
 		double trans_rndMatrix[size][size];
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++)
-				trans_rndMatrix[j][i]=rndMatrix[i][j];
+				trans_rndMatrix[j][i]=rndMatrix[0][i][j];
 		}
 		//3.- Determine the rotation angle
-		double angle = ((double)((int)floor(RNG::randVal(0.0,(double)10)))*PI)/180; //rotation between 0 and 10 degrees
+		double angle = (problem->getRandomX(0.01,10)*PI)/180; //rotation between 0 and 10 degrees
 		//4.- Subtract trans_rndMatrix to rndMatrix, multiply by the angle and add the identity matrix
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++){
-				rndMatrix[j][i]=(rndMatrix[i][j]-trans_rndMatrix[i][j])*angle;
+				rndMatrix[0][i][j]=(rndMatrix[0][i][j]-trans_rndMatrix[i][j])*angle;
 				if (i==j)
-					rndMatrix[j][i]+=1.0; //Add the Identity matrix
+					rndMatrix[0][i][j]+=1.0; //Add the Identity matrix
 			}
 		}
 	}
 	break;
-	case MATRIX_RRM_EUCLIDEAN:{ //Random rotation matrix using Euclidean rotation (ONLY ONE PLANE)
+	case MATRIX_RRM_EUCLIDEAN_ONE:{ //Random rotation matrix using Euclidean rotation (ONLY ONE PLANE)
 		//1.- Get the rotation angle
-		double angle = ((double)((int)floor(RNG::randVal(0.0,(double)10)))*PI)/180; //rotation between 0 and 10 degrees
-		//2.- Randomly select to planes to rotate
-		int plane1 = (int)floor(RNG::randVal(0.0,(double)size));
+		double angle = (problem->getRandomX(0.01,10)*PI)/180; //rotation between 0 and 10 degrees
+		//2.- Randomly select two different planes to rotate
+		int plane1 = (int)floor(RNG::randVal(0.0,(double)size-1));
 		int plane2;
 		for (unsigned int i=0; i<size; i++) {
-			plane2 = (int)floor(RNG::randVal(0.0,(double)size));
+			plane2 = (int)floor(RNG::randVal(0.0,(double)size-1));
 			if (plane2 == plane1)
 				continue;
 			else
 				break;
 		}
-		//3.- Generate rotation matrix
+		//3.- Generate the Euclidean RRM
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++){
 				if (i == j){
 					if (i == plane1 || i == plane2)
-						rndMatrix[i][j] = cos(angle);
+						rndMatrix[0][i][j] = cos(angle);
 					else
-						rndMatrix[i][j] = 1;
+						rndMatrix[0][i][j] = 1;
 				}
 				else {
 					if (i==plane1 && j==plane2)
-						rndMatrix[i][j] = sin(angle)*-1.0;
+						rndMatrix[0][i][j] = -sin(angle);
 					else if (i==plane2 && j==plane1)
-						rndMatrix[i][j] = sin(angle);
+						rndMatrix[0][i][j] = sin(angle);
 					else
-						rndMatrix[i][j] = 0;
+						rndMatrix[0][i][j] = 0;
 				}
+			}
+		}
+	}
+	break;
+	case MATRIX_RRM_EUCLIDEAN_ALL:{ //Random rotation matrix using Euclidean rotation (ALL PLANES)
+		int matNum=0;
+		//The maximum number of RRM is (size*size-1)/2
+		for (int g=0; g<size; g++) {
+			for (int h=g+1; h<size; h++) {
+				//1.- Randomly choose an angle between 0 and 7
+				double angle = (problem->getRandomX(0.01,10)*PI)/180; //rotation between 0 and 10 degrees
+				//2.- Generate the Euclidean RRM
+				for (int i=0; i<size; i++){
+					for (int j=0; j<size; j++){
+						if (i == j){
+							if (i == g || i == h)
+								rndMatrix[matNum][i][j] = cos(angle);
+							else
+								rndMatrix[matNum][i][j] = 1;
+						}
+						else {
+							if (i==g && j==h)
+								rndMatrix[matNum][i][j] = -sin(angle);
+							else if (i==h && j==g)
+								rndMatrix[matNum][i][j] = sin(angle);
+							else
+								rndMatrix[matNum][i][j] = 0;
+						}
+					}
+				}
+				matNum++;
 			}
 		}
 	}
@@ -361,7 +396,6 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[], i
 	double radius = 0.0;	//radius G-X
 	double pw=1./(double)size;
 
-	//TODO: Tray this MOI with WHEELS topology and 2 particles (it may brake)
 	if (modOfInf == MOI_BEST_OF_N){
 		//Check that Pbest != Gbest
 		if (pbest.eval == gbest.eval){
@@ -414,54 +448,6 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[], i
 	}
 }
 
-//// The computation of the radius and the random point in the HyperSphere
-//// was taken from the publicly available from Maurice Clerc - Standard PSO 2011
-//// https://www.particleswarm.info/Programs.html
-//void Particle::getHypersphericalVector(double V2[], double V1[]){
-//	double G[size];	//center of the sphere
-//	double l[size]; //particle's Gbest
-//	double radius = 0.0;	//radius G-X
-//	double pw=1./(double)size;
-//
-//	//check that Pbest != Gbest
-//	if (pbest.eval == gbest.eval){
-//		//use a random neighbor as Gbest
-//		int randNeighbor = getRandomNeighbor();
-//		for (int i=0; i<size; i++)
-//			l[i] = neighbours.at(randNeighbor)->current.x[i];
-//	}
-//	else
-//		for (int i=0; i<size; i++)
-//			l[i] = gbest.x[i];
-//
-//	//Compute G (center of the sphere) and V1 (radius of each dimension)
-//	for (int i=0; i<size; i++){
-//		double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i]));
-//		double L = current.x[i] + (phi_2 * (l[i]-current.x[i]));
-//		G[i] = (current.x[i] + P + L)/3.0;
-//		radius += pow(abs(current.x[i] - G[i]), 2);
-//		V1[i] = G[i] - current.x[i];
-//	}
-//	radius = sqrt(radius); //this is the actual radius of the hyper-sphere
-//
-//	// Get a random vector in the hyper-sphere H(G||G-X||)
-//	// ----------------------------------- Step 1.  Direction
-//	double length=0.0;
-//	for (int i=0;i<size;i++) {
-//		V2[i] = RNG::randGauss(1.0);
-//		length += pow(V2[i],2);
-//	}
-//	length=sqrt(length);
-//	//----------------------------------- Step 2. Random radius
-//	// Random uniform distribution on the sphere
-//	double r = pow(RNG::randVal(0.0,1.0),pw);
-//
-//	//----------------------------------- Step 3. Random vector
-//	for (int i=0;i<size;i++) {
-//		V2[i] = radius*r*V2[i]/length;
-//	}
-//}
-
 double Particle::computePerturbation(Configuration* config, double * pos_x, double * pbest_x, double alpha_t, double l, double delta, bool newInformant){
 	switch(config->getPerturbation()){
 	case PERT_NONE: //Do not apply perturbation
@@ -485,7 +471,8 @@ double Particle::computePerturbation(Configuration* config, double * pos_x, doub
 	}
 }
 
-double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf, double socInf, double pos, double additionalVal){
+double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf,
+		double socInf, double pos, double additionalVal){
 	double new_vel = 0.0;
 
 	//Configurable PSO velocity equation
@@ -756,3 +743,51 @@ int Particle::getRandomNonAdjacentNeighborID(Configuration* config){
 //	return new_vel;
 //}
 
+
+//// The computation of the radius and the random point in the HyperSphere
+//// was taken from the publicly available from Maurice Clerc - Standard PSO 2011
+//// https://www.particleswarm.info/Programs.html
+//void Particle::getHypersphericalVector(double V2[], double V1[]){
+//	double G[size];	//center of the sphere
+//	double l[size]; //particle's Gbest
+//	double radius = 0.0;	//radius G-X
+//	double pw=1./(double)size;
+//
+//	//check that Pbest != Gbest
+//	if (pbest.eval == gbest.eval){
+//		//use a random neighbor as Gbest
+//		int randNeighbor = getRandomNeighbor();
+//		for (int i=0; i<size; i++)
+//			l[i] = neighbours.at(randNeighbor)->current.x[i];
+//	}
+//	else
+//		for (int i=0; i<size; i++)
+//			l[i] = gbest.x[i];
+//
+//	//Compute G (center of the sphere) and V1 (radius of each dimension)
+//	for (int i=0; i<size; i++){
+//		double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i]));
+//		double L = current.x[i] + (phi_2 * (l[i]-current.x[i]));
+//		G[i] = (current.x[i] + P + L)/3.0;
+//		radius += pow(abs(current.x[i] - G[i]), 2);
+//		V1[i] = G[i] - current.x[i];
+//	}
+//	radius = sqrt(radius); //this is the actual radius of the hyper-sphere
+//
+//	// Get a random vector in the hyper-sphere H(G||G-X||)
+//	// ----------------------------------- Step 1.  Direction
+//	double length=0.0;
+//	for (int i=0;i<size;i++) {
+//		V2[i] = RNG::randGauss(1.0);
+//		length += pow(V2[i],2);
+//	}
+//	length=sqrt(length);
+//	//----------------------------------- Step 2. Random radius
+//	// Random uniform distribution on the sphere
+//	double r = pow(RNG::randVal(0.0,1.0),pw);
+//
+//	//----------------------------------- Step 3. Random vector
+//	for (int i=0;i<size;i++) {
+//		V2[i] = radius*r*V2[i]/length;
+//	}
+//}

@@ -98,7 +98,7 @@ public:
 			double l, double delta, bool newIteration);
 
 	//Random Matrix
-	void computeRndMatrix(double ** rndMatrix, int RmatrixType);
+	void computeRndMatrix(double *** rndMatrix, int RmatrixType);
 
 	//Frankenstein's members
 	int getID();

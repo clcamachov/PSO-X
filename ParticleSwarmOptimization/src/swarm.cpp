@@ -377,7 +377,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 			TMP_vect.clear();
 
 			swarm.at(particleID)->getBestOfNeibourhood();  //update particle's gbest
-			cout << "\nSize of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
+			//cout << "\nSize of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
 			return swarm.at(particleID)->neighbours.size();
 		}
 		//Hierarchical

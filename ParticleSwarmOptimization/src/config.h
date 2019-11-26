@@ -227,10 +227,11 @@
 #define Q_DISCRETE				2
 #define Q_NORMAL				3
 
-#define	MATRIX_DIAGONAL			0
-#define	MATRIX_LINEAR			1
-#define	MATRIX_RRM_EXP_MAP		2
-#define	MATRIX_RRM_EUCLIDEAN	3
+#define	MATRIX_DIAGONAL				0
+#define	MATRIX_LINEAR				1
+#define	MATRIX_RRM_EXP_MAP			2
+#define	MATRIX_RRM_EUCLIDEAN_ONE	3
+#define	MATRIX_RRM_EUCLIDEAN_ALL	4
 
 class Configuration {
 
