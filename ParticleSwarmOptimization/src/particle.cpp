@@ -223,12 +223,11 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	}
 	computeRndMatrix(rndMatrix, config->getRandomMatrix());
 
-	double V2[size];
-	double V1[size];
-	getHypersphericalVector(config->getModelOfInfluence(), V2, V1, numInformants);
+	double V2[size], V1[size];
+	getHypersphericalVector(config->getModelOfInfluence(), V2, V1, numInformants, rndMatrix, config->getRandomMatrix());
 
-	//For the distribution-based perturbation strategies we compute std. deviation in advance,
-	//which is given by the distance between current.x and neighbours[h].x multiply by a constant
+	//For the distribution-based perturbation strategies we need to compute the std. deviation in advance,
+	//which is the distance between current.x and neighbours[h].x multiply by a constant
 	perturbationVal = computePerturbation(config, current.x, neighbours[0]->current.x, alpha_t, l, delta, true);
 
 	//Compute new position
@@ -282,6 +281,95 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 }
 
 //Compute the random matrix to employ
+double * Particle::multiplyVectorByRndMatrix(double * aVector, double *** rndMatrix, int RmatrixType){
+	double resultvxM[size]; //working space variable
+
+	switch(RmatrixType){
+	case MATRIX_DIAGONAL || MATRIX_LINEAR: //Random diagonal matrix
+	for (int i=0; i<size; i++)
+		resultvxM[i] = aVector[i]* rndMatrix[0][i][i];
+	break;
+	case MATRIX_RRM_EXP_MAP:{ //Random rotation matrix using exponential method
+		for (int i = 0 ; i < size ; i ++) {
+			resultvxM[i] = 0.0;
+			for (int j = 0 ; j < size ; j ++) {
+				resultvxM[i] += (aVector[i] * rndMatrix[0][i][j]);
+			}
+		}
+	}
+	break;
+	case MATRIX_RRM_EUCLIDEAN_ONE:{ //Random rotation matrix using Euclidean rotation (ONLY ONE PLANE)
+		bool exitFlag = false;
+		//copy the vector
+		for (int i=0; i<size; i++){
+			resultvxM[i] = aVector[i];
+		}
+		//find the planes to rotate
+		for (int i=0; i<size; i++){
+			for (int j=0; j<size; j++){
+				if (i != j && rndMatrix[0][i][j] != 0){
+					resultvxM[i] = (aVector[i] * rndMatrix[0][i][i]) + (aVector[j] * rndMatrix[0][j][i]);
+					resultvxM[j] = (aVector[j] * rndMatrix[0][j][j]) + (aVector[i] * rndMatrix[0][i][j]);
+					exitFlag = true;
+					break;
+				}
+			}
+			if (exitFlag == false)
+				continue;
+			else
+				break;
+		}
+	}
+	break;
+	case MATRIX_RRM_EUCLIDEAN_ALL:{ //Random rotation matrix using Euclidean rotation (ALL POSSIBLE PLANES)
+		bool exitFlag = false;
+		//copy the vector
+		for (int i=0; i<size; i++){
+			resultvxM[i] = aVector[i];
+		}
+		int matNum=0;
+		//The next two loops are to traverse the (size*size-1)/2 random matrices
+		//needed to rotate the vector in all possible planes
+		for (int g=0; g<size-1; g++) {
+			for (int h=g+1; h<size; h++) {
+				//find the planes to rotate
+				for (int i=0; i<size; i++){
+					for (int j=0; j<size; j++){
+						if (i != j && rndMatrix[matNum][i][j] != 0){
+							resultvxM[i] = (aVector[i] * rndMatrix[matNum][i][i]) + (aVector[j] * rndMatrix[matNum][j][i]);
+							resultvxM[j] = (aVector[j] * rndMatrix[matNum][j][j]) + (aVector[i] * rndMatrix[matNum][i][j]);
+							exitFlag = true;
+							break;
+						}
+					}
+					if (exitFlag == false)
+						continue;
+					else
+						break;
+				}
+				matNum++;
+			}
+		}
+	}
+	break;
+	}
+//	cout << "\n Original vector: [" ;
+//	for (int i=0; i<size; i++){
+//		cout << " " << aVector[i] << " ";
+//	}
+//	cout << "]";
+//	cout << "\n Vector rotated: [" ;
+	for (int i=0; i<size; i++){
+		aVector[i] = resultvxM[i];
+//		cout << " " << aVector[i] << " ";
+	}
+//	cout << "]" << endl;
+
+	//return the aVector
+	return(aVector);
+}
+
+//Compute the random matrix to employ
 void Particle::computeRndMatrix(double *** rndMatrix, int RmatrixType){
 	switch(RmatrixType){
 	case MATRIX_DIAGONAL: //Random diagonal matrix
@@ -307,7 +395,7 @@ void Particle::computeRndMatrix(double *** rndMatrix, int RmatrixType){
 				trans_rndMatrix[j][i]=rndMatrix[0][i][j];
 		}
 		//3.- Determine the rotation angle
-		double angle = (problem->getRandomX(0.01,10)*PI)/180; //rotation between 0 and 10 degrees
+		double angle = (problem->getRandomX(0.001,7)*PI)/180; //rotation between 0 and 10 degrees
 		//4.- Subtract trans_rndMatrix to rndMatrix, multiply by the angle and add the identity matrix
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++){
@@ -320,7 +408,8 @@ void Particle::computeRndMatrix(double *** rndMatrix, int RmatrixType){
 	break;
 	case MATRIX_RRM_EUCLIDEAN_ONE:{ //Random rotation matrix using Euclidean rotation (ONLY ONE PLANE)
 		//1.- Get the rotation angle
-		double angle = (problem->getRandomX(0.01,10)*PI)/180; //rotation between 0 and 10 degrees
+		double angle = (problem->getRandomX(0.001,7)*PI)/180; //rotation between 0 and 10 degrees
+		//cout << " angle:  " << angle << endl;
 		//2.- Randomly select two different planes to rotate
 		int plane1 = (int)floor(RNG::randVal(0.0,(double)size-1));
 		int plane2;
@@ -350,15 +439,37 @@ void Particle::computeRndMatrix(double *** rndMatrix, int RmatrixType){
 				}
 			}
 		}
+		//4.- Print the matrix
+		//		cout << "\n Euclidean RRM one plane: " << endl;
+		//		for (int i=0; i<size; i++){
+		//			cout << "[" ;
+		//			for (int j=0; j<size; j++){
+		//				if (i == j){
+		//					if (i == plane1 || i == plane2)
+		//						cout << " " << rndMatrix[0][i][j] << " "; //cout << " cos(alpha) ";
+		//					else
+		//						cout << " " << rndMatrix[0][i][j] << " "; //cout << " 1 ";
+		//				}
+		//				else {
+		//					if (i==plane1 && j==plane2)
+		//						cout << " " << rndMatrix[0][i][j] << " "; //cout << " -sin(angle) ";
+		//					else if (i==plane2 && j==plane1)
+		//						cout << " " << rndMatrix[0][i][j] << " "; //cout << " sin(angle) ";
+		//					else
+		//						cout << " " << rndMatrix[0][i][j] << " "; //cout << " 0 ";
+		//				}
+		//			}
+		//			cout << " ]" << endl;
+		//		}
 	}
 	break;
 	case MATRIX_RRM_EUCLIDEAN_ALL:{ //Random rotation matrix using Euclidean rotation (ALL PLANES)
 		int matNum=0;
 		//The maximum number of RRM is (size*size-1)/2
-		for (int g=0; g<size; g++) {
+		for (int g=0; g<size-1; g++) {
 			for (int h=g+1; h<size; h++) {
 				//1.- Randomly choose an angle between 0 and 7
-				double angle = (problem->getRandomX(0.01,10)*PI)/180; //rotation between 0 and 10 degrees
+				double angle = (problem->getRandomX(0.001,7)*PI)/180; //rotation between 0 and 10 degrees
 				//2.- Generate the Euclidean RRM
 				for (int i=0; i<size; i++){
 					for (int j=0; j<size; j++){
@@ -381,16 +492,37 @@ void Particle::computeRndMatrix(double *** rndMatrix, int RmatrixType){
 				matNum++;
 			}
 		}
+		//		//4.- Print the matrix
+		//		cout << "\n Euclidean RRM all planes (last plane): " << endl;
+		//		for (int i=0; i<size; i++){
+		//			cout << "[" ;
+		//			for (int j=0; j<size; j++){
+		//				if (i == j){
+		//					if (i == size-2 || i == size-1)
+		//						cout << " cos(alpha) ";
+		//					else
+		//						cout << " 1 ";
+		//				}
+		//				else {
+		//					if (i==size-2 && j==size-1)
+		//						cout << " -sin(angle) ";
+		//					else if (i==size-1 && j==size-2)
+		//						cout << " sin(angle) ";
+		//					else
+		//						cout << " 0 ";
+		//				}
+		//			}
+		//			cout << " ]" << endl;
+		//		}
 	}
 	break;
 	}
 }
 
-
 // The computation of the radius and the random point in the HyperSphere
 // was taken from the publicly available from Maurice Clerc - Standard PSO 2011
 // https://www.particleswarm.info/Programs.html
-void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[], int numInformants){
+void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[], int numInformants, double *** rndMatrix, int RmatrixType){
 	double G[size];	//center of the sphere
 	double l[size]; //particle's Gbest
 	double radius = 0.0;	//radius G-X
@@ -408,6 +540,7 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[], i
 			for (int i=0; i<size; i++)
 				l[i] = gbest.x[i];
 	}
+	multiplyVectorByRndMatrix(l, rndMatrix, RmatrixType);
 
 	//Compute G (center of the sphere) and V1 (radius of each dimension)
 	for (int i=0; i<size; i++){
@@ -421,7 +554,6 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[], i
 			double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
 			for (int j=0; j<numInformants; j++){ //rest of informants (including Gbest)
 				R += current.x[i] + (phi_1 * (neighbours.at(j)->current.x[i]-current.x[i]));
-				//cout << "So far, so good " << endl;
 			}
 			G[i] = (current.x[i] + P + R )/(numInformants + 2);
 		}

@@ -90,7 +90,7 @@ public:
 	void printPosition();
 	void printNeighborByID(int id);
 
-	void getHypersphericalVector(int modOfInf, double* H, double* V1, int numInformants);
+	void getHypersphericalVector(int modOfInf, double* H, double* V1, int numInformants, double *** rndMatrix, int RmatrixType);
 	int getRandomNeighbor();
 
 	//Perturbation
@@ -99,6 +99,7 @@ public:
 
 	//Random Matrix
 	void computeRndMatrix(double *** rndMatrix, int RmatrixType);
+	double * multiplyVectorByRndMatrix(double * aVector, double *** rndMatrix, int RmatrixType);
 
 	//Frankenstein's members
 	int getID();
