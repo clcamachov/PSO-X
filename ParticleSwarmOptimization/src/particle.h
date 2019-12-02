@@ -90,7 +90,7 @@ public:
 	void printPosition();
 	void printNeighborByID(int id);
 
-	void getHypersphericalVector(int modOfInf, double* H, double* V1, int numInformants, double *** rndMatrix, int RmatrixType);
+	void getHypersphericalVector(int modOfInf, double* H, double* V1, int numInformants, int *theInformants, double *** rndMatrix, int RmatrixType);
 	int getRandomNeighbor();
 
 	//Perturbation

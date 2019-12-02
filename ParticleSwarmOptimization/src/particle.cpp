@@ -46,7 +46,7 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier){
 	ranking = 0;
 	parent = 0;
 	stereotype = 0;
-	perturbationVal = 0;
+	perturbationVal = 0.01;
 
 	hasVelocitybounds = config->useVelocityClamping();
 	setVelocityLimits(config); //Set velocity clamping limits
@@ -224,11 +224,11 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	computeRndMatrix(rndMatrix, config->getRandomMatrix());
 
 	double V2[size], V1[size];
-	getHypersphericalVector(config->getModelOfInfluence(), V2, V1, numInformants, rndMatrix, config->getRandomMatrix());
+	getHypersphericalVector(config->getModelOfInfluence(), V2, V1, numInformants, theInformants, rndMatrix, config->getRandomMatrix());
 
 	//For the distribution-based perturbation strategies we need to compute the std. deviation in advance,
 	//which is the distance between current.x and neighbours[h].x multiply by a constant
-	perturbationVal = computePerturbation(config, current.x, neighbours[0]->current.x, alpha_t, l, delta, true);
+	perturbationVal = computePerturbation(config, current.x, neighbours[theInformants[0]]->pbest.x, alpha_t, l, delta, true);
 
 	//Compute new position
 	for (int i=0;i<size;i++) {
@@ -240,12 +240,12 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 		double PersonalInfluence = pbest.x[i]-current.x[i];
 		double SocialInfluence = gbest.x[i]-current.x[i];
 
-		if (config->getVelocityRule() == VEL_STANDARD2011)
-			additionalVal = V2[i] + V1[i];
-
-		if (config->getVelocityRule() == VEL_GUARAN_CONVERG){
-			//if (pbest.eval == gbest.eval)
-		}
+		//		if (config->getVelocityRule() == VEL_STANDARD2011)
+		//			additionalVal = V2[i] + V1[i];
+		//
+		//		if (config->getVelocityRule() == VEL_GUARAN_CONVERG){
+		//			//if (pbest.eval == gbest.eval)
+		//		}
 		velocity[i] = computeNewVelocity(config, velocity[i],
 				1.0, 1.0,
 				PersonalInfluence,
@@ -280,7 +280,90 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	}
 }
 
-//Compute the random matrix to employ
+// The computation of the radius and the random point in the HyperSphere
+// was taken from the publicly available code of Maurice Clerc - Standard PSO 2011
+// https://www.particleswarm.info/Programs.html
+void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[],
+		int numInformants, int *theInformants, double *** rndMatrix, int RmatrixType){
+	double G[size];	//center of the sphere
+	double l[size]; //particle's Gbest
+	double radius = 0.0;	//radius G-X
+	double pw=1./(double)size;
+
+	if (pbest.eval == gbest.eval){
+		//use a random neighbor as Gbest
+		int randNeighbor = getRandomNeighbor();
+		if (randNeighbor != this->id)
+			for (int i=0; i<size; i++)
+				l[i] = neighbours.at(randNeighbor)->pbest.x[i]; //Use a random position
+		else
+			for (int i=0; i<size; i++)
+				l[i] = problem->getRandomX(); //Use random values
+	}
+	else
+		for (int i=0; i<size; i++)
+			l[i] = gbest.x[i];
+
+	if (RmatrixType != MATRIX_NONE){
+		//Create a temporary structure
+		double * v_PosToInfPbest[numInformants];
+		for (int i=0; i<numInformants; i++)
+			v_PosToInfPbest[i] = new double [size];
+
+		//Copy the informants in a temporary structure
+		if (modOfInf == MOI_BEST_OF_N)
+			for (int i=0; i<size; i++) //lbest
+				v_PosToInfPbest[0][i] = (l[i]-current.x[i]);
+		else if (modOfInf == MOI_FI)
+			for (int j=1; j<numInformants; j++){ //the rest of informants
+				for (int i=0; i<size; i++)
+					v_PosToInfPbest[j][i] = (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]);
+			}
+
+		//Rotate
+		//multiplyVectorByRndMatrix(l, rndMatrix, RmatrixType);
+	}
+
+	//Compute G (center of the sphere) and V1 (radius of each dimension)
+	for (int i=0; i<size; i++){
+		if (modOfInf == MOI_BEST_OF_N){
+			double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
+			double L = current.x[i] + (phi_2 * (l[i]-current.x[i])); //Gbest
+			G[i] = (current.x[i] + P + L )/(3);
+		}
+		else {
+			double R = 0.0;
+			double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
+			for (int j=0; j<numInformants; j++){ //rest of informants (including Gbest)
+				//cout << "\t\t  informant at [" << j << "] is " <<  theInformants[j] << endl; //remove
+				R += current.x[i] + (phi_1 * (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]));
+			}
+			G[i] = (current.x[i] + P + R )/(numInformants + 2);
+		}
+		radius += pow(abs(current.x[i] - G[i]), 2);
+		V1[i] = G[i] - current.x[i];
+	}
+	radius = sqrt(radius); //this is the actual radius of the hyper-sphere
+
+	// Get a random vector in the hyper-sphere H(G||G-X||)
+	// ----------------------------------- Step 1.  Direction
+	double length=0.0;
+	for (int i=0;i<size;i++) {
+		V2[i] = RNG::randGauss(1.0);
+		length += pow(V2[i],2);
+	}
+	length=sqrt(length);
+	//----------------------------------- Step 2. Random radius
+	// Random uniform distribution on the sphere
+	double r = pow(RNG::randVal(0.0,1.0),pw);
+
+	//----------------------------------- Step 3. Random vector
+	for (int i=0;i<size;i++) {
+		V2[i] = radius*r*V2[i]/length;
+	}
+}
+
+//Multiply by the random matrix
 double * Particle::multiplyVectorByRndMatrix(double * aVector, double *** rndMatrix, int RmatrixType){
 	double resultvxM[size]; //working space variable
 
@@ -353,17 +436,17 @@ double * Particle::multiplyVectorByRndMatrix(double * aVector, double *** rndMat
 	}
 	break;
 	}
-//	cout << "\n Original vector: [" ;
-//	for (int i=0; i<size; i++){
-//		cout << " " << aVector[i] << " ";
-//	}
-//	cout << "]";
-//	cout << "\n Vector rotated: [" ;
+	//	cout << "\n Original vector: [" ;
+	//	for (int i=0; i<size; i++){
+	//		cout << " " << aVector[i] << " ";
+	//	}
+	//	cout << "]";
+	//	cout << "\n Vector rotated: [" ;
 	for (int i=0; i<size; i++){
 		aVector[i] = resultvxM[i];
-//		cout << " " << aVector[i] << " ";
+		//		cout << " " << aVector[i] << " ";
 	}
-//	cout << "]" << endl;
+	//	cout << "]" << endl;
 
 	//return the aVector
 	return(aVector);
@@ -519,68 +602,8 @@ void Particle::computeRndMatrix(double *** rndMatrix, int RmatrixType){
 	}
 }
 
-// The computation of the radius and the random point in the HyperSphere
-// was taken from the publicly available from Maurice Clerc - Standard PSO 2011
-// https://www.particleswarm.info/Programs.html
-void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[], int numInformants, double *** rndMatrix, int RmatrixType){
-	double G[size];	//center of the sphere
-	double l[size]; //particle's Gbest
-	double radius = 0.0;	//radius G-X
-	double pw=1./(double)size;
-
-	if (modOfInf == MOI_BEST_OF_N){
-		//Check that Pbest != Gbest
-		if (pbest.eval == gbest.eval){
-			//use a random neighbor as Gbest
-			int randNeighbor = getRandomNeighbor();
-			for (int i=0; i<size; i++)
-				l[i] = neighbours.at(randNeighbor)->current.x[i];
-		}
-		else
-			for (int i=0; i<size; i++)
-				l[i] = gbest.x[i];
-	}
-	multiplyVectorByRndMatrix(l, rndMatrix, RmatrixType);
-
-	//Compute G (center of the sphere) and V1 (radius of each dimension)
-	for (int i=0; i<size; i++){
-		if (modOfInf == MOI_BEST_OF_N){
-			double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
-			double L = current.x[i] + (phi_2 * (l[i]-current.x[i])); //Gbest
-			G[i] = (current.x[i] + P + L )/(3);
-		}
-		else {
-			double R = 0.0;
-			double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
-			for (int j=0; j<numInformants; j++){ //rest of informants (including Gbest)
-				R += current.x[i] + (phi_1 * (neighbours.at(j)->current.x[i]-current.x[i]));
-			}
-			G[i] = (current.x[i] + P + R )/(numInformants + 2);
-		}
-		radius += pow(abs(current.x[i] - G[i]), 2);
-		V1[i] = G[i] - current.x[i];
-	}
-	radius = sqrt(radius); //this is the actual radius of the hyper-sphere
-
-	// Get a random vector in the hyper-sphere H(G||G-X||)
-	// ----------------------------------- Step 1.  Direction
-	double length=0.0;
-	for (int i=0;i<size;i++) {
-		V2[i] = RNG::randGauss(1.0);
-		length += pow(V2[i],2);
-	}
-	length=sqrt(length);
-	//----------------------------------- Step 2. Random radius
-	// Random uniform distribution on the sphere
-	double r = pow(RNG::randVal(0.0,1.0),pw);
-
-	//----------------------------------- Step 3. Random vector
-	for (int i=0;i<size;i++) {
-		V2[i] = radius*r*V2[i]/length;
-	}
-}
-
-double Particle::computePerturbation(Configuration* config, double * pos_x, double * pbest_x, double alpha_t, double l, double delta, bool newInformant){
+double Particle::computePerturbation(Configuration* config, double * pos_x, double * pbest_x,
+		double alpha_t, double l, double delta, bool newInformant){
 	switch(config->getPerturbation()){
 	case PERT_NONE: //Do not apply perturbation
 		return 1.0;

@@ -120,7 +120,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		} else if (strcmp(argv[i], "--clamped") == 0){
 			useVelClamping = true;
 			//cout << "\n velocity clamping has been set to true \n";
-		} else if (strcmp(argv[i], "--inertiaCS") == 0) {
+		} else if (strcmp(argv[i], "--omega1CS") == 0) {
 			omega1CS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n inertia control strategy has been received \n";
@@ -188,12 +188,15 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	if (branching > particles)
 		branching = floor(particles/2);
 
-	//Hierarchical topology has it own model of influence
+	//Topology and model of influence check
 	if (topology == TOP_HIERARCHICAL)
 		modelOfInfluence = MOI_HIERARCHICAL;
 
+	if (topology == TOP_WHEEL)
+		modelOfInfluence = MOI_BEST_OF_N;
+
 	if (modelOfInfluence == MOI_HIERARCHICAL && topology != TOP_HIERARCHICAL)
-		modelOfInfluence = MOI_FI;
+		modelOfInfluence = MOI_BEST_OF_N; //default
 
 	//The inertia weight schedule
 	if (iwSchedule > 4)
@@ -481,7 +484,6 @@ double Configuration::getPhi1(){
 double Configuration::getPhi2(){
 	return phi_2;
 }
-
 void Configuration::setEsteps(unsigned int num_esteps){
 	esteps = num_esteps;
 }

@@ -58,7 +58,7 @@ public:
 	void createFullyConnectedTopology();
 	void createRingTopology();
 	void createWheelTopology();
-	void createRandomTopology();
+	void createRandomEdge();
 	void createVonNeumannTopology();
 	void updateTimeVaryingTopology(Configuration* config, long int iterations);
 
