@@ -35,6 +35,7 @@ protected:
 	int parent;
 	int stereotype;
 	double perturbationVal;
+	int gBestID;
 
 	/*Solution variables*/
 	//Each particle has to remember this three vectors at each iteration
@@ -72,8 +73,9 @@ public:
 	void computeEvaluation();
 
 	void addNeighbour(Particle* p);
-	void checkNeibourhood();
 	int getBestOfNeibourhood();
+	int getgBestID();
+
 
 	void updateGlobalBest(double* x, double eval);
 	unsigned int getNeighborhoodSize();

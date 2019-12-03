@@ -208,7 +208,7 @@
 #define VEL_GUARAN_CONVERG				4
 #define VEL_FULLY_INFORMED				5
 #define VEL_LOC_CON_TRANS_INV			6
-#define VEL_STANDARD2011				7	//ratation invariant
+#define VEL_STANDARD2011				7	//rotation invariant
 #define VEL_ROTATION_INV				8	//random matrix
 
 #define DIST_RECTANGULAR				0

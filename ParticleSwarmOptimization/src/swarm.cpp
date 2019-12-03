@@ -244,6 +244,12 @@ void Swarm::printGbest(unsigned int dimensions){
 
 /*Move the swarm to new solutions */
 void Swarm::moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound) {
+	//Update gBest of each particle
+	for (unsigned int i=0;i<swarm.size();i++){
+		//The id of the gBest particle depends on the topology and model of influence
+		swarm.at(i)->getBestOfNeibourhood();
+	}
+
 	//For the cases in which the entire swarm is using omega1 with the same value
 	computeOmega1(config, iteration, -1, true); // -1 is a place holder for the id of the particle
 
@@ -287,9 +293,10 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 
 	long double prev_Gbest_eval = global_best.eval; //best solution at iteration t-1
 
-	//Update Global of the Swarm (not to be confused with the gbest of a particle)
+	//Update best_particle
 	for (unsigned int i=0;i<swarm.size();i++){
 		if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
+			//Update best_particle (a.k.a Gbest) of the Swarm (not to be confused with the gBest of a particle)
 			Swarm::updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
 			best_particle = swarm[i];
 		}
@@ -308,7 +315,12 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				delete [] Informants;
 				Informants = new int [1];
 			}
-			Informants[0] = swarm.at(particleID)->getBestOfNeibourhood(); //Just gBest particle
+			int bestID = swarm.at(particleID)->getgBestID();
+			//We need to find the position index of the IDs in TMP_Array in the particles neighbours vector
+			for (unsigned int i=0; i<swarm.at(particleID)->neighbours.size(); i++){
+				if (swarm.at(particleID)->neighbours.at(i)->getID() == bestID)
+					Informants[0] = i;
+			}
 			cout << "Size of Informants: " << 1 << endl;
 			return 1;
 		}
@@ -324,13 +336,12 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 			for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
 				Informants[i] = i; //we use the indexes of neighbours
 			}
-			swarm.at(particleID)->getBestOfNeibourhood();  //update particle's gbest
 			cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
 			return swarm.at(particleID)->neighbours.size();
 		}
 		//Ranked fully informed
 		else if (config->getModelOfInfluence() == MOI_RANKED_FI) {
-			if (iteration == 1)
+			if (iteration == 1 && particleID == 0)
 				Informants = new int[swarm.at(particleID)->neighbours.size()];
 			else {
 				delete [] Informants;
@@ -358,7 +369,6 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 			}
 			TMP_vect.clear();
 
-			swarm.at(particleID)->getBestOfNeibourhood();  //update particle's gbest
 			cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
 			return swarm.at(particleID)->neighbours.size();
 		}

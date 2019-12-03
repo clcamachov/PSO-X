@@ -50,7 +50,7 @@ public:
 	double computeAvgVelocity(Configuration* config);
 	void rankParticles(SimplifySwarm* particles);
 
-	// GlobalBest value to print
+	// GlobalBest particle
 	Solution getGlobalBest();
 	void printGbest(unsigned int dimensions);
 

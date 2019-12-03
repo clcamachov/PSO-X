@@ -35,6 +35,7 @@ Particle::Particle(){
 	parent =0;
 	stereotype = 0;
 	perturbationVal = 0;
+	gBestID = -1;
 }
 
 /* Constructor*/
@@ -47,6 +48,7 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier){
 	parent = 0;
 	stereotype = 0;
 	perturbationVal = 0.01;
+	gBestID = -1;
 
 	hasVelocitybounds = config->useVelocityClamping();
 	setVelocityLimits(config); //Set velocity clamping limits
@@ -80,6 +82,7 @@ Particle::Particle (const Particle &p){
 	parent = p.parent;
 	stereotype = p.stereotype;
 	perturbationVal = p.perturbationVal;
+	gBestID = p.gBestID;
 
 	hasVelocitybounds = p.hasVelocitybounds;
 	minVelLimit = p.minVelLimit;
@@ -132,6 +135,7 @@ Particle& Particle::operator= (const Particle& p){
 		parent = p.parent;
 		stereotype = p.stereotype;
 		perturbationVal = p.perturbationVal;
+		gBestID = p.gBestID;
 
 		hasVelocitybounds = p.hasVelocitybounds;
 		minVelLimit = p.minVelLimit;
@@ -290,19 +294,25 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[],
 	double radius = 0.0;	//radius G-X
 	double pw=1./(double)size;
 
-	if (pbest.eval == gbest.eval){
+	if (this->id == this->gBestID){
 		//use a random neighbor as Gbest
 		int randNeighbor = getRandomNeighbor();
-		if (randNeighbor != this->id)
+		if (randNeighbor != this->id){
+			cout << "\t\t ... using a random neighbor's pbest--" << endl;
 			for (int i=0; i<size; i++)
-				l[i] = neighbours.at(randNeighbor)->pbest.x[i]; //Use a random position
-		else
+				l[i] = neighbours.at(randNeighbor)->pbest.x[i]; //Use random neighbor's pBest
+		}
+		else{
+			cout << "\t\t ... using reinitialization to model --" << endl;
 			for (int i=0; i<size; i++)
-				l[i] = problem->getRandomX(); //Use random values
+				//initialization rule of Incremental PSO -- reinitialize position to model
+				l[i] = problem->getRandomX() + problem->getRandom01()*(gbest.x[i]-current.x[i]);
+		}
 	}
 	else
 		for (int i=0; i<size; i++)
 			l[i] = gbest.x[i];
+
 
 	if (RmatrixType != MATRIX_NONE){
 		//Create a temporary structure
@@ -311,25 +321,51 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[],
 			v_PosToInfPbest[i] = new double [size];
 
 		//Copy the informants in a temporary structure
-		if (modOfInf == MOI_BEST_OF_N)
-			for (int i=0; i<size; i++) //lbest
-				v_PosToInfPbest[0][i] = (l[i]-current.x[i]);
-		else if (modOfInf == MOI_FI)
-			for (int j=1; j<numInformants; j++){ //the rest of informants
-				for (int i=0; i<size; i++)
-					v_PosToInfPbest[j][i] = (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]);
+		cout << "\t\t---Original vectors pk-xi --" << endl;
+		for (int j=0; j<numInformants; j++){
+			cout << "\t p[" << theInformants[j] << "] -> { ";
+			if (this->id == neighbours.at(theInformants[j])->getID()){
+				cout << " l[] ";
+				for (int i=0; i<size; i++){
+					//this is the vector we want to rotate
+					v_PosToInfPbest[j][i] = (l[i]-current.x[i]);
+					cout << v_PosToInfPbest[j][i] << " ";
+				}
 			}
+			else
+				for (int i=0; i<size; i++){
+					//this is the vector we want to rotate
+					v_PosToInfPbest[j][i] = (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]);
+					cout << v_PosToInfPbest[j][i] << " ";
+				}
+			cout << "}" << endl;
+		}
 
-		//Rotate
-		//multiplyVectorByRndMatrix(l, rndMatrix, RmatrixType);
+		//Rotate each vector
+		cout << "\t\t---Rotated vectors M * (pk-xi) --" << endl;
+		for (int j=0; j<numInformants; j++){ //the rest of informants
+			cout << "\t p[" << theInformants[j] << "] -> { ";
+			multiplyVectorByRndMatrix(v_PosToInfPbest[j], rndMatrix, RmatrixType);
+			for (int i=0; i<size; i++){
+				cout << v_PosToInfPbest[j][i] << " ";
+			}
+			cout << "}" << endl;
+		}
 	}
 
 	//Compute G (center of the sphere) and V1 (radius of each dimension)
 	for (int i=0; i<size; i++){
-		if (modOfInf == MOI_BEST_OF_N){
+		if (RmatrixType == MATRIX_NONE){
+			//double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
+			//double L = current.x[i] + (phi_2 * (l[i]-current.x[i])); //Gbest
+			//G[i] = (current.x[i] + P + L )/(3);
+			double R = 0.0;
 			double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
-			double L = current.x[i] + (phi_2 * (l[i]-current.x[i])); //Gbest
-			G[i] = (current.x[i] + P + L )/(3);
+			for (int j=0; j<numInformants; j++){ //rest of informants (including Gbest)
+				//cout << "\t\t  informant at [" << j << "] is " <<  theInformants[j] << endl; //remove
+				R += current.x[i] + (phi_1 * (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]));
+			}
+			G[i] = (current.x[i] + P + R )/(numInformants + 2);
 		}
 		else {
 			double R = 0.0;
@@ -693,6 +729,9 @@ double* Particle::getCurrentVelocity(){
 	return velocity;
 }
 
+int Particle::getgBestID(){
+	return gBestID;
+}
 
 double* Particle::getPbestPosition() {
 	return(pbest.x);
@@ -719,40 +758,53 @@ void Particle::printNeighborByID(int identifier){
 	cout << endl;
 }
 
+//int Particle::getParticle_gBestID(){
+//	double aux_eval = this->gbest.eval;
+//	int best= this->id;
+//
+//	//Check the neighborhood
+//	for(unsigned int i=0; i<this->neighbours.size(); i++){
+//		if(aux_eval > this->neighbours[i]->getPbestEvaluation()){
+//			best = this->neighbours[i]->getID();
+//		}
+//	}
+//	return best;
+//}
 
-/*Check the neighborhood for the best particle */
-void Particle::checkNeibourhood(){
-	double aux_eval;
-	int best=-1;
-
-	//Check first personal best
-	if(pbest.eval < gbest.eval){
-		updateGlobalBest(pbest.x, pbest.eval);
-	}
-	//Check after the rest of the neighborhood
-	aux_eval=gbest.eval;
-	for(unsigned int i=0; i<neighbours.size();i++){
-		if(aux_eval > neighbours[i]->getPbestEvaluation()){
-			best = i;
-		}
-	}
-
-	//New best particle in the neighborhood
-	if(best!=-1)
-		updateGlobalBest(neighbours[best]->getPbestPosition(), neighbours[best]->getPbestEvaluation());
-}
+///*Check the neighborhood for the best particle */
+//void Particle::checkNeibourhood(){
+//	double aux_eval;
+//	int best=-1;
+//
+//	//Check first personal best
+//	if(pbest.eval < gbest.eval){
+//		updateGlobalBest(pbest.x, pbest.eval);
+//	}
+//	//Check after the rest of the neighborhood
+//	aux_eval=gbest.eval;
+//	for(unsigned int i=0; i<neighbours.size();i++){
+//		if(aux_eval > neighbours[i]->getPbestEvaluation()){
+//			best = i;
+//		}
+//	}
+//
+//	//New best particle in the neighborhood
+//	if(best!=-1)
+//		updateGlobalBest(neighbours[best]->getPbestPosition(), neighbours[best]->getPbestEvaluation());
+//}
 
 /*Check the neighborhood for the best particle */
 int Particle::getBestOfNeibourhood(){
-	double aux_eval;
+	double aux_eval=this->gbest.eval;;
 	int best=-1;
+	int prev_gBestID = this->gBestID;
 
 	//Check first personal best
 	if(this->pbest.eval < this->gbest.eval){
 		updateGlobalBest(this->pbest.x, this->pbest.eval);
+		this->gBestID = this->id;
 	}
 	//Check after the rest of the neighborhood
-	aux_eval=this->gbest.eval;
 	for(unsigned int i=0; i<this->neighbours.size();i++){
 		if(aux_eval > this->neighbours[i]->getPbestEvaluation()){
 			best = i;
@@ -760,8 +812,13 @@ int Particle::getBestOfNeibourhood(){
 	}
 
 	//New best particle in the neighborhood
-	if(best!=-1)
+	if(best!=-1){
 		updateGlobalBest(this->neighbours[best]->getPbestPosition(), this->neighbours[best]->getPbestEvaluation());
+		this->gBestID = this->neighbours[best]->getID(); //in this case best is also the index position of the particle
+	}
+	if (prev_gBestID != best)
+		cout << "New gBestID for particle -- " << this->id << endl;//remove
+
 	return best;
 }
 
