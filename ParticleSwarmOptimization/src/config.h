@@ -216,11 +216,17 @@
 #define DIST_MULTISPHERICAL				2
 #define DIST_ADD_STOCH 					3
 
-#define PERT_NONE						0
-#define PERT_ADD_RECT					1
-#define PERT_ADD_NOISY					2
-#define PERT_DIST_NORMAL				3
-#define PERT_DIST_SUCCESS				4
+#define PERT1_NONE						0
+#define PERT1_ADD_RECT					1
+#define PERT1_ADD_NOISY					2
+#define PERT1_DIST_NORMAL				3
+#define PERT1_DIST_SUCCESS				4
+
+#define PERT2_NONE						0
+#define PERT2_ADD_RECT					1
+#define PERT2_ADD_NOISY					2
+#define PERT2_DIST_NORMAL				3
+#define PERT2_DIST_SUCCESS				4
 
 #define Q_STANDARD						0
 #define Q_GAUSSIAN						1
@@ -280,7 +286,8 @@ private:
 	//Model of influence
 	short modelOfInfluence;
 
-	short perturbation;
+	short perturbation1;
+	short perturbation2;
 	short randomMatrix;
 	short operator_q;
 
@@ -345,7 +352,8 @@ public:
 	short getModelOfInfluence();
 
 	//Perturbation
-	short getPerturbation();
+	short getPerturbation1();
+	short getPerturbation2();
 	short getRandomMatrix();
 	short getOperator_q();
 

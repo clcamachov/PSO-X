@@ -385,6 +385,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				else
 					break;
 			}
+
 			//This is the actual array with the ID of the informants
 			if (iteration == 1 && particleID == 0)
 				Informants = new int[Array_size];
@@ -399,8 +400,8 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 					if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j])
 						Informants[j] = i;
 			}
-			delete [] TMP_Array;
-			swarm.at(particleID)->getBestOfNeibourhood(); //update particle's gbest
+			//delete [] TMP_Array;
+			//swarm.at(particleID)->getBestOfNeibourhood(); //update particle's gbest
 			cout << "Size of Informants of " << particleID << " is " << Array_size << endl;
 			return Array_size;
 		}
@@ -433,8 +434,8 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 
 
 void Swarm::updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration){
-	switch(config->getPerturbation()){
-	case PERT_ADD_RECT || PERT_DIST_SUCCESS:
+	switch(config->getPerturbation1()){
+	case PERT1_ADD_RECT || PERT1_DIST_SUCCESS:
 	if (previousGbest_eval != currentGbest_eval){ //success
 		sc++;
 		fc=0;
@@ -460,9 +461,9 @@ void Swarm::updatePerturbationVariables(Configuration* config, double previousGb
 			alpha_t = 0.001;
 	}
 	break;
-	case PERT_DIST_NORMAL:
+	case PERT1_DIST_NORMAL:
 		break;
-	case PERT_ADD_NOISY:
+	case PERT1_ADD_NOISY:
 		break;
 	}
 }

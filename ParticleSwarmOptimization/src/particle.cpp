@@ -231,13 +231,13 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	getHypersphericalVector(config->getModelOfInfluence(), V2, V1, numInformants, theInformants, rndMatrix, config->getRandomMatrix());
 
 	//For the distribution-based perturbation strategies we need to compute the std. deviation in advance,
-	//which is the distance between current.x and neighbours[h].x multiply by a constant
-	perturbationVal = computePerturbation(config, current.x, neighbours[theInformants[0]]->pbest.x, alpha_t, l, delta, true);
+	//which is the distance between current.x and neighbours[h].x multiplied by a constant
+	perturbationVal = computePerturbation1(config, current.x, neighbours[theInformants[0]]->pbest.x, alpha_t, l, delta, true);
 
 	//Compute new position
 	for (int i=0;i<size;i++) {
-		//TODO: Here I could modify this to determine the parameters sent to computeNewVelocity() using a switch statement
-		perturbationVal = computePerturbation(config, current.x, neighbours[0]->current.x, alpha_t, l, delta, false);
+
+		perturbationVal = computePerturbation1(config, current.x, neighbours[0]->current.x, alpha_t, l, delta, false);
 		//cout << "\n Normal_perturbed: " << RNG::randGaussWithMean(pow(perturbationVal,2), current.x[i]) << endl;
 		//cout << "\n perturbationVal: "  << scientific << perturbationVal << endl;
 
@@ -287,13 +287,18 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 // The computation of the radius and the random point in the HyperSphere
 // was taken from the publicly available code of Maurice Clerc - Standard PSO 2011
 // https://www.particleswarm.info/Programs.html
-void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[],
-		int numInformants, int *theInformants, double *** rndMatrix, int RmatrixType){
+void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[], int numInformants, int *theInformants, double *** rndMatrix, int RmatrixType){
 	double G[size];	//center of the sphere
 	double l[size]; //particle's Gbest
 	double radius = 0.0;	//radius G-X
 	double pw=1./(double)size;
+	double * v_PosToInfPbest[numInformants];
+	bool pBestInformant = false; //flag to know if pBest is included in theInformants
 
+	//When the hierarchical topology is used, this verification might be irrelevant most of the time
+	//since the gBest particle might be located in a lower level in the hierarchy. In that case the
+	//verification of id == gBestID is only relevant if gBestID is in theInformants.
+	//Check if the particle is gBest
 	if (this->id == this->gBestID){
 		//use a random neighbor as Gbest
 		int randNeighbor = getRandomNeighbor();
@@ -302,10 +307,10 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[],
 			for (int i=0; i<size; i++)
 				l[i] = neighbours.at(randNeighbor)->pbest.x[i]; //Use random neighbor's pBest
 		}
+		//initialization rule of Incremental PSO -- reinitialize position to model
 		else{
 			cout << "\t\t ... using reinitialization to model --" << endl;
 			for (int i=0; i<size; i++)
-				//initialization rule of Incremental PSO -- reinitialize position to model
 				l[i] = problem->getRandomX() + problem->getRandom01()*(gbest.x[i]-current.x[i]);
 		}
 	}
@@ -313,68 +318,121 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[],
 		for (int i=0; i<size; i++)
 			l[i] = gbest.x[i];
 
+	//Check if pbest is already included in theInformants
+	for (int j=0; j<numInformants; j++)
+		if (this->id == neighbours.at(theInformants[j])->getID() )
+			pBestInformant = true;
 
+	//Rotate if some type of rotation is chosen
 	if (RmatrixType != MATRIX_NONE){
+		//If gBest is not included in theInformant array, it will be added at the end
+		if (pBestInformant == false)
+			numInformants = numInformants+1;
+
 		//Create a temporary structure
-		double * v_PosToInfPbest[numInformants];
 		for (int i=0; i<numInformants; i++)
 			v_PosToInfPbest[i] = new double [size];
 
-		//Copy the informants in a temporary structure
-		cout << "\t\t---Original vectors pk-xi --" << endl;
-		for (int j=0; j<numInformants; j++){
-			cout << "\t p[" << theInformants[j] << "] -> { ";
-			if (this->id == neighbours.at(theInformants[j])->getID()){
-				cout << " l[] ";
-				for (int i=0; i<size; i++){
-					//this is the vector we want to rotate
-					v_PosToInfPbest[j][i] = (l[i]-current.x[i]);
-					cout << v_PosToInfPbest[j][i] << " ";
+		//If pBest was not included
+		if (pBestInformant == false){
+			//Copy the informants in a temporary structure
+			//cout << "\t\t---Original vectors pk-xi --" << endl;
+			for (int j=0; j<numInformants-1; j++){
+				//cout << "\t p[" << theInformants[j] << "] -> { ";
+				if (this->id == this->gBestID){ //use the right gBest
+					//cout << " l[] ";
+					for (int i=0; i<size; i++){
+						//this is the vector we want to rotate
+						v_PosToInfPbest[j][i] = (l[i]-current.x[i]);
+						//cout << v_PosToInfPbest[j][i] << " ";
+					}
 				}
+				else
+					for (int i=0; i<size; i++){
+						//this is the vector we want to rotate
+						v_PosToInfPbest[j][i] = (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]);
+						//cout << v_PosToInfPbest[j][i] << " ";
+					}
+				//cout << "}" << endl;
 			}
-			else
-				for (int i=0; i<size; i++){
-					//this is the vector we want to rotate
-					v_PosToInfPbest[j][i] = (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]);
-					cout << v_PosToInfPbest[j][i] << " ";
-				}
-			cout << "}" << endl;
+			for (int i=0; i<size; i++){
+				//this is the vector we want to rotate
+				v_PosToInfPbest[numInformants-1][i] = (pbest.x[i]-current.x[i]);
+				//cout << v_PosToInfPbest[j][i] << " ";
+			}
 		}
-
+		//pBest was already included
+		else {
+			//Copy the informants in a temporary structure
+			//cout << "\t\t---Original vectors pk-xi --" << endl;
+			for (int j=0; j<numInformants; j++){
+				//cout << "\t p[" << theInformants[j] << "] -> { ";
+				if (this->id == this->gBestID){ //use the right gBest
+					//cout << " l[] ";
+					for (int i=0; i<size; i++){
+						//this is the vector we want to rotate
+						v_PosToInfPbest[j][i] = (l[i]-current.x[i]);
+						//cout << v_PosToInfPbest[j][i] << " ";
+					}
+				}
+				else
+					for (int i=0; i<size; i++){
+						//this is the vector we want to rotate
+						v_PosToInfPbest[j][i] = (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]);
+						//cout << v_PosToInfPbest[j][i] << " ";
+					}
+				//cout << "}" << endl;
+			}
+		}
 		//Rotate each vector
-		cout << "\t\t---Rotated vectors M * (pk-xi) --" << endl;
+		//cout << "\t\t---Rotated vectors M * (pk-xi) --" << endl;
 		for (int j=0; j<numInformants; j++){ //the rest of informants
-			cout << "\t p[" << theInformants[j] << "] -> { ";
+			//cout << "\t p[" << theInformants[j] << "] -> { ";
 			multiplyVectorByRndMatrix(v_PosToInfPbest[j], rndMatrix, RmatrixType);
 			for (int i=0; i<size; i++){
-				cout << v_PosToInfPbest[j][i] << " ";
+				//cout << v_PosToInfPbest[j][i] << " ";
 			}
-			cout << "}" << endl;
+			//cout << "}" << endl;
 		}
 	}
+
 
 	//Compute G (center of the sphere) and V1 (radius of each dimension)
 	for (int i=0; i<size; i++){
 		if (RmatrixType == MATRIX_NONE){
-			//double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
-			//double L = current.x[i] + (phi_2 * (l[i]-current.x[i])); //Gbest
-			//G[i] = (current.x[i] + P + L )/(3);
 			double R = 0.0;
-			double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
-			for (int j=0; j<numInformants; j++){ //rest of informants (including Gbest)
-				//cout << "\t\t  informant at [" << j << "] is " <<  theInformants[j] << endl; //remove
-				R += current.x[i] + (phi_1 * (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]));
+			double P = 0.0;
+			if (pBestInformant == true){ //pBest is included in theInformants
+				for (int j=0; j<numInformants; j++){
+					if (neighbours.at(theInformants[j])->getID() == this->gBestID)
+						R += current.x[i] + (phi_1 * (l[i]-current.x[i])); //always use l[]
+					else
+						R += current.x[i] + (phi_1 * (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]));
+				}
+				G[i] = (current.x[i] + R )/(numInformants + 1);
 			}
-			G[i] = (current.x[i] + P + R )/(numInformants + 2);
+			else{ //pBest is not included in theInformants
+				if (this->id == this->gBestID)
+					P = current.x[i] + (phi_1 * (l[i]-current.x[i])); //pBest == gBest: use l[]
+				else
+					P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
+				//(Note that l[] will be P or R, but not both)
+				for (int j=0; j<numInformants; j++){
+					if (neighbours.at(theInformants[j])->getID() == this->gBestID) //pBest == gBest: use l[]
+						R += current.x[i] + (phi_1 * (l[i]-current.x[i])); //always use l[]
+					else
+						R += current.x[i] + (phi_1 * (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]));
+				}
+				G[i] = (current.x[i] + P + R )/(numInformants + 2);
+			}
 		}
-		else {
+		else { //Use the rotated vectors
 			double R = 0.0;
-			double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i])); //pBest
-			for (int j=0; j<numInformants; j++){ //rest of informants (including Gbest)
+			for (int j=0; j<numInformants; j++){
 				//cout << "\t\t  informant at [" << j << "] is " <<  theInformants[j] << endl; //remove
-				R += current.x[i] + (phi_1 * (neighbours.at(theInformants[j])->pbest.x[i]-current.x[i]));
+				R += current.x[i] + (phi_1 * v_PosToInfPbest[j][i]);
 			}
-			G[i] = (current.x[i] + P + R )/(numInformants + 2);
+			G[i] = (current.x[i] + R )/(numInformants + 1);
 		}
 		radius += pow(abs(current.x[i] - G[i]), 2);
 		V1[i] = G[i] - current.x[i];
@@ -397,6 +455,9 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[],
 	for (int i=0;i<size;i++) {
 		V2[i] = radius*r*V2[i]/length;
 	}
+
+	if (pBestInformant == false && RmatrixType != MATRIX_NONE)
+		numInformants-=1;
 }
 
 //Multiply by the random matrix
@@ -638,16 +699,16 @@ void Particle::computeRndMatrix(double *** rndMatrix, int RmatrixType){
 	}
 }
 
-double Particle::computePerturbation(Configuration* config, double * pos_x, double * pbest_x,
+double Particle::computePerturbation1(Configuration* config, double * pos_x, double * pbest_x,
 		double alpha_t, double l, double delta, bool newInformant){
-	switch(config->getPerturbation()){
-	case PERT_NONE: //Do not apply perturbation
+	switch(config->getPerturbation1()){
+	case PERT1_NONE: //Do not apply perturbation
 		return 1.0;
-	case PERT_ADD_RECT || PERT_DIST_SUCCESS: //Additional rectangular
-	return alpha_t*(1-(2*problem->getRandomX(0,1)));
-	case PERT_ADD_NOISY: //Additional noisy
+	case PERT1_ADD_RECT || PERT1_DIST_SUCCESS: //Additional rectangular
+		return alpha_t*(1-(2*problem->getRandomX(0,1)));
+	case PERT1_ADD_NOISY: //Additional noisy
 		return problem->getRandomX(-delta/2,delta/2);
-	case PERT_DIST_NORMAL: //Normally distributed (here, we only compute the std. deviation
+	case PERT1_DIST_NORMAL: //Normally distributed (here, we only compute the std. deviation
 		if (newInformant){
 			double distance = computeDistance(pos_x, pbest_x);
 			if (distance == 0)
@@ -797,7 +858,7 @@ void Particle::printNeighborByID(int identifier){
 int Particle::getBestOfNeibourhood(){
 	double aux_eval=this->gbest.eval;;
 	int best=-1;
-	int prev_gBestID = this->gBestID;
+	//int prev_gBestID = this->gBestID;
 
 	//Check first personal best
 	if(this->pbest.eval < this->gbest.eval){
@@ -814,10 +875,10 @@ int Particle::getBestOfNeibourhood(){
 	//New best particle in the neighborhood
 	if(best!=-1){
 		updateGlobalBest(this->neighbours[best]->getPbestPosition(), this->neighbours[best]->getPbestEvaluation());
-		this->gBestID = this->neighbours[best]->getID(); //in this case best is also the index position of the particle
+		this->gBestID = this->neighbours[best]->getID();
 	}
-	if (prev_gBestID != best)
-		cout << "New gBestID for particle -- " << this->id << endl;//remove
+	//if (prev_gBestID != best)
+	//cout << "New gBestID for particle -- " << this->id << endl;//remove
 
 	return best;
 }
@@ -826,11 +887,6 @@ int Particle::getRandomNeighbor(){
 	int randomIndex = -1;
 	for (unsigned int i=0; i<neighbours.size(); i++) {
 		randomIndex = (int)floor(RNG::randVal(0.0,(double)neighbours.size()));
-
-		//prints
-		//cout << "randomIndex: " << randomIndex << endl;//remove
-		//printPosition(); //remove
-		//printNeighborByID(randomIndex);//remove
 
 		//Distinct of itself
 		if (neighbours.at(randomIndex)->id != id)

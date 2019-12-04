@@ -144,8 +144,12 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			omega3CS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n omega3 strategy has been received \n";
-		} else if (strcmp(argv[i], "--perturbation") == 0) {
-			perturbation = atoi(argv[i+1]);
+		} else if (strcmp(argv[i], "--perturbation1") == 0) {
+			perturbation1 = atoi(argv[i+1]);
+			i++;
+			//cout << "\n perturbation strategy has been received \n";
+		} else if (strcmp(argv[i], "--perturbation2") == 0) {
+			perturbation2 = atoi(argv[i+1]);
 			i++;
 			//cout << "\n perturbation strategy has been received \n";
 		} else if (strcmp(argv[i], "--randomMatrix") == 0) {
@@ -316,7 +320,8 @@ void Configuration::setDefaultParameters(){
 	modelOfInfluence = 0;
 	tSchedule = 2*particles;				//topology update schedule
 	branching = 4;							//branching degree for the hierarchical topology
-	perturbation = 0;
+	perturbation1 = 0;
+	perturbation2 = 0;
 	randomMatrix = 0;
 	operator_q = 0;
 	vRule = 1;
@@ -339,22 +344,27 @@ void Configuration::printParameters(){
 			<< "  evaluations:     " << getMaxFES() << "\n"
 			<< "  iterations:      " << getMaxIterations() << "\n"
 			<< "  particles:       " << getSwarmSize() << "\n"
-			<< "  inertia:         " << getInertia() << "\n"
-			<< "  phi_1:           " << getPhi1() << "\n"
-			<< "  phi_2:           " << getPhi2() << "\n"
+			//<< "  inertia:         " << getInertia() << "\n"
+			//<< "  phi_1:           " << getPhi1() << "\n"
+			//<< "  phi_2:           " << getPhi2() << "\n"
 			<< "  topology:        " << getTopology() << "\n"
-			<< "  minInitRange:    " << getMinInitBound() << "\n"
-			<< "  maxInitRange:    " << getMaxInitBound() << "\n"
+			//<< "  minInitRange:    " << getMinInitBound() << "\n"
+			//<< "  maxInitRange:    " << getMaxInitBound() << "\n"
 			<< "  useVelClamping:  " << useVelocityClamping() << "\n"
 			<< "  omega1CS:        " << getinertiaCS() << "\n"
-			<< "  initialIW        " << getInitialIW() << "\n"
-			<< "  finalIW          " << getFinalIW() << "\n"
-			<< "  iwSchedule       " << getIWSchedule() << "\n"
-			<< "  tSchedule        " << getTopologySchedule() << "\n"
-			<< "  vRule            " << getVelocityRule() << "\n"
+			//<< "  initialIW        " << getInitialIW() << "\n"
+			//<< "  finalIW          " << getFinalIW() << "\n"
+			//<< "  iwSchedule       " << getIWSchedule() << "\n"
+			//<< "  tSchedule        " << getTopologySchedule() << "\n"
 			<< "  omega2CS         " << getomega2CS() << "\n"
 			<< "  omega3CS         " << getomega3CS() << "\n"
 			<< "  modelOfInfluence " << getModelOfInfluence() << "\n"
+			<< "  branching        " << getBranchingDegree() << "\n"
+			<< "  perturbation1    " << getPerturbation1() << "\n"
+			<< "  perturbation2    " << getPerturbation2() << "\n"
+			<< "  randomMatrix     " << getRandomMatrix() << "\n"
+			<< "  operator_q       " << getOperator_q() << "\n"
+			<< "  vRule            " << getVelocityRule() << "\n"
 			<< endl;
 }
 
@@ -460,8 +470,11 @@ void Configuration::setVelocityClamped(bool clamping){
 short Configuration::getModelOfInfluence(){
 	return modelOfInfluence;
 }
-short Configuration::getPerturbation(){
-	return perturbation;
+short Configuration::getPerturbation1(){
+	return perturbation1;
+}
+short Configuration::getPerturbation2(){
+	return perturbation2;
 }
 short Configuration::getRandomMatrix(){
 	return randomMatrix;

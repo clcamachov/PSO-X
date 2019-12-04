@@ -96,7 +96,7 @@ public:
 	int getRandomNeighbor();
 
 	//Perturbation
-	double computePerturbation(Configuration* config, double * pos_x, double * pbest_x, double alpha_t,
+	double computePerturbation1(Configuration* config, double * pos_x, double * pbest_x, double alpha_t,
 			double l, double delta, bool newIteration);
 
 	//Random Matrix
