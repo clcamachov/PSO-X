@@ -84,6 +84,9 @@ public:
 	double computeDistPbestGbest();
 	double computeDistance(double * x, double * p);
 
+	bool isPbestInformant(int numInformants, int *theInformants);
+
+
 	//Velocity
 	void setVelocityLimits(Configuration* config);
 	double getMinVelLimit();
@@ -93,7 +96,7 @@ public:
 	void printPosition();
 	void printNeighborByID(int id);
 
-	void getHypersphericalVector(int modOfInf, double* H, double* V1, int numInformants, int *theInformants, double *** rndMatrix, int RmatrixType);
+	void getHypersphericalVector(double* H, double* V1, int numInformants, int *theInformants, double *** rndMatrix, int RmatrixType);
 	int getRandomNeighbor();
 
 	//Perturbation
