@@ -156,6 +156,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			randomMatrix = atoi(argv[i+1]);
 			i++;
 			//cout << "\n randomMatrix type has been received \n";
+		} else if (strcmp(argv[i], "--DNPP") == 0) {
+			distributionNPP = atoi(argv[i+1]);
+			i++;
+			//cout << "\n operator_q has been received \n";
 		} else if (strcmp(argv[i], "--operator_q") == 0) {
 			operator_q = atoi(argv[i+1]);
 			i++;
@@ -173,6 +177,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			return(false);
 		}
 	}
+
 
 	//Some velocity update rules have special requirements
 	if (vRule == 0 ){ //do not require inertia
@@ -323,6 +328,7 @@ void Configuration::setDefaultParameters(){
 	perturbation1 = 0;
 	perturbation2 = 0;
 	randomMatrix = 0;
+	distributionNPP = 0;
 	operator_q = 0;
 	vRule = 1;
 
@@ -336,36 +342,177 @@ void Configuration::setDefaultParameters(){
 /*Print parameters */
 //TODO: Update with all the parameters
 void Configuration::printParameters(){
-	cout << "\nPSO parameters:\n"
-			<< "  competition:     " << getCompetitionID() << "\n"
-			<< "  problem:         " << getProblemID() << "\n"
-			<< "  dimensions:      " << getProblemDimension() << "\n"
-			<< "  seed:            " << getRNGSeed() << "\n"
-			<< "  evaluations:     " << getMaxFES() << "\n"
-			<< "  iterations:      " << getMaxIterations() << "\n"
-			<< "  particles:       " << getSwarmSize() << "\n"
-			//<< "  inertia:         " << getInertia() << "\n"
-			//<< "  phi_1:           " << getPhi1() << "\n"
-			//<< "  phi_2:           " << getPhi2() << "\n"
-			<< "  topology:        " << getTopology() << "\n"
-			//<< "  minInitRange:    " << getMinInitBound() << "\n"
-			//<< "  maxInitRange:    " << getMaxInitBound() << "\n"
-			<< "  useVelClamping:  " << useVelocityClamping() << "\n"
-			<< "  omega1CS:        " << getinertiaCS() << "\n"
-			//<< "  initialIW        " << getInitialIW() << "\n"
-			//<< "  finalIW          " << getFinalIW() << "\n"
-			//<< "  iwSchedule       " << getIWSchedule() << "\n"
-			//<< "  tSchedule        " << getTopologySchedule() << "\n"
-			<< "  omega2CS         " << getomega2CS() << "\n"
-			<< "  omega3CS         " << getomega3CS() << "\n"
-			<< "  modelOfInfluence " << getModelOfInfluence() << "\n"
-			<< "  branching        " << getBranchingDegree() << "\n"
-			<< "  perturbation1    " << getPerturbation1() << "\n"
-			<< "  perturbation2    " << getPerturbation2() << "\n"
-			<< "  randomMatrix     " << getRandomMatrix() << "\n"
-			<< "  operator_q       " << getOperator_q() << "\n"
-			<< "  vRule            " << getVelocityRule() << "\n"
-			<< endl;
+
+	cout << "\nPSO parameters:\n";
+	//cout	<< "  competition:     " << getCompetitionID() << "\n"
+	switch (getCompetitionID()){
+	case CEC05: 			cout	<< "  competition:       CEC05\n"; break;
+	case CEC14: 			cout	<< "  competition:       CEC14\n"; break;
+	case SOFT_COMPUTING:	cout	<< "  competition:       SOFT_COMPUTING\n";	break;
+	case MIXTURE:   		cout	<< "  competition:       MIXTURE\n"; break;
+	}
+	cout    << "  problem:           " << getProblemID() << "\n"
+			<< "  dimensions:        " << getProblemDimension() << "\n";
+	//		<< "  minInitRange:      " << getMinInitBound() << "\n"
+	//		<< "  maxInitRange:      " << getMaxInitBound() << "\n"
+	//		<< "  seed:              " << getRNGSeed() << "\n"
+	cout	<< "  evaluations:       " << getMaxFES() << "\n"
+			<< "  iterations:        " << getMaxIterations() << "\n"
+			<< "  particles:         " << getSwarmSize() << "\n";
+	//		<< "  phi_1:             " << getPhi1() << "\n"
+	//		<< "  phi_2:             " << getPhi2() << "\n"
+	//		<< "  topology:          " << getTopology() << "\n"
+	switch (getTopology()){
+	case TOP_FULLYCONNECTED:	cout	<< "  topology:          TOP_FULLYCONNECTED\n";	break;
+	case TOP_RING: 				cout	<< "  topology:          TOP_RING\n"; break;
+	case TOP_WHEEL:				cout	<< "  topology:          TOP_WHEEL\n"; break;
+	case TOP_RANDOM:			cout	<< "  topology:          TOP_RANDOM\n"; break;
+	case TOP_VONNEUMANN:		cout	<< "  topology:          TOP_VONNEUMANN\n"; break;
+	case TOP_TIMEVARYING:		cout	<< "  topology:          TOP_TIMEVARYING\n"
+			<< "  tSchedule          " << getTopologySchedule() << "\n"; break;
+	case TOP_HIERARCHICAL:		cout	<< "  topology:          TOP_HIERARCHICAL\n"
+			<< "  branching          " << getBranchingDegree() << "\n"; break;
+	}
+	//<< "  useVelClamping:  " << useVelocityClamping() << "\n"
+	switch(useVelocityClamping()){
+	case true:		cout	<< "  velocity clamped:  YES\n"; break;
+	case false:		cout	<< "  velocity clamped:  NO\n"; break;
+	}
+	//cout	<< "  omega1CS:        " << getinertiaCS() << "\n"
+	switch(getinertiaCS()){
+	case IW_CONSTANT:
+		cout	<< "  omega1CS:          CONSTANT\n"
+		<< "  inertia:           " << getInertia() << "\n"; break;
+	case IW_L_INC:
+		cout	<< "  omega1CS:          L_INC\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"
+		<< "  iwSchedule         " << getIWSchedule() << "\n"; break;
+	case IW_L_DEC:
+		cout	<< "  omega1CS:          L_DEC\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"
+		<< "  iwSchedule         " << getIWSchedule() << "\n"; break;
+	case IW_RANDOM:
+		cout	<< "  omega1CS:          RANDOM\n"; break;
+	case IW_NONL_DEC:
+		cout	<< "  omega1CS:          NONL_DEC\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"; break;
+	case IW_NONL_DEC_IMP:
+		cout	<< "  omega1CS:          NONL_DEC_IMP\n"; break;
+	case IW_NONL_DEC_TIME:
+		cout	<< "  omega1CS:          NONL_DEC_TIME\n"; break;
+	case IW_CHAOTIC_DEC:
+		cout	<< "  omega1CS:          CHAOTIC_DEC\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"; break;
+	case IW_EXP_DEC:
+		cout	<< "  omega1CS:          EXP_DEC\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"; break;
+	case IW_OSCILLATING:
+		cout	<< "  omega1CS:          OSCILLATING\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"; break;
+	case IW_LOG_DEC:
+		cout	<< "  omega1CS:          LOG_DEC\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"; break;
+	case IW_SELF_REGULATING:
+		cout	<< "  omega1CS:          (adaptive) SELF_REGULATING\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"; break;
+	case IW_VELOCITY_BASED:
+		cout	<< "  omega1CS:          (adaptive) VELOCITY_BASED\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"; break;
+	case IW_DOUBLE_EXP:
+		cout	<< "  omega1CS:         (adaptive) DOUBLE_EXP\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"; break;
+	case IW_RANKS_BASED:
+		cout	<< "  omega1CS:          (adaptive) RANKS_BASED\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n"; break;
+	case IW_SUCCESS_BASED:
+		cout	<< "  omega1CS:          (adaptive) SUCCESS_BASED\n"
+		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  finalIW            " << getFinalIW() << "\n";  break;
+	case IW_CONVERGE_BASED:
+		cout	<< "  omega1CS:          (adaptive) CONVERGE_BASED\n"; break;
+	}
+	//<< "  omega2CS          " << getomega2CS() << "\n"
+	switch (getomega2CS()){
+	case O2_EQUALS_IW: 	cout	<< "  omega2:            EQUALS_IW\n"; break;
+	case O2_ZERO: 		cout	<< "  omega2:            ZERO\n"; break;
+	case O2_ONE: 		cout	<< "  omega2:            ONE\n"; break;
+	case O2_RANDOM: 	cout	<< "  omega2:            RANDOM\n"; break;
+	}
+	//<< "  omega3CS          " << getomega3CS() << "\n"
+	switch (getomega3CS()){
+	case O3_EQUALS_IW: 	cout	<< "  omega3:            EQUALS_IW\n"; break;
+	case O3_ZERO:		cout	<< "  omega3:            ZERO\n"; break;
+	case O3_ONE:		cout	<< "  omega3:            ONE\n"; break;
+	case O3_RANDOM:		cout	<< "  omega3:            RANDOM\n"; break;
+	}
+	//<< "  modelOfInfluence  " << getModelOfInfluence() << "\n"
+	switch (getModelOfInfluence()){
+	case MOI_BEST_OF_N: 	cout	<< "  modelOfInfluence:  BEST_OF_N\n"; break;
+	case MOI_FI: 			cout	<< "  modelOfInfluence:  FI\n"; break;
+	case MOI_RANKED_FI:		cout	<< "  modelOfInfluence:  RANKED_FI\n"; break;
+	case MOI_HIERARCHICAL:	cout	<< "  modelOfInfluence:  HIERARCHICAL\n"; break;
+	}
+	//<< "  perturbation1     " << getPerturbation1() << "\n"
+	switch (getPerturbation1()){
+	case PERT1_NONE: 			cout	<< "  perturbation1:     NONE\n"; break;
+	case PERT1_ADD_RECT: 		cout	<< "  perturbation1:     ADD_RECT\n"; break;
+	case PERT1_ADD_NOISY:		cout	<< "  perturbation1:     ADD_NOISY\n"; break;
+	case PERT1_DIST_NORMAL:		cout	<< "  perturbation1:     DIST_NORMAL\n"; break;
+	case PERT1_DIST_SUCCESS: 	cout	<< "  perturbation1:     DIST_SUCCESS\n"; break;
+	}
+	//<< "  perturbation2     " << getPerturbation2() << "\n"
+	switch (getPerturbation2()){
+	case PERT2_NONE: 	 	 cout	<< "  perturbation2:     NONE\n"; break;
+	case PERT2_ADD_RECT:	 cout	<< "  perturbation2:     ADD_RECT\n"; break;
+	case PERT2_ADD_NOISY:	 cout	<< "  perturbation2:     ADD_NOISY\n"; break;
+	}
+	//<< "  randomMatrix      " << getRandomMatrix() << "\n"
+	switch (getRandomMatrix()){
+	case MATRIX_NONE:				cout	<< "  randomMatrix:      NONE\n"; break;
+	case MATRIX_DIAGONAL: 			cout	<< "  randomMatrix:      DIAGONAL\n"; break;
+	case MATRIX_LINEAR:				cout	<< "  randomMatrix:      LINEAR\n"; break;
+	case MATRIX_RRM_EXP_MAP:		cout	<< "  randomMatrix:      RRM_EXP_MAP\n"; break;
+	case MATRIX_RRM_EUCLIDEAN_ONE:	cout	<< "  randomMatrix:      RRM_EUCLIDEAN_ONE\n"; break;
+	case MATRIX_RRM_EUCLIDEAN_ALL: 	cout	<< "  randomMatrix:      RRM_EUCLIDEAN_ALL\n"; break;
+	}
+	//<< "  DistributionNPP    " << getDistributionNPP() << "\n"
+	switch (getDistributionNPP()){
+	case DIST_RECTANGULAR: 		cout	<< "  DistributionNPP:   RECTANGULAR\n"; break;
+	case DIST_SPHERICAL: 		cout	<< "  DistributionNPP:   SPHERICAL\n"; break;
+	case DIST_MULTISPHERICAL:	cout	<< "  DistributionNPP:   MULTISPHERICAL\n"; break;
+	case DIST_ADD_STOCH:		cout	<< "  DistributionNPP:   ADD_STOCH\n"; break;
+	}
+	//<< "  operator_q        " << getOperator_q() << "\n"
+	switch (getOperator_q()){
+	case Q_STANDARD: cout	<< "  operator_q:        STANDARD\n"; break;
+	case Q_GAUSSIAN: cout	<< "  operator_q:        GAUSSIAN\n"; break;
+	case Q_DISCRETE: cout	<< "  operator_q:        DISCRETE\n"; break;
+	case Q_NORMAL:	 cout	<< "  operator_q:        NORMAL\n"; break;
+	}
+	//<< "  vRule             " <<  << "\n"
+	switch (getVelocityRule()){
+	case VEL_BASIC:					cout	<< "  vRule:             BASIC\n"; break;
+	case VEL_STANDARD:				cout	<< "  vRule:             STANDARD\n"; break;
+	case VEL_LINEAR:				cout	<< "  vRule:             LINEAR\n"; break;
+	case VEL_CONSTRICTED:			cout	<< "  vRule:             CONSTRICTED\n"; break;
+	case VEL_GUARAN_CONVERG:		cout	<< "  vRule:             GUARAN_CONVERG\n"; break;
+	case VEL_FULLY_INFORMED:		cout	<< "  vRule:             FULLY_INFORMED\n"; break;
+	case VEL_LOC_CON_TRANS_INV:		cout	<< "  vRule:             LOC_CON_TRANS_INV\n"; break;
+	case VEL_STANDARD2011:			cout	<< "  vRule:             STANDARD2011\n";break;
+	case VEL_ROTATION_INV:			cout	<< "  vRule:             ROTATION_INV\n"; break;
+	}
+	cout << endl;
 }
 
 //Problem
@@ -478,6 +625,9 @@ short Configuration::getPerturbation2(){
 }
 short Configuration::getRandomMatrix(){
 	return randomMatrix;
+}
+short Configuration::getDistributionNPP(){
+	return distributionNPP;
 }
 short Configuration::getOperator_q(){
 	return operator_q;

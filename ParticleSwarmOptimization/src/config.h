@@ -193,12 +193,15 @@
 // available omega2 strategies
 #define O2_EQUALS_IW					0
 #define O2_ZERO							1  //if you don't want to use the component
-#define O2_RANDOM						2
+#define O2_ONE							2
+#define O2_RANDOM						3
+
 
 // available omega3 strategies
 #define O3_EQUALS_IW					0
 #define O3_ZERO							1  //if you don't want to use the component
-#define O3_RANDOM						2
+#define O3_ONE							2
+#define O3_RANDOM						3
 
 // available velocity update rules
 #define VEL_BASIC						0
@@ -225,8 +228,6 @@
 #define PERT2_NONE						0
 #define PERT2_ADD_RECT					1
 #define PERT2_ADD_NOISY					2
-#define PERT2_DIST_NORMAL				3
-#define PERT2_DIST_SUCCESS				4
 
 #define Q_STANDARD						0
 #define Q_GAUSSIAN						1
@@ -286,9 +287,13 @@ private:
 	//Model of influence
 	short modelOfInfluence;
 
+	//Perturbation
 	short perturbation1;
 	short perturbation2;
 	short randomMatrix;
+
+	//NPPDistribution
+	short distributionNPP;
 	short operator_q;
 
 	//velocity rules
@@ -355,6 +360,10 @@ public:
 	short getPerturbation1();
 	short getPerturbation2();
 	short getRandomMatrix();
+
+
+	//Distribution
+	short getDistributionNPP();
 	short getOperator_q();
 
 	//Cognitive and social influence control

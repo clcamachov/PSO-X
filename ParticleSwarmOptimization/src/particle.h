@@ -34,7 +34,8 @@ protected:
 	int ranking;
 	int parent;
 	int stereotype;
-	double perturbationVal;
+	double perturbMagnitud1;
+	double perturbMagnitud2;
 	int gBestID;
 
 	/*Solution variables*/
@@ -96,8 +97,9 @@ public:
 	int getRandomNeighbor();
 
 	//Perturbation
-	double computePerturbation1(Configuration* config, double * pos_x, double * pbest_x, double alpha_t,
+	double computePerturbation(int pertubType, double * pos_x, double * pbest_x, double alpha_t,
 			double l, double delta, bool newIteration);
+	double computePerturbation(int pertubType, double alpha_t, double delta);
 
 	//Random Matrix
 	void computeRndMatrix(double *** rndMatrix, int RmatrixType);

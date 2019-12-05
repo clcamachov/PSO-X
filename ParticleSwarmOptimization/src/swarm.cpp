@@ -434,37 +434,32 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 
 
 void Swarm::updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration){
-	switch(config->getPerturbation1()){
-	case PERT1_ADD_RECT || PERT1_DIST_SUCCESS:
-	if (previousGbest_eval != currentGbest_eval){ //success
-		sc++;
-		fc=0;
-		if (sc > success){
-			alpha_t = alpha_t * 2.0;
-			//cout << "\n DOUBLE alpha_t for success" << alpha_t << endl;
+	if(config->getPerturbation1() == PERT1_ADD_RECT || config->getPerturbation1() == PERT1_DIST_SUCCESS
+			|| config->getPerturbation2() == PERT2_ADD_RECT){
+		if (previousGbest_eval != currentGbest_eval){ //success
+			sc++;
+			fc=0;
+			if (sc > success){
+				alpha_t = alpha_t * 2.0;
+				//cout << "\n DOUBLE alpha_t for success" << alpha_t << endl;
+			}
 		}
-	}
-	else{ //failure
-		fc++;
-		sc=0;
-		if (fc > failure){
-			alpha_t = alpha_t * 0.5;
-			//cout << "\n HALF alpha_t update for failure: " << alpha_t << endl;
+		else{ //failure
+			fc++;
+			sc=0;
+			if (fc > failure){
+				alpha_t = alpha_t * 0.5;
+				//cout << "\n HALF alpha_t update for failure: " << alpha_t << endl;
+			}
 		}
-	}
-	//if alpha_t becomes too small, we reinitialize it to 0.15, if we are in the first half of the
-	//iterations, or to 0.001 if we are in the second half of the iterations.
-	if (alpha_t < ALPHA_T_PRECISION){
-		if (iteration < config->getMaxIterations()/2) //first half
-			alpha_t = 0.15;
-		else
-			alpha_t = 0.001;
-	}
-	break;
-	case PERT1_DIST_NORMAL:
-		break;
-	case PERT1_ADD_NOISY:
-		break;
+		//if alpha_t becomes too small, we reinitialize it to 0.15, if we are in the first half of the
+		//iterations, or to 0.001 if we are in the second half of the iterations.
+		if (alpha_t < ALPHA_T_PRECISION){
+			if (iteration < config->getMaxIterations()/2) //first half
+				alpha_t = 0.15;
+			else
+				alpha_t = 0.001;
+		}
 	}
 }
 
@@ -952,7 +947,7 @@ double Swarm::computeOmega2(Configuration* config){
 	case O2_ZERO:
 		return 0.0; //the component is not used
 	default :
-		return 1.0; //no strategy in particular
+		return 1.0; //no strategy, set the value to one
 	}
 }
 

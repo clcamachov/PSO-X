@@ -12,7 +12,6 @@
 #include <math.h>
 #include "utils.h"
 
-
 using namespace std;
 
 double additionalVal= 0.0; //variable in case some additional value has to be use to update the formula
@@ -34,7 +33,8 @@ Particle::Particle(){
 	ranking = 0;
 	parent =0;
 	stereotype = 0;
-	perturbationVal = 0;
+	perturbMagnitud1 = 0;
+	perturbMagnitud2 = 0;
 	gBestID = -1;
 }
 
@@ -47,7 +47,8 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier){
 	ranking = 0;
 	parent = 0;
 	stereotype = 0;
-	perturbationVal = 0.01;
+	perturbMagnitud1 = 0.01;
+	perturbMagnitud2 = 0.01;
 	gBestID = -1;
 
 	hasVelocitybounds = config->useVelocityClamping();
@@ -81,7 +82,8 @@ Particle::Particle (const Particle &p){
 	ranking = p.ranking;
 	parent = p.parent;
 	stereotype = p.stereotype;
-	perturbationVal = p.perturbationVal;
+	perturbMagnitud1 = p.perturbMagnitud1;
+	perturbMagnitud2 = p.perturbMagnitud2;
 	gBestID = p.gBestID;
 
 	hasVelocitybounds = p.hasVelocitybounds;
@@ -134,7 +136,8 @@ Particle& Particle::operator= (const Particle& p){
 		ranking = p.ranking;
 		parent = p.parent;
 		stereotype = p.stereotype;
-		perturbationVal = p.perturbationVal;
+		perturbMagnitud1 = p.perturbMagnitud1;
+		perturbMagnitud2 = p.perturbMagnitud2;
 		gBestID = p.gBestID;
 
 		hasVelocitybounds = p.hasVelocitybounds;
@@ -217,39 +220,61 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 		double omega1, double omega2, double omega3, int numInformants, int *theInformants, int lastLevelComplete,
 		double alpha_t, double l, double delta){
 
+	double V2[size], V1[size]; //use when getDistributionNPP == DIST_SPHERICAL
+
+	/**
+	 * ROTATION MATRICES	--->	has to be computed per Informant
+	 * **/
 	//number of rotation matrices to rotate in all possible planes
 	int numMatrices =(int)floor(((size*(size-1))/2));
 	double **rndMatrix[numMatrices];
+	//Compute the random matrix if its going to be used
 	for(int i=0; i<numMatrices; i++){
 		rndMatrix[i] = new double*[size];
 		for (unsigned int j=0; j<size; j++)
 			rndMatrix[i][j] = new double[size];
 	}
-	computeRndMatrix(rndMatrix, config->getRandomMatrix());
+	computeRndMatrix(rndMatrix, config->getRandomMatrix()); //we need to compute this for each informant
 
-	double V2[size], V1[size];
-	getHypersphericalVector(config->getModelOfInfluence(), V2, V1, numInformants, theInformants, rndMatrix, config->getRandomMatrix());
-
+	/**
+	 * PERTURBATION 1	--->	has to be computed per Informant and/or per Dimension
+	 * **/
 	//For the distribution-based perturbation strategies we need to compute the std. deviation in advance,
-	//which is the distance between current.x and neighbours[h].x multiplied by a constant
-	perturbationVal = computePerturbation1(config, current.x, neighbours[theInformants[0]]->pbest.x, alpha_t, l, delta, true);
+	//If the last flag is true, we are computing the magnitude of the perturbation for a new informant
+	perturbMagnitud1 = computePerturbation(config->getPerturbation1(), current.x, neighbours[theInformants[0]]->pbest.x, alpha_t, l, delta, true);
+
+	/**
+	 * PERTURBATION 2	--->	has to be computed per dimension
+	 * **/
+	perturbMagnitud2 = computePerturbation(config->getPerturbation2(), alpha_t, delta); //Just additive
+
+	switch (config->getDistributionNPP()) {
+	case DIST_RECTANGULAR:
+		break;
+	case DIST_SPHERICAL:
+		break;
+	case DIST_MULTISPHERICAL: // has to be computed per Informant
+		getHypersphericalVector(config->getModelOfInfluence(), V2, V1, numInformants, theInformants, rndMatrix, config->getRandomMatrix());
+		//additionalVal = V2[i] + V1[i];
+		break;
+	case DIST_ADD_STOCH:
+		break;
+	}
+
+	for (int h=0; h<numInformants; h++){
+
+	}
 
 	//Compute new position
 	for (int i=0;i<size;i++) {
 
-		perturbationVal = computePerturbation1(config, current.x, neighbours[0]->current.x, alpha_t, l, delta, false);
-		//cout << "\n Normal_perturbed: " << RNG::randGaussWithMean(pow(perturbationVal,2), current.x[i]) << endl;
-		//cout << "\n perturbationVal: "  << scientific << perturbationVal << endl;
+		//computePerturbation1 can be directly multiply or added (depending on the strategy) to the vector dimension
+		perturbMagnitud1 = computePerturbation(config->getPerturbation1(), current.x, neighbours[0]->current.x, alpha_t, l, delta, false);
+		//cout << "\n Normal_perturbed: " << RNG::randGaussWithMean(pow(perturbMagnitud1,2), current.x[i]) << endl;
 
 		double PersonalInfluence = pbest.x[i]-current.x[i];
 		double SocialInfluence = gbest.x[i]-current.x[i];
 
-		//		if (config->getVelocityRule() == VEL_STANDARD2011)
-		//			additionalVal = V2[i] + V1[i];
-		//
-		//		if (config->getVelocityRule() == VEL_GUARAN_CONVERG){
-		//			//if (pbest.eval == gbest.eval)
-		//		}
 		velocity[i] = computeNewVelocity(config, velocity[i],
 				1.0, 1.0,
 				PersonalInfluence,
@@ -281,6 +306,60 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 		for (unsigned int j=0; j<size; j++)
 			delete [] rndMatrix[i][j];
 		delete [] rndMatrix[i];
+	}
+}
+
+double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf,
+		double socInf, double pos, double additionalVal){
+	double new_vel = 0.0;
+
+	//Configurable PSO velocity equation
+	//Constriction coefficient PSO
+	//if (config->getVelocityRule() == VEL_CONSTRICTED){
+	new_vel = CONSTRICTION_COEFFICIENT * (
+			(inertia * vel) +
+			(phi_1 * problem->getRandom01() * perInf) +
+			(phi_2 * problem->getRandom01() * socInf)
+	);
+	//}
+	return new_vel;
+}
+
+//Perturbation 1
+double Particle::computePerturbation(int pertubType, double * pos_x, double * pbest_x, double alpha_t, double l, double delta, bool newInformant){
+	switch(pertubType){
+	case PERT1_NONE: //Do not apply perturbation
+		return 1.0;
+	case PERT1_ADD_RECT || PERT1_DIST_SUCCESS: //Additional rectangular
+	return alpha_t*(1-(2*problem->getRandomX(0,1)));
+	case PERT1_ADD_NOISY : //Additional noisy
+		return problem->getRandomX(-delta/2,delta/2);
+	case PERT1_DIST_NORMAL: //Normally distributed (here, we only compute the std. deviation
+		if (newInformant){
+			double distance = computeDistance(pos_x, pbest_x);
+			if (distance == 0)
+				return (this->perturbMagnitud1);
+			else
+				return (l*distance);
+		}
+		else
+			return (this->perturbMagnitud1);
+	default:
+		return 0.001;
+	}
+}
+
+//Perturbation 2, a.k.a. additional perturbation
+double Particle::computePerturbation(int pertubType, double alpha_t, double delta){
+	switch(pertubType){
+	case PERT2_NONE: //Do not apply perturbation
+		return 1.0;
+	case PERT2_ADD_RECT : //Additional rectangular
+		return alpha_t*(1-(2*problem->getRandomX(0,1)));
+	case PERT2_ADD_NOISY: //Additional noisy
+		return problem->getRandomX(-delta/2,delta/2);
+	default:
+		return 0.001;
 	}
 }
 
@@ -393,6 +472,8 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[], i
 				//cout << v_PosToInfPbest[j][i] << " ";
 			}
 			//cout << "}" << endl;
+			if (j<numInformants)
+				computeRndMatrix(rndMatrix, RmatrixType); //compute a random matrix for the next informant
 		}
 	}
 
@@ -430,7 +511,7 @@ void Particle::getHypersphericalVector(int modOfInf, double V2[], double V1[], i
 			double R = 0.0;
 			for (int j=0; j<numInformants; j++){
 				//cout << "\t\t  informant at [" << j << "] is " <<  theInformants[j] << endl; //remove
-				R += current.x[i] + (phi_1 * v_PosToInfPbest[j][i]);
+				R += current.x[i] + (phi_1 * v_PosToInfPbest[j][i]); //v_PosToInfPbest is the vector already rotated
 			}
 			G[i] = (current.x[i] + R )/(numInformants + 1);
 		}
@@ -465,6 +546,10 @@ double * Particle::multiplyVectorByRndMatrix(double * aVector, double *** rndMat
 	double resultvxM[size]; //working space variable
 
 	switch(RmatrixType){
+	case MATRIX_NONE:
+		for (int i=0; i<size; i++)
+			resultvxM[i] = aVector[i];
+		break;
 	case MATRIX_DIAGONAL || MATRIX_LINEAR: //Random diagonal matrix
 	for (int i=0; i<size; i++)
 		resultvxM[i] = aVector[i]* rndMatrix[0][i][i];
@@ -644,7 +729,7 @@ void Particle::computeRndMatrix(double *** rndMatrix, int RmatrixType){
 	}
 	break;
 	case MATRIX_RRM_EUCLIDEAN_ALL:{ //Random rotation matrix using Euclidean rotation (ALL PLANES)
-		int matNum=0;
+		int matNum=0; //we need a hypercube for each vector (this method is really demanding)
 		//The maximum number of RRM is (size*size-1)/2
 		for (int g=0; g<size-1; g++) {
 			for (int h=g+1; h<size; h++) {
@@ -696,47 +781,12 @@ void Particle::computeRndMatrix(double *** rndMatrix, int RmatrixType){
 		//		}
 	}
 	break;
+	case MATRIX_NONE:{
+		for (int i=0; i<size; i++)
+			rndMatrix[0][i][i] = 1.0;
 	}
-}
-
-double Particle::computePerturbation1(Configuration* config, double * pos_x, double * pbest_x,
-		double alpha_t, double l, double delta, bool newInformant){
-	switch(config->getPerturbation1()){
-	case PERT1_NONE: //Do not apply perturbation
-		return 1.0;
-	case PERT1_ADD_RECT || PERT1_DIST_SUCCESS: //Additional rectangular
-		return alpha_t*(1-(2*problem->getRandomX(0,1)));
-	case PERT1_ADD_NOISY: //Additional noisy
-		return problem->getRandomX(-delta/2,delta/2);
-	case PERT1_DIST_NORMAL: //Normally distributed (here, we only compute the std. deviation
-		if (newInformant){
-			double distance = computeDistance(pos_x, pbest_x);
-			if (distance == 0)
-				return (this->perturbationVal);
-			else
-				return (l*distance);
-		}
-		else
-			return (this->perturbationVal);
-	default:
-		return 0.001;
+	break;
 	}
-}
-
-double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf,
-		double socInf, double pos, double additionalVal){
-	double new_vel = 0.0;
-
-	//Configurable PSO velocity equation
-	//Constriction coefficient PSO
-	//if (config->getVelocityRule() == VEL_CONSTRICTED){
-	new_vel = CONSTRICTION_COEFFICIENT * (
-			(inertia * vel) +
-			(phi_1 * problem->getRandom01() * perInf) +
-			(phi_2 * problem->getRandom01() * socInf)
-	);
-	//}
-	return new_vel;
 }
 
 void Particle::computeEvaluation() {
