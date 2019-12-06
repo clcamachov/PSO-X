@@ -362,6 +362,13 @@ void Configuration::printParameters(){
 	//		<< "  phi_1:             " << getPhi1() << "\n"
 	//		<< "  phi_2:             " << getPhi2() << "\n"
 	//		<< "  topology:          " << getTopology() << "\n"
+	//<< "  modelOfInfluence  " << getModelOfInfluence() << "\n"
+	switch (getModelOfInfluence()){
+	case MOI_BEST_OF_N: 	cout	<< "  modelOfInfluence:  BEST_OF_N\n"; break;
+	case MOI_FI: 			cout	<< "  modelOfInfluence:  FI\n"; break;
+	case MOI_RANKED_FI:		cout	<< "  modelOfInfluence:  RANKED_FI\n"; break;
+	case MOI_HIERARCHICAL:	cout	<< "  modelOfInfluence:  HIERARCHICAL\n"; break;
+	}
 	switch (getTopology()){
 	case TOP_FULLYCONNECTED:	cout	<< "  topology:          TOP_FULLYCONNECTED\n";	break;
 	case TOP_RING: 				cout	<< "  topology:          TOP_RING\n"; break;
@@ -456,23 +463,16 @@ void Configuration::printParameters(){
 	case O3_ONE:		cout	<< "  omega3:            ONE\n"; break;
 	case O3_RANDOM:		cout	<< "  omega3:            RANDOM\n"; break;
 	}
-	//<< "  modelOfInfluence  " << getModelOfInfluence() << "\n"
-	switch (getModelOfInfluence()){
-	case MOI_BEST_OF_N: 	cout	<< "  modelOfInfluence:  BEST_OF_N\n"; break;
-	case MOI_FI: 			cout	<< "  modelOfInfluence:  FI\n"; break;
-	case MOI_RANKED_FI:		cout	<< "  modelOfInfluence:  RANKED_FI\n"; break;
-	case MOI_HIERARCHICAL:	cout	<< "  modelOfInfluence:  HIERARCHICAL\n"; break;
-	}
 	//<< "  perturbation1     " << getPerturbation1() << "\n"
-	switch (getPerturbation1()){
+	switch (getPerturbation1Type()){
 	case PERT1_NONE: 			cout	<< "  perturbation1:     NONE\n"; break;
-	case PERT1_ADD_RECT: 		cout	<< "  perturbation1:     ADD_RECT\n"; break;
-	case PERT1_ADD_NOISY:		cout	<< "  perturbation1:     ADD_NOISY\n"; break;
-	case PERT1_DIST_NORMAL:		cout	<< "  perturbation1:     DIST_NORMAL\n"; break;
-	case PERT1_DIST_SUCCESS: 	cout	<< "  perturbation1:     DIST_SUCCESS\n"; break;
+	case PERT1_NORMAL_DISTANCE:	cout	<< "  perturbation1:     NORMAL_DISTANCE\n"; break;
+	case PERT1_NORMAL_SUCCESS: 	cout	<< "  perturbation1:     NORMAL_SUCCESS\n"; break;
+	case PERT1_CAUCHY_DISTANCE:	cout	<< "  perturbation1:     CAUCHY_DISTANCE\n"; break;
+	case PERT1_CAUCHY_SUCCESS: 	cout	<< "  perturbation1:     CAUCHY_SUCCESS\n"; break;
 	}
 	//<< "  perturbation2     " << getPerturbation2() << "\n"
-	switch (getPerturbation2()){
+	switch (getPerturbation2Type()){
 	case PERT2_NONE: 	 	 cout	<< "  perturbation2:     NONE\n"; break;
 	case PERT2_ADD_RECT:	 cout	<< "  perturbation2:     ADD_RECT\n"; break;
 	case PERT2_ADD_NOISY:	 cout	<< "  perturbation2:     ADD_NOISY\n"; break;
@@ -490,7 +490,6 @@ void Configuration::printParameters(){
 	switch (getDistributionNPP()){
 	case DIST_RECTANGULAR: 		cout	<< "  DistributionNPP:   RECTANGULAR\n"; break;
 	case DIST_SPHERICAL: 		cout	<< "  DistributionNPP:   SPHERICAL\n"; break;
-	case DIST_MULTISPHERICAL:	cout	<< "  DistributionNPP:   MULTISPHERICAL\n"; break;
 	case DIST_ADD_STOCH:		cout	<< "  DistributionNPP:   ADD_STOCH\n"; break;
 	}
 	//<< "  operator_q        " << getOperator_q() << "\n"
@@ -617,10 +616,10 @@ void Configuration::setVelocityClamped(bool clamping){
 short Configuration::getModelOfInfluence(){
 	return modelOfInfluence;
 }
-short Configuration::getPerturbation1(){
+short Configuration::getPerturbation1Type(){
 	return perturbation1;
 }
-short Configuration::getPerturbation2(){
+short Configuration::getPerturbation2Type(){
 	return perturbation2;
 }
 short Configuration::getRandomMatrix(){

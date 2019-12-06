@@ -434,8 +434,9 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 
 
 void Swarm::updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration){
-	if(config->getPerturbation1() == PERT1_ADD_RECT || config->getPerturbation1() == PERT1_DIST_SUCCESS
-			|| config->getPerturbation2() == PERT2_ADD_RECT){
+	if(		config->getPerturbation1Type() == PERT1_NORMAL_SUCCESS ||
+			config->getPerturbation2Type() == PERT2_ADD_RECT ||
+			config->getPerturbation1Type() == PERT1_CAUCHY_SUCCESS ){
 		if (previousGbest_eval != currentGbest_eval){ //success
 			sc++;
 			fc=0;

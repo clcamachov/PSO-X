@@ -40,6 +40,10 @@ double RNG::randGaussWithMean(double sd, double mean){
 	return gsl_ran_gaussian( RNG::R, sd)+ mean;
 }
 
+double RNG::randCauchy(double gamma){
+	return  gsl_ran_cauchy(RNG::R, 2-gamma);
+}
+
 void RNG::randHypersphere( double * G){
 	gsl_ran_dir_nd (RNG::R, sizeof(size_t), G);
 }

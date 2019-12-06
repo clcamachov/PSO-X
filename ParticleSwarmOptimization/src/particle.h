@@ -84,7 +84,7 @@ public:
 	double computeDistPbestGbest();
 	double computeDistance(double * x, double * p);
 
-	bool isPbestInformant(int numInformants, int *theInformants);
+	bool ispBestIntheInformants(int numInformants, int *theInformants);
 
 
 	//Velocity
@@ -96,13 +96,18 @@ public:
 	void printPosition();
 	void printNeighborByID(int id);
 
-	void getHypersphericalVector(double* H, double* V1, int numInformants, int *theInformants, double *** rndMatrix, int RmatrixType);
+	void getRectangularDNPP	(double * vect_distribution, int numInformants, int *theInformants, double *** rndMatrix, int RmatrixType,
+			bool pBestIntheInformants, int pertubType, double alpha_t, double l_value);
+	void getSphericalDNPP	(double * vect_distribution, int numInformants, int *theInformants,	double *** rndMatrix, int RmatrixType,
+			bool pBestIntheInformants, int pertubType, double alpha_t, double l);
 	int getRandomNeighbor();
 
 	//Perturbation
-	double computePerturbation(int pertubType, double * pos_x, double * pbest_x, double alpha_t,
-			double l, double delta, bool newIteration);
-	double computePerturbation(int pertubType, double alpha_t, double delta);
+	void setPerturbationMagnitude(int pertubType, double * pos_x, double * pbest_x, double alpha_t, double l);
+	void setPerturbationMagnitude(int pertubType, double alpha_t);
+	double getPerturbationMagnitude(int pertubType, double alpha_t, double delta);
+	double applyPerturbation(int pertubType, double pos_xi);
+
 
 	//Random Matrix
 	void computeRndMatrix(double *** rndMatrix, int RmatrixType);

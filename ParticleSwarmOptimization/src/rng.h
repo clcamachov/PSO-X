@@ -21,6 +21,7 @@ static void initializePermutation(unsigned int size);
 static double randVal(double min,double max);
 static double randGauss(double sd);
 static double randGaussWithMean(double sd, double mean);
+static double randCauchy(double gamma);
 
 static void randHypersphere( double * G);
 

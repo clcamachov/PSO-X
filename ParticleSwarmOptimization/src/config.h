@@ -216,14 +216,13 @@
 
 #define DIST_RECTANGULAR				0
 #define DIST_SPHERICAL					1
-#define DIST_MULTISPHERICAL				2
-#define DIST_ADD_STOCH 					3
+#define DIST_ADD_STOCH 					2
 
 #define PERT1_NONE						0
-#define PERT1_ADD_RECT					1
-#define PERT1_ADD_NOISY					2
-#define PERT1_DIST_NORMAL				3
-#define PERT1_DIST_SUCCESS				4
+#define PERT1_NORMAL_DISTANCE			1
+#define PERT1_NORMAL_SUCCESS			2
+#define PERT1_CAUCHY_DISTANCE			3
+#define PERT1_CAUCHY_SUCCESS			4
 
 #define PERT2_NONE						0
 #define PERT2_ADD_RECT					1
@@ -357,8 +356,8 @@ public:
 	short getModelOfInfluence();
 
 	//Perturbation
-	short getPerturbation1();
-	short getPerturbation2();
+	short getPerturbation1Type();
+	short getPerturbation2Type();
 	short getRandomMatrix();
 
 
