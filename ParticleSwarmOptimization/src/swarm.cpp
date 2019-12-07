@@ -261,7 +261,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 
 	for (unsigned int i=0;i<swarm.size();i++){
 
-		cout << "\tParticle [" << i << "] -- "; //<< endl; //remove
+		cout << "\tParticle [" << i << "] -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
 		int sizeInformants = getInformants(config, i, iteration); //Get the informants of i
 
 		//print all neighbors

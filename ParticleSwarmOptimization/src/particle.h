@@ -86,7 +86,6 @@ public:
 
 	bool ispBestIntheInformants(int numInformants, int *theInformants);
 
-
 	//Velocity
 	void setVelocityLimits(Configuration* config);
 	double getMinVelLimit();
@@ -96,10 +95,10 @@ public:
 	void printPosition();
 	void printNeighborByID(int id);
 
-	void getRectangularDNPP	(double * vect_distribution, int numInformants, int *theInformants, double *** rndMatrix, int RmatrixType,
-			bool pBestIntheInformants, int pertubType, double alpha_t, double l_value);
-	void getSphericalDNPP	(double * vect_distribution, int numInformants, int *theInformants,	double *** rndMatrix, int RmatrixType,
-			bool pBestIntheInformants, int pertubType, double alpha_t, double l);
+	double ** computeSubtractionPerturbationRotation(double ** vect_PbestMinusPosition, int &numInformants, int *theInformants, double *** rndMatrix, int RmatrixType,
+				bool pBestIntheInformants, int pertubType, double alpha_t, double l_value);
+	void getRectangularDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition);
+	void getSphericalDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition);
 	int getRandomNeighbor();
 
 	//Perturbation
@@ -107,7 +106,6 @@ public:
 	void setPerturbationMagnitude(int pertubType, double alpha_t);
 	double getPerturbationMagnitude(int pertubType, double alpha_t, double delta);
 	double applyPerturbation(int pertubType, double pos_xi);
-
 
 	//Random Matrix
 	void computeRndMatrix(double *** rndMatrix, int RmatrixType);
