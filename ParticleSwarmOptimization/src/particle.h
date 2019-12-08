@@ -76,7 +76,7 @@ public:
 	void addNeighbour(Particle* p);
 	int getBestOfNeibourhood();
 	int getgBestID();
-
+	void setgBestID(int gB_ID);
 
 	void updateGlobalBest(double* x, double eval);
 	unsigned int getNeighborhoodSize();
@@ -122,7 +122,13 @@ public:
 
 	//hierarchical topology
 	int getParent();
-	void setParent(int papa);
+	void setParent(int papa); //some Spanish :P
+
+	//acceleration coefficients
+	void setPhi1(double new_phi_1);
+	void setPhi2(double new_phi_2);
+	double getPhi1();
+	double getPhi2();
 
 };
 

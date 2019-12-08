@@ -142,18 +142,18 @@
 #define SOFT_COMPUTING 			2
 #define MIXTURE					3
 
+//Useful constants
 #define PI acos(-1)
 #define E  exp(1)
 #define EPSILON 1E-15
 #define DELTA 1E-30
 #define CONSTRICTION_COEFFICIENT 0.7298
 #define MAX_DIMENSION 	1000
-
-/*PSO definitions*/
 #define LINE_BUF_LEN    100
 #define TRACE( x )
 #define PRINTER(name) printer(#name, (name))
 
+/*PSO definitions*/
 // available topologies
 #define TOP_FULLYCONNECTED 		0	//or STAR
 #define TOP_RING 				1
@@ -167,39 +167,43 @@
 #define MOI_BEST_OF_N			0
 #define MOI_FI					1
 #define MOI_RANKED_FI			2
-#define MOI_HIERARCHICAL		3	//Only available for TOP_HIERARCHICAL
 
 // available inertia control strategies (omega1)
 // non adaptive
-#define IW_CONSTANT			 0
-#define IW_L_INC			 1
-#define IW_L_DEC			 2
-#define IW_RANDOM			 3
-#define IW_NONL_DEC		 	 4
-#define IW_NONL_DEC_IMP		 5
-#define IW_NONL_DEC_TIME	 6
-#define IW_CHAOTIC_DEC		 7
-#define IW_EXP_DEC			 8
-#define IW_OSCILLATING		 9
-#define IW_LOG_DEC		 	 10
+#define IW_CONSTANT						 0
+#define IW_L_INC						 1
+#define IW_L_DEC						 2
+#define IW_RANDOM						 3
+#define IW_NONL_DEC		 				 4
+#define IW_NONL_DEC_IMP					 5
+#define IW_NONL_DEC_TIME				 6
+#define IW_CHAOTIC_DEC		 			 7
+#define IW_EXP_DEC			 			 8
+#define IW_OSCILLATING					 9
+#define IW_LOG_DEC		 	 			10
 // adaptive
-#define IW_SELF_REGULATING 	 11
-#define IW_VELOCITY_BASED 	 12
-#define IW_DOUBLE_EXP 	 	 13
-#define IW_RANKS_BASED 		 14
-#define IW_SUCCESS_BASED 	 15
-#define IW_CONVERGE_BASED 	 16
+#define IW_SELF_REGULATING 	 			11
+#define IW_VELOCITY_BASED 				12
+#define IW_DOUBLE_EXP 	 	 			13
+#define IW_RANKS_BASED 		 			14
+#define IW_SUCCESS_BASED 	 			15
+#define IW_CONVERGE_BASED 	 			16
 
 // available omega2 strategies
 #define O2_EQUALS_IW					0
-#define O2_ZERO							1  //if you don't want to use the component
+#define O2_ZERO							1  //this makes the component Distribution = 0
 #define O2_ONE							2
 #define O2_RANDOM						3
 
+// available acceleration coefficients strategies
+#define AC_CONSTANT						0
+#define AC_TIME_VARYING					1
+#define AC_EXTRAPOLATED					2
+#define AC_RANDOM						3
 
 // available omega3 strategies
 #define O3_EQUALS_IW					0
-#define O3_ZERO							1  //if you don't want to use the component
+#define O3_ZERO							1  //this makes the component Perturbation = 0
 #define O3_ONE							2
 #define O3_RANDOM						3
 
@@ -240,16 +244,19 @@
 #define MATRIX_RRM_EUCLIDEAN_ONE		4
 #define MATRIX_RRM_EUCLIDEAN_ALL		5
 
+#define POP_CONSTANT					0
+#define POP_LADDERED					1
+#define POP_INCREMENTAL					2
+
 class Configuration {
 
 private:
-
 	//general parameters
 	unsigned long rngSeed;
 	unsigned int maxFES;
 	long int max_iterations;
 
-	//problem parameters
+	//Problem parameters
 	unsigned int competitionID;
 	unsigned int problemID;
 	unsigned int problemDimension;
@@ -259,11 +266,20 @@ private:
 	//Other parameters
 	double startTime; // to calculate time elapsed
 
-	/* Particle parameters */
+	//Population
 	long int particles;
+	int populationCS;
+	long int initialPopSize;
+	long int finalPopSize;
+
+	//Acceleration coefficients
+	double accelCoeffCS;
 	double phi_1;
+	double initialPhi1;
+	double finalPhi1;
 	double phi_2;
-	bool useVelClamping;
+	double initialPhi2;
+	double finalPhi2;
 
 	//Topology parameters
 	short topology;             // topology indicator
@@ -272,30 +288,30 @@ private:
 	int topologyUpdatePeriod;
 	int branching;
 
+	//Model of influence
+	short modelOfInfluence;
+
 	//Inertia control parameters (omega1 in the GVU)
 	short omega1CS;				// omega1 control strategy indicator (this is the inertiaCS)
 	double initialIW;
 	double finalIW;
 	unsigned int iwSchedule;		//n^2 , 2n^2 , 3n^2 , 4n^2, etc. (the lower the value the faster)
-	double inertia;				// actual variable to used in the velocity update formula. If no inertiaCS is given, this value is fixed during the
-
+	double inertia;				// actual variable of inertia. If no inertiaCS is given, this value is fixed during the
+	bool useVelClamping;
 	//Omega2 and omega3 in the GVU
 	short omega2CS;
 	short omega3CS;
 
-	//Model of influence
-	short modelOfInfluence;
-
 	//Perturbation
-	short perturbation1;
-	short perturbation2;
+	short perturbation1; //distribution-based
+	short perturbation2; //additive
 	short randomMatrix;
 
 	//NPPDistribution
 	short distributionNPP;
 	short operator_q;
 
-	//velocity rules
+	//Velocity rules
 	int vRule;
 
 public:
@@ -332,25 +348,41 @@ public:
 
 	//PSO
 	long int getSwarmSize();
-	bool useVelocityClamping();
+	int getPopulationCS();
+	long int getInitialPopSize();
+	long int getFinalPopSize();
 
 	//Velocity
 	void setVelocityRule(int rule);
 	int getVelocityRule();
+	bool useVelocityClamping();
 
-	//Inertia control
-	double getInertia();
-	void setInertia(double new_inertia);
+	//Inertia control (Omega1)
+	short getOmega1CS();
+	double getOmega1();
+	void setOmega1(double new_inertia);
 	double getInitialIW();
 	double getFinalIW();
 	unsigned int getIWSchedule();
-	short getinertiaCS();
+
 	bool isVelocityClamped();
 	void setVelocityClamped(bool clamping);
 
 	//Omega2 and Omega3
-	short getomega2CS();
-	short getomega3CS();
+	short getOmega2CS();
+	short getOmega3CS();
+
+	//Acceleration coefficients
+	double getPhi1();
+	double getPhi2();
+//	void setPhi1(double new_phi_1);
+//	void setPhi2(double new_phi_2);
+	short getAccelCoeffCS();
+	double getInitialPhi1();
+	double getFinalPhi1();
+	double getInitialPhi2();
+	double getFinalPhi2();
+
 
 	//Model of influence
 	short getModelOfInfluence();
@@ -364,10 +396,6 @@ public:
 	//Distribution
 	short getDistributionNPP();
 	short getOperator_q();
-
-	//Cognitive and social influence control
-	double getPhi1();
-	double getPhi2();
 
 	//Topology
 	short getTopology();

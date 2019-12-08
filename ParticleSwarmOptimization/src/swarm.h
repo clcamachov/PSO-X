@@ -43,7 +43,9 @@ public:
 	void moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound);
 	int getInformants(Configuration* config, int particleID, long int iteration);	//returns the number of informants of a particle
 
-	// Inertia
+	// Inertia and acceleration coefficients
+	void computeAccelerationCoefficients(Configuration* config, long int iteration);
+	void decomposePhi2(int modelOfInflu, int part_id, int numInformants);
 	double computeOmega1(Configuration* config, long int iteration, long int id, bool newIteration);
 	double computeOmega2(Configuration* config);
 	double computeOmega3(Configuration* config);

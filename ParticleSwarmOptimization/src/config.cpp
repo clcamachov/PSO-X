@@ -32,7 +32,6 @@ Configuration::Configuration(){
 	Configuration::setDefaultParameters();
 }
 
-//Program
 //TODO: Update with all the parameters
 //TODO: Check the integrity of all the parameters here (values and combination with other parameters)
 bool Configuration::getConfig(int argc, char *argv[]){
@@ -65,6 +64,18 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			particles = atol(argv[i+1]);
 			i++;
 			//cout << "\n number of particles has been received \n";
+		} else if (strcmp(argv[i], "--populationCS") == 0) {
+			populationCS = atoi(argv[i+1]);
+			i++;
+			//cout << "\n populationCS has been received \n";
+		} else if (strcmp(argv[i], "--initialPopSize") == 0){
+			initialPopSize = atol(argv[i+1]);
+			i++;
+			//cout << "\n initialPopSize has been received \n";
+		} else if (strcmp(argv[i], "--finalPopSize") == 0){
+			finalPopSize = atol(argv[i+1]);
+			i++;
+			//cout << "\n finalPopSize has been received \n";
 		} else if (strcmp(argv[i], "--inertia") == 0){
 			inertia = atof(argv[i+1]);
 			i++;
@@ -77,6 +88,26 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			phi_2 = atof(argv[i+1]);
 			i++;
 			//cout << "\n phi2 has been received \n";
+		} else if (strcmp(argv[i], "--accelCoeffCS") == 0) {
+			accelCoeffCS = atoi(argv[i+1]);
+			i++;
+			//cout << "\n accelCoeffCS has been received \n";
+		} else if (strcmp(argv[i], "--initialPhi1") == 0) {
+			initialPhi1 = atof(argv[i+1]);
+			i++;
+			//cout << "\n initialPhi1 has been received \n";
+		} else if (strcmp(argv[i], "--finalPhi1") == 0) {
+			finalPhi1 = atof(argv[i+1]);
+			i++;
+			//cout << "\n finalPhi1 has been received \n";
+		} else if (strcmp(argv[i], "--initPhi2") == 0) {
+			initialPhi2 = atof(argv[i+1]);
+			i++;
+			//cout << "\n initPhi2 has been received \n";
+		} else if (strcmp(argv[i], "--finalPhi2") == 0) {
+			finalPhi2 = atof(argv[i+1]);
+			i++;
+			//cout << "\n finalPhi2 has been received \n";
 		} else if (strcmp(argv[i], "--topology") == 0){
 			topology = atoi(argv[i+1]);
 			i++;
@@ -178,7 +209,6 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		}
 	}
 
-
 	//Some velocity update rules have special requirements
 	if (vRule == 0 ){ //do not require inertia
 		inertia = 1.0;
@@ -198,14 +228,8 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		branching = floor(particles/2);
 
 	//Topology and model of influence check
-	if (topology == TOP_HIERARCHICAL)
-		modelOfInfluence = MOI_HIERARCHICAL;
-
-	if (topology == TOP_WHEEL)
-		modelOfInfluence = MOI_BEST_OF_N;
-
-	if (modelOfInfluence == MOI_HIERARCHICAL && topology != TOP_HIERARCHICAL)
-		modelOfInfluence = MOI_BEST_OF_N; //default
+	if (topology == TOP_HIERARCHICAL && modelOfInfluence == MOI_RANKED_FI )
+		modelOfInfluence = MOI_FI;
 
 	//The inertia weight schedule
 	if (iwSchedule > 4)
@@ -219,10 +243,8 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		cerr << "\nError: Dimension should be between 2 and 50.\n";
 		return(false);
 	}
-	//--competition 0 --problem 20 --dimensions 30 --seed 123456 --particles 20 --iterations 2003 --evaluations 20000 --inertiaCS 12 --iwSchedule 2 --initialIW 0.4 --finalIW 0.9 --inertia 0.75 --phi1 0.5 --phi2 0.5 --ring
-	//--competition 2 --problem 14 --dimensions 60 --seed 34591 --evaluations 100000 --iterations 100000 --particles 60  --inertia 0.75 --phi1 0.5 --phi2 0.5 --timevarying --tSchedule 240 --clamped
-	//Configuration::printParameters();
-	//This is for the termination criterion:
+
+	//Termination criterion of CEC'05:
 	maxFES = 10000 * problemDimension;
 	//max_iterations = maxFES;
 
@@ -307,11 +329,19 @@ void Configuration::setDefaultParameters(){
 	problemDimension = 2; 					//dimensions
 	rngSeed = 12345;						//seed for random numbers
 	particles = 10;							//particles (swarm size)
+	populationCS = 0;						//population constrol strategy
+	initialPopSize= 2;						//initial population
+	finalPopSize= 1000;						//final or maximum number of individuals allowed
 	maxFES = 1000*problemDimension;			//max function evaluation
 	max_iterations = 1000*problemDimension;	//max iterations
 	inertia = 0.42;							//inertia weight
 	phi_1 = 1.55;							//personal coefficient
 	phi_2 = 1.55;							//social coefficient
+	accelCoeffCS = AC_CONSTANT;				//acceleration coefficients control stratey
+	initialPhi1 = 2.5;						//initial personal coefficient value
+	initialPhi2 = 0.5;						//initial social coefficient value
+	finalPhi1 = 0.5;						//final personal coefficient value
+	finalPhi2 = 2.5;						//final social coefficient value
 	topology = TOP_TIMEVARYING;				//topology
 	minInitRange = -100;					//lower bound of the function
 	maxInitRange = 100;						//upper bound of the function
@@ -320,17 +350,17 @@ void Configuration::setDefaultParameters(){
 	initialIW =  0.9;						//initial inertia value
 	finalIW = 0.4;							//final inertia value
 	iwSchedule = 2*pow(particles,2);		//inertia weight schedule
-	omega2CS = 0;
-	omega3CS = 0;
-	modelOfInfluence = 0;
+	omega2CS = 0;							//omega2 control strategy (see GVU formula)
+	omega3CS = 0;							//omega3 control strategy (see GVU formula)
+	modelOfInfluence = 0;					//self-explanatory
 	tSchedule = 2*particles;				//topology update schedule
 	branching = 4;							//branching degree for the hierarchical topology
-	perturbation1 = 0;
-	perturbation2 = 0;
-	randomMatrix = 0;
-	distributionNPP = 0;
-	operator_q = 0;
-	vRule = 1;
+	perturbation1 = 0;						//distribution-based perturbation
+	perturbation2 = 0;						//additive perturbation
+	randomMatrix = 0;						//random matrix
+	distributionNPP = 0;					//distribution of next possible positions
+	operator_q = 0;							//q_operator in simple dynamics PSO
+	vRule = 1;								//use to select a specific velocity update formula
 
 	//When the maxInitRange and minInitRange are different from 100
 	//the range is updated after instantiating the problem.
@@ -359,16 +389,21 @@ void Configuration::printParameters(){
 	cout	<< "  evaluations:       " << getMaxFES() << "\n"
 			<< "  iterations:        " << getMaxIterations() << "\n"
 			<< "  particles:         " << getSwarmSize() << "\n";
-	//		<< "  phi_1:             " << getPhi1() << "\n"
-	//		<< "  phi_2:             " << getPhi2() << "\n"
-	//		<< "  topology:          " << getTopology() << "\n"
+	//<< "  populationCS      " << getModelOfInfluence() << "\n"
+	switch (getPopulationCS()){
+	case POP_CONSTANT: 		cout	<< "  populationCS:      POP_CONSTANT\n"; break;
+	case POP_LADDERED: 		cout	<< "  populationCS:      POP_LADDERED\n"; break;
+	case POP_INCREMENTAL:	cout	<< "  populationCS:      POP_INCREMENTAL\n"
+			<< "  initialPopSize:    " << initialPopSize << "\n"
+			<< "  finalPopSize:      " << finalPopSize << "\n"; break;
+	}
 	//<< "  modelOfInfluence  " << getModelOfInfluence() << "\n"
 	switch (getModelOfInfluence()){
 	case MOI_BEST_OF_N: 	cout	<< "  modelOfInfluence:  BEST_OF_N\n"; break;
 	case MOI_FI: 			cout	<< "  modelOfInfluence:  FI\n"; break;
 	case MOI_RANKED_FI:		cout	<< "  modelOfInfluence:  RANKED_FI\n"; break;
-	case MOI_HIERARCHICAL:	cout	<< "  modelOfInfluence:  HIERARCHICAL\n"; break;
 	}
+	//		<< "  topology:          " << getTopology() << "\n"
 	switch (getTopology()){
 	case TOP_FULLYCONNECTED:	cout	<< "  topology:          TOP_FULLYCONNECTED\n";	break;
 	case TOP_RING: 				cout	<< "  topology:          TOP_RING\n"; break;
@@ -386,10 +421,10 @@ void Configuration::printParameters(){
 	case false:		cout	<< "  velocity clamped:  NO\n"; break;
 	}
 	//cout	<< "  omega1CS:        " << getinertiaCS() << "\n"
-	switch(getinertiaCS()){
+	switch(getOmega1CS()){
 	case IW_CONSTANT:
 		cout	<< "  omega1CS:          CONSTANT\n"
-		<< "  inertia:           " << getInertia() << "\n"; break;
+		<< "  inertia:           " << getOmega1() << "\n"; break;
 	case IW_L_INC:
 		cout	<< "  omega1CS:          L_INC\n"
 		<< "  initialIW          " << getInitialIW() << "\n"
@@ -450,18 +485,31 @@ void Configuration::printParameters(){
 		cout	<< "  omega1CS:          (adaptive) CONVERGE_BASED\n"; break;
 	}
 	//<< "  omega2CS          " << getomega2CS() << "\n"
-	switch (getomega2CS()){
+	switch (getOmega2CS()){
 	case O2_EQUALS_IW: 	cout	<< "  omega2:            EQUALS_IW\n"; break;
 	case O2_ZERO: 		cout	<< "  omega2:            ZERO\n"; break;
 	case O2_ONE: 		cout	<< "  omega2:            ONE\n"; break;
 	case O2_RANDOM: 	cout	<< "  omega2:            RANDOM\n"; break;
 	}
 	//<< "  omega3CS          " << getomega3CS() << "\n"
-	switch (getomega3CS()){
+	switch (getOmega3CS()){
 	case O3_EQUALS_IW: 	cout	<< "  omega3:            EQUALS_IW\n"; break;
 	case O3_ZERO:		cout	<< "  omega3:            ZERO\n"; break;
 	case O3_ONE:		cout	<< "  omega3:            ONE\n"; break;
 	case O3_RANDOM:		cout	<< "  omega3:            RANDOM\n"; break;
+	}
+	//<< "  accelCoeffCS:     " << getAccelCoeffCS() << "\n"
+	switch (getAccelCoeffCS()){
+	case AC_CONSTANT:		cout << "  accelCoeffCS:     CONSTANT\n"
+			<< "  phi_1:            " << getPhi1() << "\n"
+			<< "  phi_2:            " << getPhi2() << "\n"; break;
+	case AC_TIME_VARYING: 	cout << "  accelCoeffCS:     TIME_VARYING\n"
+			<< "  initialPhi1:      " << getInitialPhi1() << "\n"
+			<< "  finalPhi1:        " << getFinalPhi1() << "\n"
+			<< "  initialPhi2:      " << getInitialPhi2() << "\n"
+			<< "  finalPhi2:        " << getFinalPhi2() << "\n"; break;
+	case AC_EXTRAPOLATED:	cout << "  accelCoeffCS:     EXTRAPOLATED\n"; break;
+	case AC_RANDOM:			cout << "  accelCoeffCS:     RANDOM\n"; break;
 	}
 	//<< "  perturbation1     " << getPerturbation1() << "\n"
 	switch (getPerturbation1Type()){
@@ -571,10 +619,8 @@ double Configuration::getMinInitBound(){
 double Configuration::getMaxInitBound(){
 	if((getProblemID() == 6 || getProblemID() == 24) && (getCompetitionID() == 0))
 		return LDBL_MAX;
-
 	return maxInitRange;
 }
-
 
 //PSO
 bool Configuration::useVelocityClamping(){
@@ -583,10 +629,29 @@ bool Configuration::useVelocityClamping(){
 long int Configuration::getSwarmSize(){
 	return particles;
 }
-double Configuration::getInertia(){
+int Configuration::getPopulationCS(){
+	return populationCS;
+}
+long int Configuration::getInitialPopSize(){
+	return initialPopSize;
+}
+long int Configuration::getFinalPopSize(){
+	return finalPopSize;
+}
+
+short Configuration::getOmega1CS(){
+	return omega1CS;
+}
+short Configuration::getOmega2CS(){
+	return omega2CS;
+}
+short Configuration::getOmega3CS(){
+	return omega3CS;
+}
+double Configuration::getOmega1(){
 	return inertia;
 }
-void Configuration::setInertia(double new_inertia){
+void Configuration::setOmega1(double new_inertia){
 	inertia = new_inertia;
 }
 double Configuration::getInitialIW(){
@@ -597,15 +662,6 @@ double Configuration::getFinalIW(){
 }
 unsigned int Configuration::getIWSchedule(){
 	return iwSchedule;
-}
-short Configuration::getinertiaCS(){
-	return omega1CS;
-}
-short Configuration::getomega2CS(){
-	return omega2CS;
-}
-short Configuration::getomega3CS(){
-	return omega3CS;
 }
 bool Configuration::isVelocityClamped(){
 	return useVelClamping;
@@ -640,11 +696,26 @@ unsigned int Configuration::getTopologySchedule(){
 int Configuration::getBranchingDegree(){
 	return branching;
 }
+short Configuration::getAccelCoeffCS(){
+	return accelCoeffCS;
+}
 double Configuration::getPhi1(){
 	return phi_1;
 }
 double Configuration::getPhi2(){
 	return phi_2;
+}
+double Configuration::getInitialPhi1(){
+	return initialPhi1;
+}
+double Configuration::getFinalPhi1(){
+	return finalPhi1;
+}
+double Configuration::getInitialPhi2(){
+	return initialPhi2;
+}
+double Configuration::getFinalPhi2(){
+	return finalPhi2;
 }
 void Configuration::setEsteps(unsigned int num_esteps){
 	esteps = num_esteps;

@@ -66,7 +66,7 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier){
 
 	phi_1 = config->getPhi1();
 	phi_2 = config->getPhi1();
-	inertia = config->getInertia();
+	inertia = config->getOmega1();
 
 	//cout << "Particle " << id << " : [ ";
 	initializeUniform();
@@ -204,6 +204,20 @@ int Particle::getRanking(){
 	return ranking;
 }
 
+void Particle::setPhi1(double new_phi_1){
+	phi_1 = new_phi_1;
+}
+void Particle::setPhi2(double new_phi_2){
+	phi_2 = new_phi_2;
+}
+double Particle::getPhi1(){
+	return phi_1;
+}
+double Particle::getPhi2(){
+	return phi_2;
+}
+
+
 void Particle::setRanking(int rank){
 	ranking = rank;
 }
@@ -234,6 +248,7 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 
 	bool pBestIntheInformants = ispBestIntheInformants(numInformants, theInformants);
 	//Since we are putting everything in one single structure we need to check if pBest is in the Informants or not
+	//to avoid including it twice.
 	if (!pBestIntheInformants)
 		numInformants = numInformants+1;
 	double ** vect_PbestMinusPosition = new double *[numInformants];
@@ -864,7 +879,6 @@ void Particle::printPosition(){
 		cout << current.x[i] << "  ";
 	}
 	cout << endl;
-
 }
 
 void Particle::printNeighborByID(int identifier){
@@ -873,6 +887,10 @@ void Particle::printNeighborByID(int identifier){
 		cout << neighbours.at(identifier)->current.x[i] << "  ";
 	}
 	cout << endl;
+}
+
+void Particle::setgBestID(int gB_ID){
+	gBestID = gB_ID;
 }
 
 /*Check the neighborhood for the best particle */
