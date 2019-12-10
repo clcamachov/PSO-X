@@ -41,7 +41,11 @@ double RNG::randGaussWithMean(double sd, double mean){
 }
 
 double RNG::randCauchy(double gamma){
-	return  gsl_ran_cauchy(RNG::R, 2-gamma);
+	return gsl_ran_cauchy(RNG::R, 2-gamma);
+}
+
+unsigned int RNG::randBernoulli(double p) {
+	return gsl_ran_bernoulli (RNG::R, p);
 }
 
 void RNG::randHypersphere( double * G){

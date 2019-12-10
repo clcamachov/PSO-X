@@ -195,6 +195,9 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			operator_q = atoi(argv[i+1]);
 			i++;
 			//cout << "\n operator_q has been received \n";
+		} else if (strcmp(argv[i], "--randNeighbor") == 0) {
+			randNeighbor = true;
+			//cout << "\n operator_q will be used with randNeighbor\n";
 		} else if (strcmp(argv[i], "--vRule") == 0) {
 			vRule = atol(argv[i+1]);
 			i++;
@@ -210,9 +213,9 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	}
 
 	//Some velocity update rules have special requirements
-	if (vRule == 0 ){ //do not require inertia
+	if (vRule == VEL_BASIC ){ //do not require inertia
 		inertia = 1.0;
-		omega1CS = 0;
+		omega1CS = IW_CONSTANT;
 	}
 
 	//The topology schedule should be maximum six times the swarm size, i.e. it goes from n to 6n
@@ -237,6 +240,12 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	if (iwSchedule < 1)
 		iwSchedule = 1;
 	iwSchedule = iwSchedule*pow(particles,2);
+
+	//Check DNPPs
+	if (distributionNPP == DIST_ADD_STOCH){
+		//perturbation1 = PERT1_NONE;
+		randomMatrix = MATRIX_NONE;
+	}
 
 	//Check problem dimensions
 	if (problemDimension < 2 || problemDimension > 50) {
@@ -360,6 +369,7 @@ void Configuration::setDefaultParameters(){
 	randomMatrix = 0;						//random matrix
 	distributionNPP = 0;					//distribution of next possible positions
 	operator_q = 0;							//q_operator in simple dynamics PSO
+	randNeighbor = false;					//chose a random neighbor as p2 in P
 	vRule = 1;								//use to select a specific velocity update formula
 
 	//When the maxInitRange and minInitRange are different from 100
@@ -542,10 +552,10 @@ void Configuration::printParameters(){
 	}
 	//<< "  operator_q        " << getOperator_q() << "\n"
 	switch (getOperator_q()){
-	case Q_STANDARD: cout	<< "  operator_q:        STANDARD\n"; break;
-	case Q_GAUSSIAN: cout	<< "  operator_q:        GAUSSIAN\n"; break;
-	case Q_DISCRETE: cout	<< "  operator_q:        DISCRETE\n"; break;
-	case Q_NORMAL:	 cout	<< "  operator_q:        NORMAL\n"; break;
+	case Q_STANDARD: 		cout	<< "  operator_q:        STANDARD\n"; break;
+	case Q_GAUSSIAN: 		cout	<< "  operator_q:        GAUSSIAN\n"; break;
+	case Q_DISCRETE_2: 		cout	<< "  operator_q:        DISCRETE_2\n"; break;
+	case Q_CAUCHY_NORMAL:	cout	<< "  operator_q:        CAUCHY_NORMAL\n"; break;
 	}
 	//<< "  vRule             " <<  << "\n"
 	switch (getVelocityRule()){
@@ -638,7 +648,6 @@ long int Configuration::getInitialPopSize(){
 long int Configuration::getFinalPopSize(){
 	return finalPopSize;
 }
-
 short Configuration::getOmega1CS(){
 	return omega1CS;
 }
@@ -686,6 +695,9 @@ short Configuration::getDistributionNPP(){
 }
 short Configuration::getOperator_q(){
 	return operator_q;
+}
+bool Configuration::getRandNeighbor(){
+	return randNeighbor;
 }
 short Configuration::getTopology(){
 	return topology;

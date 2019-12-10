@@ -234,8 +234,8 @@
 
 #define Q_STANDARD						0
 #define Q_GAUSSIAN						1
-#define Q_DISCRETE						2
-#define Q_NORMAL						3
+#define Q_DISCRETE_2					2
+#define Q_CAUCHY_NORMAL					3
 
 #define MATRIX_NONE						0
 #define MATRIX_DIAGONAL					1
@@ -295,10 +295,9 @@ private:
 	short omega1CS;				// omega1 control strategy indicator (this is the inertiaCS)
 	double initialIW;
 	double finalIW;
-	unsigned int iwSchedule;		//n^2 , 2n^2 , 3n^2 , 4n^2, etc. (the lower the value the faster)
+	unsigned int iwSchedule;	//n^2 , 2n^2 , 3n^2 , 4n^2, etc. (the lower the value the faster)
 	double inertia;				// actual variable of inertia. If no inertiaCS is given, this value is fixed during the
 	bool useVelClamping;
-	//Omega2 and omega3 in the GVU
 	short omega2CS;
 	short omega3CS;
 
@@ -310,6 +309,7 @@ private:
 	//NPPDistribution
 	short distributionNPP;
 	short operator_q;
+	bool randNeighbor;
 
 	//Velocity rules
 	int vRule;
@@ -373,16 +373,13 @@ public:
 	short getOmega3CS();
 
 	//Acceleration coefficients
+	short getAccelCoeffCS();
 	double getPhi1();
 	double getPhi2();
-//	void setPhi1(double new_phi_1);
-//	void setPhi2(double new_phi_2);
-	short getAccelCoeffCS();
 	double getInitialPhi1();
-	double getFinalPhi1();
 	double getInitialPhi2();
+	double getFinalPhi1();
 	double getFinalPhi2();
-
 
 	//Model of influence
 	short getModelOfInfluence();
@@ -396,6 +393,7 @@ public:
 	//Distribution
 	short getDistributionNPP();
 	short getOperator_q();
+	bool getRandNeighbor();
 
 	//Topology
 	short getTopology();

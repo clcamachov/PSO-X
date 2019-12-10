@@ -280,10 +280,10 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		}
 		cout << "]" << endl;
 
-		//If using a self-adaptive strategy compute omega1, otherwise this function returns the value already computed
+		//If using a self-adaptive strategy compute omega1, otherwise this function simply returns the value already computed
 		double omega1 = computeOmega1(config, iteration, i, false);
 
-		//Varphi2 has to be decomposed according the number of informants when FI or RankedFI
+		//When FI or RankedFI phi_2 has to be decomposed according the number of informants
 		decomposePhi2(config->getModelOfInfluence(), i, sizeInformants);
 
 		//Note that here computeOmega1 receives the number of the particle and the flag = false
@@ -297,7 +297,6 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 				alpha_t, l, delta);
 	}
 
-
 	long double prev_Gbest_eval = global_best.eval; //best solution at iteration t-1
 
 	//Update best_particle
@@ -308,7 +307,6 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 			best_particle = swarm[i];
 		}
 	}
-
 	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval, iteration);
 }
 
@@ -473,6 +471,49 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 			}
 		}
 		return 0;
+	}
+}
+
+void Swarm::decomposePhi2(int modelOfInflu, int part_id, int numInformants){
+	if (modelOfInflu == MOI_FI)
+		swarm.at(part_id)->setPhi2(swarm.at(part_id)->getPhi2()/numInformants);
+}
+
+void Swarm::computeAccelerationCoefficients(Configuration* config, long int iteration){
+	//If the strategy involves all particles using the same acceleration coefficients value,
+	//it is more efficient to compute it once at the beginning of the iteration
+	//Constant value
+	switch (config->getAccelCoeffCS()) {
+	case AC_CONSTANT:{
+		for (unsigned int i=0; i<swarm.size(); i++){
+			swarm.at(i)->setPhi1(config->getPhi1());
+			swarm.at(i)->setPhi2(config->getPhi2());
+		}
+	} break;
+	//Random values within bounds
+	case AC_RANDOM:{
+		for (unsigned int i=0; i<swarm.size(); i++){
+			swarm.at(i)->setPhi1(problem->getRandomX(config->getInitialPhi1(),config->getFinalPhi1()));
+			swarm.at(i)->setPhi2(problem->getRandomX(config->getFinalPhi2(),config->getInitialPhi2()));
+		}
+	} break;
+	case AC_EXTRAPOLATED:{
+		for (unsigned int i=0; i<swarm.size(); i++){
+			double varPhi1 = exp((double)(-iteration/config->getMaxIterations()));
+			double distanceToGbest = (swarm.at(swarm.at(i)->getgBestID())->getCurrentEvaluation()-swarm.at(i)->getCurrentEvaluation())/
+					swarm.at(swarm.at(i)->getgBestID())->getCurrentEvaluation();
+			swarm.at(i)->setPhi1(varPhi1);
+			swarm.at(i)->setPhi2(exp(varPhi1*distanceToGbest));
+		}
+	} break;
+	case AC_TIME_VARYING:{
+		double varPhi1 = (config->getInitialPhi1()-config->getFinalPhi1()) * (double)(-iteration/config->getMaxIterations()) + config->getInitialPhi1();
+		double varPhi2 = (config->getInitialPhi2()-config->getFinalPhi2()) * (double)(-iteration/config->getMaxIterations()) + config->getInitialPhi2();
+		for (unsigned int i=0; i<swarm.size(); i++){
+			swarm.at(i)->setPhi1( varPhi1 );
+			swarm.at(i)->setPhi2( varPhi2 );
+		}
+	} break;
 	}
 }
 
@@ -1012,55 +1053,17 @@ double Swarm::computeOmega3(Configuration* config){
 		return 1.0;
 }
 
-void Swarm::decomposePhi2(int modelOfInflu, int part_id, int numInformants){
-	if (modelOfInflu == MOI_FI || modelOfInflu == MOI_RANKED_FI)
-		swarm.at(part_id)->setPhi2(swarm.at(part_id)->getPhi2()/numInformants);
-}
-
-void Swarm::computeAccelerationCoefficients(Configuration* config, long int iteration){
-	//If the strategy involves all particles using the same acceleration coefficients value,
-	//it is more efficient to compute it once at the beginning of the iteration
-	//Constant value
-	switch (config->getAccelCoeffCS()) {
-	case AC_CONSTANT:{
-		for (unsigned int i=0; i<swarm.size(); i++){
-			swarm.at(i)->setPhi1(config->getPhi1());
-			swarm.at(i)->setPhi2(config->getPhi2());
-		}
-	} break;
-	//Random values within bounds
-	case AC_RANDOM:{
-		for (unsigned int i=0; i<swarm.size(); i++){
-			swarm.at(i)->setPhi1(problem->getRandomX(config->getInitialPhi1(),config->getFinalPhi1()));
-			swarm.at(i)->setPhi2(problem->getRandomX(config->getFinalPhi2(),config->getInitialPhi2()));
-		}
-	} break;
-	case AC_EXTRAPOLATED:{
-		for (unsigned int i=0; i<swarm.size(); i++){
-			double varPhi1 = exp((double)(-iteration/config->getMaxIterations()));
-			double distanceToGbest = (swarm.at(swarm.at(i)->getgBestID())->getCurrentEvaluation()-swarm.at(i)->getCurrentEvaluation())/
-					swarm.at(swarm.at(i)->getgBestID())->getCurrentEvaluation();
-			swarm.at(i)->setPhi1(varPhi1);
-			swarm.at(i)->setPhi2(varPhi1*distanceToGbest);
-		}
-	} break;
-	case AC_TIME_VARYING:{
-		double varPhi1 = (config->getInitialPhi1()-config->getFinalPhi1()) * (double)(-iteration/config->getMaxIterations()) + config->getInitialPhi1();
-		double varPhi2 = (config->getInitialPhi2()-config->getFinalPhi2()) * (double)(-iteration/config->getMaxIterations()) + config->getInitialPhi2();
-		for (unsigned int i=0; i<swarm.size(); i++){
-			swarm.at(i)->setPhi1( varPhi1 );
-			swarm.at(i)->setPhi2( varPhi2 );
-		}
-	} break;
-	}
-}
-
 // This function computes the inertia weight (omega1 in the GVU formula) according to the selected strategy
 double Swarm::computeOmega1(Configuration* config, long int iteration, long int id, bool newIteration){
 	//If all particle use the same inertia value, it is more efficient
 	//to compute it once at the beginning of the iteration
 	if (newIteration) {
 		/* Non-adaptive strategies */
+		//IW_CONSTANT - 0 - Constant value
+		if (config->getOmega1CS() == IW_CONSTANT){
+			if (config->getOmega1() < -1 || config->getOmega1() > 1) //check convergence bounds
+				config->setOmega1(CONSTRICTION_COEFFICIENT);
+		}
 		//IW_L_INC - 1 - Linear increasing
 		if (config->getOmega1CS() == IW_L_INC) {
 			//from Frankenstein's PSO

@@ -22,6 +22,7 @@ static double randVal(double min,double max);
 static double randGauss(double sd);
 static double randGaussWithMean(double sd, double mean);
 static double randCauchy(double gamma);
+static unsigned int randBernoulli(double p);
 
 static void randHypersphere( double * G);
 
