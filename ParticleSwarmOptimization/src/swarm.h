@@ -76,6 +76,9 @@ public:
 	//Perturbation
 	void updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration);
 
+	//Population size
+	void resizeSwarm(Problem* problem, Configuration* config);
+
 };
 
 #endif /* SWARM_H_ */

@@ -574,6 +574,7 @@ int main(int argc, char *argv[] ){
 
 	//Random number generator
 	RNG::initializeRNG(config->getRNGSeed());
+	RNG::initializePermutation(config->getSwarmSize());
 
 	initializeProblem();
 	//problem->printProblem();

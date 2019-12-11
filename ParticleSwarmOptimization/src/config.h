@@ -275,10 +275,10 @@ private:
 	//Acceleration coefficients
 	double accelCoeffCS;
 	double phi_1;
-	double initialPhi1;
-	double finalPhi1;
 	double phi_2;
+	double initialPhi1;
 	double initialPhi2;
+	double finalPhi1;
 	double finalPhi2;
 
 	//Topology parameters
@@ -293,10 +293,10 @@ private:
 
 	//Inertia control parameters (omega1 in the GVU)
 	short omega1CS;				// omega1 control strategy indicator (this is the inertiaCS)
+	double inertia;				// actual variable of inertia. If no inertiaCS is given, this value is fixed during the
 	double initialIW;
 	double finalIW;
 	unsigned int iwSchedule;	//n^2 , 2n^2 , 3n^2 , 4n^2, etc. (the lower the value the faster)
-	double inertia;				// actual variable of inertia. If no inertiaCS is given, this value is fixed during the
 	bool useVelClamping;
 	short omega2CS;
 	short omega3CS;
@@ -348,6 +348,7 @@ public:
 
 	//PSO
 	long int getSwarmSize();
+	void setSwarmSize(long int new_size);
 	int getPopulationCS();
 	long int getInitialPopSize();
 	long int getFinalPopSize();

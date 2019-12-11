@@ -67,6 +67,3 @@ void RNG::deallocateRNG(){
 void RNG::deallocatePermutation(){
 	 gsl_permutation_free( RNG::P );
 }
-
-
-

@@ -333,44 +333,63 @@ void Configuration::printUsage(){
 
 /*Default parameters (KISS)*/
 void Configuration::setDefaultParameters(){
-	competitionID = 1;						//CEC05, CEC14, SOFT_COMPUTING, MIXTURE
-	problemID = 18;							//25, 19, 19 and 50, respectively
-	problemDimension = 2; 					//dimensions
+	/** General parameters **/
 	rngSeed = 12345;						//seed for random numbers
-	particles = 10;							//particles (swarm size)
-	populationCS = 0;						//population constrol strategy
-	initialPopSize= 2;						//initial population
-	finalPopSize= 1000;						//final or maximum number of individuals allowed
 	maxFES = 1000*problemDimension;			//max function evaluation
 	max_iterations = 1000*problemDimension;	//max iterations
-	inertia = 0.42;							//inertia weight
+
+	/** Problem parameters **/
+	competitionID = CEC05;					//CEC05, CEC14, SOFT_COMPUTING, MIXTURE
+	problemID = 18;							//25, 19, 19 and 50, respectively
+	problemDimension = 2; 					//dimensions
+	minInitRange = -100;					//lower bound of the function
+	maxInitRange = 100;						//upper bound of the function
+
+	/** Population **/
+	particles = 10;							//particles (swarm size)
+	populationCS = POP_CONSTANT;			//population control strategy
+	initialPopSize= 2;						//initial population
+	finalPopSize= 1000;						//final or maximum number of individuals allowed
+
+	/** Acceleration coefficients **/
+	accelCoeffCS = AC_CONSTANT;				//acceleration coefficients control strategy
 	phi_1 = 1.55;							//personal coefficient
 	phi_2 = 1.55;							//social coefficient
-	accelCoeffCS = AC_CONSTANT;				//acceleration coefficients control stratey
 	initialPhi1 = 2.5;						//initial personal coefficient value
 	initialPhi2 = 0.5;						//initial social coefficient value
 	finalPhi1 = 0.5;						//final personal coefficient value
 	finalPhi2 = 2.5;						//final social coefficient value
+
+	/** Topology parameters **/
 	topology = TOP_TIMEVARYING;				//topology
-	minInitRange = -100;					//lower bound of the function
-	maxInitRange = 100;						//upper bound of the function
-	useVelClamping = true;					//clamp velocity (step size)
-	omega1CS = 0;							//inertia control strategy
+	tSchedule = 2*particles;				//topology update schedule
+	branching = 4;							//branching degree for the hierarchical topology
+
+	/** Model of influence **/
+	modelOfInfluence = MOI_FI;				//self-explanatory
+
+	/** Inertia control parameters (omega1 in the GVU) **/
+	omega1CS = IW_CONSTANT;					//inertia control strategy
+	inertia = 1.0;							//inertia weight
 	initialIW =  0.9;						//initial inertia value
 	finalIW = 0.4;							//final inertia value
 	iwSchedule = 2*pow(particles,2);		//inertia weight schedule
-	omega2CS = 0;							//omega2 control strategy (see GVU formula)
-	omega3CS = 0;							//omega3 control strategy (see GVU formula)
-	modelOfInfluence = 0;					//self-explanatory
-	tSchedule = 2*particles;				//topology update schedule
-	branching = 4;							//branching degree for the hierarchical topology
-	perturbation1 = 0;						//distribution-based perturbation
-	perturbation2 = 0;						//additive perturbation
-	randomMatrix = 0;						//random matrix
-	distributionNPP = 0;					//distribution of next possible positions
-	operator_q = 0;							//q_operator in simple dynamics PSO
+	useVelClamping = true;					//clamp velocity (step size)
+	omega2CS = O2_EQUALS_IW;				//omega2 control strategy (see GVU formula)
+	omega3CS = O3_EQUALS_IW;				//omega3 control strategy (see GVU formula)
+
+	/** Perturbation **/
+	perturbation1 = PERT1_NONE;				//distribution-based perturbation
+	perturbation2 = PERT2_NONE;				//additive perturbation
+	randomMatrix = MATRIX_DIAGONAL;			//random matrix
+
+	/** NPPDistribution **/
+	distributionNPP = DIST_RECTANGULAR;		//distribution of next possible positions
+	operator_q = Q_STANDARD;				//q_operator in simple dynamics PSO
 	randNeighbor = false;					//chose a random neighbor as p2 in P
-	vRule = 1;								//use to select a specific velocity update formula
+
+	/** Velocity rules **/
+	vRule = VEL_STANDARD;					//use to select a specific velocity update formula
 
 	//When the maxInitRange and minInitRange are different from 100
 	//the range is updated after instantiating the problem.
@@ -510,16 +529,16 @@ void Configuration::printParameters(){
 	}
 	//<< "  accelCoeffCS:     " << getAccelCoeffCS() << "\n"
 	switch (getAccelCoeffCS()){
-	case AC_CONSTANT:		cout << "  accelCoeffCS:     CONSTANT\n"
-			<< "  phi_1:            " << getPhi1() << "\n"
-			<< "  phi_2:            " << getPhi2() << "\n"; break;
-	case AC_TIME_VARYING: 	cout << "  accelCoeffCS:     TIME_VARYING\n"
-			<< "  initialPhi1:      " << getInitialPhi1() << "\n"
-			<< "  finalPhi1:        " << getFinalPhi1() << "\n"
-			<< "  initialPhi2:      " << getInitialPhi2() << "\n"
-			<< "  finalPhi2:        " << getFinalPhi2() << "\n"; break;
-	case AC_EXTRAPOLATED:	cout << "  accelCoeffCS:     EXTRAPOLATED\n"; break;
-	case AC_RANDOM:			cout << "  accelCoeffCS:     RANDOM\n"; break;
+	case AC_CONSTANT:		cout << "  accelCoeffCS:      CONSTANT\n"
+			<< "  phi_1:             " << getPhi1() << "\n"
+			<< "  phi_2:             " << getPhi2() << "\n"; break;
+	case AC_TIME_VARYING: 	cout << "  accelCoeffCS:      TIME_VARYING\n"
+			<< "  initialPhi1:       " << getInitialPhi1() << "\n"
+			<< "  finalPhi1:         " << getFinalPhi1() << "\n"
+			<< "  initialPhi2:       " << getInitialPhi2() << "\n"
+			<< "  finalPhi2:         " << getFinalPhi2() << "\n"; break;
+	case AC_EXTRAPOLATED:	cout << "  accelCoeffCS:      EXTRAPOLATED\n"; break;
+	case AC_RANDOM:			cout << "  accelCoeffCS:      RANDOM\n"; break;
 	}
 	//<< "  perturbation1     " << getPerturbation1() << "\n"
 	switch (getPerturbation1Type()){
@@ -638,6 +657,9 @@ bool Configuration::useVelocityClamping(){
 }
 long int Configuration::getSwarmSize(){
 	return particles;
+}
+void Configuration::setSwarmSize(long int new_size){
+	particles = new_size;
 }
 int Configuration::getPopulationCS(){
 	return populationCS;

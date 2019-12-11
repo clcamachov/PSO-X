@@ -514,12 +514,15 @@ void Particle::getAdditiveStochasticDNPP(double * vect_distribution, int numInfo
 	else
 		p2Index = 0;
 
+	cout << "\tSimply dynamic PSO, p1 : [" << p1Index << "]" << "\t p2 : [" << p2Index << "]" <<endl;
+
 	switch (operatorQ) {
 	case Q_STANDARD:
 		for (int i=0; i<size; i++){
 			vect_distribution[i] = (
 					(phi_1 * vect_PbestMinusPosition[p1Index][i])+
 					(phi_2 * vect_PbestMinusPosition[p2Index][i]) ) / (phi_1+phi_2);
+			vect_distribution[i] -= current.x[i];
 		}
 		break;
 	case Q_GAUSSIAN:
@@ -527,32 +530,30 @@ void Particle::getAdditiveStochasticDNPP(double * vect_distribution, int numInfo
 			double center = (vect_PbestMinusPosition[p1Index][i]+ vect_PbestMinusPosition[p2Index][i]) / 2.0;
 			double dispersion = abs (vect_PbestMinusPosition[p1Index][i] - vect_PbestMinusPosition[p2Index][i]);
 			vect_distribution[i] = RNG::randGaussWithMean(dispersion, center);
+			vect_distribution[i] -= current.x[i];
 		}
 		break;
 	case Q_DISCRETE_2:
 		for (int i=0; i<size; i++){
 			int rndBernoulli = RNG::randBernoulli(0.5); //toss a coin
 			vect_distribution[i] =(((1 + rndBernoulli ) * vect_PbestMinusPosition[p1Index][i]) + ((1 - rndBernoulli) * vect_PbestMinusPosition[p2Index][i]))/2;
+			vect_distribution[i] -= current.x[i];
 		}
 		break;
 	case Q_CAUCHY_NORMAL:
 		for (int i=0; i<size; i++){
 			if (problem->getRandom01() <= 0.5){
-				vect_distribution[i] = vect_PbestMinusPosition[p1Index][i] +
-						(RNG::randCauchy(1.0) * abs(vect_PbestMinusPosition[p1Index][i] - vect_PbestMinusPosition[p2Index][i]));
+				//to see how the gamma parameter is set see RNG::randCauchy()
+				vect_distribution[i] = vect_PbestMinusPosition[p1Index][i] - current.x[i]; //we need to discount current.x[i] because it will be added later in the GVU formula
+				vect_distribution[i] += (RNG::randCauchy(1.0) * abs(vect_PbestMinusPosition[p1Index][i] - vect_PbestMinusPosition[p2Index][i]));
+
 			}
 			else {
-				vect_distribution[i] = vect_PbestMinusPosition[p2Index][i] +
-						(RNG::randGaussWithMean(1.0,0) * abs(vect_PbestMinusPosition[p1Index][i] - vect_PbestMinusPosition[p2Index][i]));
+				vect_distribution[i] = vect_PbestMinusPosition[p2Index][i] - current.x[i]; //we need to discount current.x[i] because it will be added later in the GVU formula
+				vect_distribution[i] += (RNG::randGaussWithMean(1.0,0) * abs(vect_PbestMinusPosition[p1Index][i] - vect_PbestMinusPosition[p2Index][i]));
 			}
 		}
 		break;
-	}
-
-	//Compute vect_distribution
-	for (int i=0; i<size; i++){
-		vect_distribution[i] += (phi_1 * vect_PbestMinusPosition[p1Index][i]); //personal coefficient phi_1
-		vect_distribution[i] += (phi_2 * vect_PbestMinusPosition[p2Index][i]); //social coefficient phi_1
 	}
 }
 
@@ -563,7 +564,6 @@ void Particle::getRectangularDNPP(double * vect_distribution, int numInformants,
 	//Compute vect_distribution
 	for (int i=0; i<size; i++){
 		if (i==0) cout << "\tPhi2 values: [ ";
-		//		if (i==1) cout << "\tPhi2 values: [ ";
 		for (int j=0; j<numInformants; j++){
 			if (pBestIntheInformants && (this->id != this->gBestID)) { //we look for pBest in the Array
 				if (this->id == neighbours.at(theInformants[j])->getID())
@@ -575,7 +575,6 @@ void Particle::getRectangularDNPP(double * vect_distribution, int numInformants,
 						varPhi2 = varPhi2/2.0;
 					vect_distribution[i] += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_1
 					if (i==0) cout << varPhi2 << " ";
-					//					if (i==1) cout << varPhi2 << " ";
 				}
 			}
 			else{
@@ -588,13 +587,11 @@ void Particle::getRectangularDNPP(double * vect_distribution, int numInformants,
 						varPhi2 = varPhi2/2.0;
 					vect_distribution[i] += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_1
 					if (i==0) cout << varPhi2 << " ";
-					//					if (i==1) cout << varPhi2 << " ";
 				}
 			}
 		}
 		varPhi2 = phi_2;
 		if (i==0) cout << "]" << endl;
-		//		if (i==1) cout << "]" << endl;
 	}
 }
 
