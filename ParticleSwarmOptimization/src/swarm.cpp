@@ -131,9 +131,10 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 		createRandomEdge();
 	} else if (config->getTopology() == TOP_TIMEVARYING) {
 		createFullyConnectedTopology();
-		config->setTopologyUpdatePeriod(
-				(int)floor((double)config->getTopologySchedule()/(config->getSwarmSize()-3)));
-		RNG::initializePermutation(config->getSwarmSize());
+		if (config->getPopulationCS() == POP_CONSTANT)
+			config->setTopologyUpdatePeriod((int)floor((double)config->getTopologySchedule()/(config->getSwarmSize()-3)));
+		else
+			config->setTopologyUpdatePeriod((int)floor((double)config->getTopologySchedule()/(config->getFinalPopSize()-3)));
 	} else if (config->getTopology() == TOP_VONNEUMANN) {
 		createVonNeumannTopology();
 	}
@@ -151,81 +152,43 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 	init=true;
 }
 
-/* Copy constructor */
-Swarm::Swarm (const Swarm &s, Configuration* config){
-	problem = s.problem;
-	size = s.size;
+void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations){
+	//Topology update
+	if(((iterations > 0) && (config->getEsteps() < swarm.size()-3) && (iterations%config->getTopologyUpdatePeriod() == 0)
+			&& config->getPopulationCS() == POP_CONSTANT) ||
+			((iterations > 0) && (config->getEsteps() < config->getFinalPopSize()-3) && (iterations%config->getTopologyUpdatePeriod() == 0)
+					&& config->getPopulationCS() != POP_CONSTANT)){
+		unsigned int removals = 0;
+		//cout << " -- esteps " << config->getEsteps() << endl;
+		//cout << " -- Update topology at iteration: " << iterations << " Target: " << swarm.size()-(2+config->getEsteps()) << endl;
+		RNG::shufflePermutation();
+		while(removals < swarm.size()-(2+config->getEsteps())){
+			for(unsigned int i=0;i<swarm.size();i++){
+				int particleIndex = RNG::getPermutationElement(i);
+				if( swarm.at(particleIndex)->getNeighborhoodSize() > 3 ){ //3 because a particle is a neighbor to itself
+					int neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
 
-	/*Initialize global best*/
-	if (! init) {
-		global_best.x = new double[config->getProblemDimension()];
-		for(unsigned int i=0;i<config->getProblemDimension();i++)
-			global_best.x[i] = 0;
-		global_best.eval = LDBL_MAX;
-		for (long int i=0; i<size; i++) {
-			Particle* aParticle = new Particle(problem, config, i);
-			swarm.push_back(aParticle);
+					//cout << " -- Erasing edge " << particleIndex << " <---> " << neighborID << endl;
 
-			if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
-				updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
-				best_particle = swarm.at(i);
+					swarm.at(particleIndex)->eraseNeighborbyID(neighborID);
+					swarm.at(neighborID)->eraseNeighborbyID(particleIndex);
+
+					removals++;
+				}
+				if(removals == swarm.size()-(2+config->getEsteps()))
+					break;
 			}
 		}
-		hierarchical = false;
-
-		//Select one of the available topologies
-		if (config->getTopology() == TOP_FULLYCONNECTED) {
-			createFullyConnectedTopology();
-		} else if (config->getTopology() == TOP_HIERARCHICAL) {
-			hierarchical = true;
-			createHierarchical(config->getBranchingDegree());
-		} else if (config->getTopology() == TOP_RING) {
-			createRingTopology();
-		} else if (config->getTopology() == TOP_WHEEL) {
-			createWheelTopology();
-		} else if (config->getTopology() == TOP_RANDOM) {
-			createRandomEdge();
-		} else if (config->getTopology() == TOP_TIMEVARYING) {
-			createFullyConnectedTopology();
-			config->setTopologyUpdatePeriod(
-					(int)floor((double)config->getTopologySchedule()/(config->getSwarmSize()-3)));
-			RNG::initializePermutation(config->getSwarmSize());
-		} else if (config->getTopology() == TOP_VONNEUMANN) {
-			createVonNeumannTopology();
-		}
-		else {
-			cerr << "Wrong topology" << endl;
-			exit (-1);
-		}
-
-		//rankings
-		if (config->getOmega1CS() == IW_RANKS_BASED || config->getOmega1CS() == IW_SUCCESS_BASED
-				|| config->getOmega1CS() == IW_CONVERGE_BASED)
-			ranked = true;
+		config->setEsteps(config->getEsteps()+1);
+		//cout << "Removals " << removals << endl;
+		//for(unsigned int i=0;i<swarm.size();i++)
+		//	cout << "particleIndex: " << i << " -- Neighbors: " << swarm.at(i)->getNeighborhoodSize() << endl;
 	}
-	else {
-		//Copy swarm
-		for (long int i=0; i<size; i++) {
-			swarm.push_back(s.swarm.at(i));
-		}
-		//Copy global_best
-		for(unsigned int i=0;i<config->getProblemDimension();i++)
-			global_best.x[i] = s.global_best.x[i];
-		global_best.eval=s.global_best.eval;
-
-		best_particle = s.best_particle;
-		hierarchical = s.hierarchical;
-
-		for (long int i=0; i<size; i++) {
-			for (unsigned int j= 0; j<swarm.at(i)->neighbours.size(); j++)
-				swarm.at(i)->neighbours[j]=s.swarm.at(i)->neighbours[j];
-		}
-		ranked = s.ranked;
-	}
-	init = true;
 }
 
-void Swarm::resizeSwarm(Problem* problem, Configuration* config){
+void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iteration){
+	int particleToAdd = 0;
+	long int previous_size = size;
 
 	switch (config->getPopulationCS()) {
 	case POP_CONSTANT:
@@ -234,70 +197,140 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config){
 		//		long int initialPopSize; config->getInitialPopSize()
 		break;
 	case POP_INCREMENTAL:
-		//Update members variable in Config
-		//--related to populationCS
-		if (size <config->getFinalPopSize()){
-			config->setSwarmSize(size+1); //long int particles
-			Particle* aParticle = new Particle(problem, config, size-1);
-			swarm.push_back(aParticle);
-			if (swarm.at(size-1)->getPbestEvaluation() < global_best.eval){
-				updateGlobalBest(swarm.at(size-1)->getPbestPosition(), swarm.at(size-1)->getPbestEvaluation());
-				best_particle = swarm.at(size-1);
-			}
-
-			switch (config->getTopology() ) {
-			case TOP_FULLYCONNECTED:
-				for(unsigned int j=0;j<swarm.size();j++){
-					swarm.at(size-1)->addNeighbour(swarm.at(j));
-				}
-				break;
-			case TOP_HIERARCHICAL:
-				//addParticleToHierarchy(config->getBranchingDegree());	//To implement
-				//		int branching;
-				break;
-			case TOP_RING:
-				swarm.at(size-1)->addNeighbour(swarm.at(0));
-				swarm.at(size-1)->addNeighbour(swarm.at(size-2));
-				break;
-			case TOP_WHEEL:
-				swarm.at(size-1)->addNeighbour(swarm.at(0));
-				break;
-			case TOP_RANDOM:
-				int randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
-				if (randomEdge == swarm.at(size-1)->getID()){
-					randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
-					swarm.at(size-1)->addNeighbour(swarm.at(randomEdge));
-				}
-				else
-					swarm.at(size-1)->addNeighbour(swarm.at(randomEdge));
-				break;
-			case TOP_TIMEVARYING:
-				RNG::deallocatePermutation();
-				RNG::initializePermutation(config->getSwarmSize());
-				//		unsigned int tSchedule;   config->getTopologySchedule()  config->setTopologyUpdatePeriod
-				//		unsigned int esteps;
-				//		int topologyUpdatePeriod;
-				//I need to review how this works exactly to update the particle
-				break;
-			case TOP_VONNEUMANN:
-				swarm.at(size-1)->addNeighbour(swarm.at(size-2));
-				swarm.at(size-1)->addNeighbour(swarm.at(size-3));
-				swarm.at(size-1)->addNeighbour(swarm.at(0));
-				break;
+		particleToAdd = 1; //Here instead of 1 we could use a different value
+		//Add one particle per iteration
+		if (size+particleToAdd < config->getFinalPopSize()){
+			addParticles(problem, config, particleToAdd);
+			updateTopologyConnections( config, previous_size, iteration);
+		}
+		else{
+			//See if we can add the difference
+			particleToAdd = config->getFinalPopSize()-size;
+			if ( particleToAdd > 0){
+				addParticles(problem, config, particleToAdd);
+				updateTopologyConnections( config, previous_size, iteration);
 			}
 		}
 		break;
 	}
+}
 
-	//rankings
-	if (	config->getOmega1CS() == IW_RANKS_BASED ||
-			config->getOmega1CS() == IW_SUCCESS_BASED ||
-			config->getOmega1CS() == IW_CONVERGE_BASED){
-		//resize simpSwarm
+void Swarm::updateTopologyConnections(Configuration* config, long previous_size, long int iteration){
+	switch (config->getTopology() ) {
+	case TOP_FULLYCONNECTED:
+		for(unsigned int i=previous_size; i<swarm.size(); i++){
+			for(unsigned int j=0; j<swarm.size(); j++){
+				swarm.at(i)->addNeighbour(swarm.at(j));
+			}
+		}
+		break;
+	case TOP_HIERARCHICAL:
+		//addParticleToHierarchy(config->getBranchingDegree());	//To implement
+		break;
+	case TOP_RING:
+		int a,b;
+		for(unsigned int i=previous_size; i<swarm.size(); i++){
+			a=i-1;
+			b=i+1;
+			if(i==0)
+				a=swarm.size()-1;
+			if(i==(swarm.size()-1))
+				b=0;
+			swarm.at(i)->addNeighbour(swarm.at(a));
+			swarm.at(i)->addNeighbour(swarm.at(b));
+		}
+		break;
+	case TOP_WHEEL:
+		for(unsigned int i=previous_size; i<swarm.size(); i++){
+			swarm.at(i)->addNeighbour(swarm.at(0));
+			swarm.at(0)->addNeighbour(swarm.at(i));
+		}
+		break;
+	case TOP_RANDOM:{
+		long int randomEdge;
+		for(unsigned int i=previous_size; i<swarm.size(); i++){
+			randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
+			if (randomEdge == i){
+				randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
+				swarm.at(i)->addNeighbour(swarm.at(randomEdge));
+			}
+			else
+				swarm.at(i)->addNeighbour(swarm.at(randomEdge));
+		}
 	}
+	break;
+	case TOP_TIMEVARYING:
+		RNG::deallocatePermutation();
+		RNG::initializePermutation(config->getSwarmSize());
+		if (iteration > config->getTopologySchedule()){ //After the topology update period is finished
+			int a,b;
+			for(unsigned int i=previous_size; i<swarm.size(); i++){
+				a=i-1;
+				b=i+1;
+				if(i==0)
+					a=swarm.size()-1;
+				if(i==(swarm.size()-1))
+					b=0;
+				swarm.at(i)->addNeighbour(swarm.at(a));
+				swarm.at(i)->addNeighbour(swarm.at(b));
+			}
+		}
+		else if (iteration <= (config->getTopologySchedule()/2)){ //Between the second half and the end
+			//We connect a particle randomly with half of the swarm and ensuring that the particle is
+			//connected to the adjacent neighbors
+			unsigned int a,b;
+			for(unsigned int i=previous_size; i<swarm.size(); i++){
+				//First ring
+				a=i-1;
+				b=i+1;
+				if(i==0)
+					a=swarm.size()-1;
+				if(i==(swarm.size()-1))
+					b=0;
+				swarm.at(i)->addNeighbour(swarm.at(a));
+				swarm.at(i)->addNeighbour(swarm.at(b));
 
-	if (modInfRanked){
-		//resize rankedSwarm
+				//Later with random neighbors
+				for(unsigned int j=0; j<swarm.size(); j++){
+					unsigned int randomEdge = (unsigned int)floor(RNG::randVal(0.0,(double)swarm.size()));
+					if (randomEdge != a && randomEdge != b && randomEdge !=i){
+						swarm.at(i)->addNeighbour(swarm.at(randomEdge));
+						j++;
+					}
+				}
+			}
+
+		}
+		else { //Between 0 and the first half
+			for(unsigned int i=previous_size; i<swarm.size(); i++){
+				for(unsigned int j=0; j<swarm.size(); j++){
+					swarm.at(i)->addNeighbour(swarm.at(j));
+				}
+			}
+		}
+		break;
+	case TOP_VONNEUMANN:
+		swarm.at(size-1)->addNeighbour(swarm.at(size-2));
+		swarm.at(size-1)->addNeighbour(swarm.at(size-3));
+		swarm.at(size-1)->addNeighbour(swarm.at(0));
+		break;
+	}
+}
+
+
+void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParticles){
+	if (size < config->getFinalPopSize()){
+		//Add particles to the swarm
+		for (long int i=size; i<size+numOfParticles; i++){
+			Particle* aParticle = new Particle(problem, config, i);
+			swarm.push_back(aParticle);
+			if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
+				updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
+				best_particle = swarm.at(i);
+			}
+		}
+		//Update variable size
+		config->setSwarmSize(size+numOfParticles); //long int particles
 	}
 }
 
@@ -533,7 +566,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 		if (config->getModelOfInfluence() == MOI_RANKED_FI){
 			//Implement ranks if particles are not using them already
 			if (config->getOmega1CS() != IW_RANKS_BASED){
-				if (iteration == 1) {
+				if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
 					if (!modInfRanked) //flag to delete the structure at the end
 						modInfRanked = true;
 					rankedSwarm.eval = new long double [config->getSwarmSize()];
@@ -689,37 +722,6 @@ void Swarm::createVonNeumannTopology(){
 		swarm.at(i)->addNeighbour(swarm.at(a));
 		swarm.at(i)->addNeighbour(swarm.at(b));
 		swarm.at(i)->addNeighbour(swarm.at(c));
-	}
-}
-
-void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations){
-	//Topology update
-	if( (iterations > 0) && (config->getEsteps() < swarm.size()-3) && (iterations%config->getTopologyUpdatePeriod() == 0)){
-		unsigned int removals = 0;
-		//cout << " -- esteps " << config->getEsteps() << endl;
-		//cout << " -- Update topology at iteration: " << iterations << " Target: " << swarm.size()-(2+config->getEsteps()) << endl;
-		RNG::shufflePermutation();
-		while(removals < swarm.size()-(2+config->getEsteps())){
-			for(unsigned int i=0;i<swarm.size();i++){
-				int particleIndex = RNG::getPermutationElement(i);
-				if( swarm.at(particleIndex)->getNeighborhoodSize() > 3 ){ //3 because a particle is a neighbor to itself
-					int neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
-
-					//cout << " -- Erasing edge " << particleIndex << " <---> " << neighborID << endl;
-
-					swarm.at(particleIndex)->eraseNeighborbyID(neighborID);
-					swarm.at(neighborID)->eraseNeighborbyID(particleIndex);
-
-					removals++;
-				}
-				if(removals == swarm.size()-(2+config->getEsteps()))
-					break;
-			}
-		}
-		config->setEsteps(config->getEsteps()+1);
-		//cout << "Removals " << removals << endl;
-		//for(unsigned int i=0;i<swarm.size();i++)
-		//	cout << "particleIndex: " << i << " -- Neighbors: " << swarm.at(i)->getNeighborhoodSize() << endl;
 	}
 }
 
@@ -1275,7 +1277,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		}
 		//IW_RANKS_BASED - 14 - Rank-based
 		else if (config->getOmega1CS() == IW_RANKS_BASED) {
-			if (iteration == 1) {
+			if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
 				//Memory allocation to rank particles
 				simpSwarm.eval = new long double [config->getSwarmSize()];
 				simpSwarm.id = new int [config->getSwarmSize()];
@@ -1286,7 +1288,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		}
 		//IW_SUCCESS_BASED - 15 Success-based
 		else if (config->getOmega1CS() == IW_SUCCESS_BASED) {
-			if (iteration == 1) {
+			if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
 				//simpSwarm contains a simplified copy of the swarm at t-1
 				simpSwarm.eval = new long double [config->getSwarmSize()];
 				simpSwarm.id = new int [config->getSwarmSize()];
@@ -1297,7 +1299,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				}
 				config->setOmega1(config->getFinalIW()); //set inertia weight to its maximum value for the first iteration
 			}
-			else{
+			if (iteration > 1){
 				int S_i = 0; //Number of solutions that improved after the last iteration
 				for (unsigned int i=0; i<swarm.size(); i++){
 					for (unsigned int j=0; j<sizeof(simpSwarm.id); j++){
@@ -1325,11 +1327,10 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				//cout << "P[" << id << "]" << "rank: "<< ranking << " eval:" << current.eval << endl;
 				//cout << config->getInertia() << endl;
 			}
-
 		}
 		//IW_CONVERGE_BASED - 16 Convergence-based
 		else if (config->getOmega1CS() == IW_CONVERGE_BASED) {
-			if (iteration == 1) {
+			if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
 				//simpSwarm contains a simplified copy of the swarm at t-1
 				simpSwarm.eval = new long double [config->getSwarmSize()];
 				simpSwarm.id = new int [config->getSwarmSize()];
@@ -1338,7 +1339,8 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					simpSwarm.id[i] = swarm.at(i)->getID();
 					simpSwarm.eval[i] = swarm.at(i)->getCurrentEvaluation();
 				}
-				config->setOmega1(1 - abs(alpha_2/(1+beta_2)));
+				if (config->getPopulationCS() == POP_CONSTANT)
+					config->setOmega1(1 - abs(alpha_2/(1+beta_2)));
 			}
 			else{
 				//Copy particle's id and evaluation in simpSwarm for the next iteration
@@ -1436,3 +1438,80 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 	}
 	return config->getOmega1();
 }
+
+
+///* Copy constructor */
+//Swarm::Swarm (const Swarm &s, Configuration* config){
+//	problem = s.problem;
+//	size = s.size;
+//
+//	/*Initialize global best*/
+//	if (! init) {
+//		global_best.x = new double[config->getProblemDimension()];
+//		for(unsigned int i=0;i<config->getProblemDimension();i++)
+//			global_best.x[i] = 0;
+//		global_best.eval = LDBL_MAX;
+//		for (long int i=0; i<size; i++) {
+//			Particle* aParticle = new Particle(problem, config, i);
+//			swarm.push_back(aParticle);
+//
+//			if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
+//				updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
+//				best_particle = swarm.at(i);
+//			}
+//		}
+//		hierarchical = false;
+//
+//		//Select one of the available topologies
+//		if (config->getTopology() == TOP_FULLYCONNECTED) {
+//			createFullyConnectedTopology();
+//		} else if (config->getTopology() == TOP_HIERARCHICAL) {
+//			hierarchical = true;
+//			createHierarchical(config->getBranchingDegree());
+//		} else if (config->getTopology() == TOP_RING) {
+//			createRingTopology();
+//		} else if (config->getTopology() == TOP_WHEEL) {
+//			createWheelTopology();
+//		} else if (config->getTopology() == TOP_RANDOM) {
+//			createRandomEdge();
+//		} else if (config->getTopology() == TOP_TIMEVARYING) {
+//			createFullyConnectedTopology();
+//			if (config->getPopulationCS() == POP_CONSTANT)
+//				config->setTopologyUpdatePeriod((int)floor((double)config->getTopologySchedule()/(config->getSwarmSize()-3)));
+//			else
+//				config->setTopologyUpdatePeriod((int)floor((double)config->getTopologySchedule()/(config->getFinalPopSize()-3)));
+//			//RNG::initializePermutation(config->getSwarmSize());
+//		} else if (config->getTopology() == TOP_VONNEUMANN) {
+//			createVonNeumannTopology();
+//		}
+//		else {
+//			cerr << "Wrong topology" << endl;
+//			exit (-1);
+//		}
+//
+//		//rankings
+//		if (config->getOmega1CS() == IW_RANKS_BASED || config->getOmega1CS() == IW_SUCCESS_BASED
+//				|| config->getOmega1CS() == IW_CONVERGE_BASED)
+//			ranked = true;
+//	}
+//	else {
+//		//Copy swarm
+//		for (long int i=0; i<size; i++) {
+//			swarm.push_back(s.swarm.at(i));
+//		}
+//		//Copy global_best
+//		for(unsigned int i=0;i<config->getProblemDimension();i++)
+//			global_best.x[i] = s.global_best.x[i];
+//		global_best.eval=s.global_best.eval;
+//
+//		best_particle = s.best_particle;
+//		hierarchical = s.hierarchical;
+//
+//		for (long int i=0; i<size; i++) {
+//			for (unsigned int j= 0; j<swarm.at(i)->neighbours.size(); j++)
+//				swarm.at(i)->neighbours[j]=s.swarm.at(i)->neighbours[j];
+//		}
+//		ranked = s.ranked;
+//	}
+//	init = true;
+//}

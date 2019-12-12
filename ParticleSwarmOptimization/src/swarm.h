@@ -35,9 +35,9 @@ public:
 	Swarm ();
 	~Swarm();
 	Swarm (Problem* problem, Configuration* config); /*Create swarm structure*/
-	Swarm (const Swarm &s, Configuration* config);
+	//Swarm (const Swarm &s, Configuration* config);
 
-	Swarm& operator= (const Swarm& s);
+	//Swarm& operator= (const Swarm& s);
 
 	void updateGlobalBest(double* new_x, double eval);
 	void moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound);
@@ -77,8 +77,9 @@ public:
 	void updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration);
 
 	//Population size
-	void resizeSwarm(Problem* problem, Configuration* config);
-
+	void resizeSwarm(Problem* problem, Configuration* config, long int iteration);
+	void addParticles(Problem* problem, Configuration* config, int numOfParticles);
+	void updateTopologyConnections(Configuration* config, long previous_size, long int iteration);
 };
 
 #endif /* SWARM_H_ */

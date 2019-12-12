@@ -212,6 +212,12 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		}
 	}
 
+	if (initialPopSize > finalPopSize)
+		cerr << "\nError: Wrong initial (or) final population size..." << endl;
+
+	if (populationCS != POP_CONSTANT)
+		particles = initialPopSize;
+
 	//Some velocity update rules have special requirements
 	if (vRule == VEL_BASIC ){ //do not require inertia
 		inertia = 1.0;
@@ -223,7 +229,11 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		tSchedule = 6;
 	if (tSchedule < 1)
 		tSchedule = 1;
-	tSchedule = particles*tSchedule;
+	if (populationCS == POP_CONSTANT)
+		tSchedule = particles*tSchedule;
+	else
+		tSchedule = (int)floor((double)finalPopSize*tSchedule);
+
 
 	if (branching < 2)
 		branching = 2;
@@ -364,6 +374,7 @@ void Configuration::setDefaultParameters(){
 	topology = TOP_TIMEVARYING;				//topology
 	tSchedule = 2*particles;				//topology update schedule
 	branching = 4;							//branching degree for the hierarchical topology
+	esteps = 0;
 
 	/** Model of influence **/
 	modelOfInfluence = MOI_FI;				//self-explanatory
@@ -595,56 +606,42 @@ void Configuration::printParameters(){
 unsigned int Configuration::getCompetitionID(){
 	return competitionID;
 }
-
 unsigned int Configuration::getProblemID(){
 	return problemID;
 }
-
 unsigned int Configuration::getProblemDimension(){
 	return problemDimension;
 }
-
 unsigned long Configuration::getRNGSeed(){
 	return rngSeed;
 }
-
 unsigned int Configuration::getMaxFES(){
 	return maxFES;
 }
-
 unsigned int Configuration::getMaxIterations(){
 	return max_iterations;
 }
-
 double Configuration::getMinInitRange(){
 	if((getProblemID() == 6 || getProblemID() == 24) && (getCompetitionID() == 0))
 		return LDBL_MAX*-1.0;
-
 	return minInitRange;
 }
-
 double Configuration::getMaxInitRange(){
 	if((getProblemID() == 6 || getProblemID() == 24) && (getCompetitionID() == 0))
 		return LDBL_MAX;
-
 	return maxInitRange;
 }
-
 void Configuration::setMinInitRange(double lowerlimit) {
 	minInitRange = lowerlimit;
 }
-
 void Configuration::setMaxInitRange(double upperlimit){
 	maxInitRange = upperlimit;
 }
-
 double Configuration::getMinInitBound(){
 	if((getProblemID() == 6 || getProblemID() == 24) && (getCompetitionID() == 0))
 		return LDBL_MAX*-1.0;
-
 	return minInitRange;
 }
-
 double Configuration::getMaxInitBound(){
 	if((getProblemID() == 6 || getProblemID() == 24) && (getCompetitionID() == 0))
 		return LDBL_MAX;

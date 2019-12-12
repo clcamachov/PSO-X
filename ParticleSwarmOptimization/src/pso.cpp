@@ -596,6 +596,8 @@ int main(int argc, char *argv[] ){
 		swarm->moveSwarm(config, iterations, config->getMinInitBound(),config->getMaxInitBound());
 		evaluations=evaluations + config->getSwarmSize();
 
+		swarm->resizeSwarm(problem, config, iterations);
+
 		//Update topology
 		if (config->getTopology() == TOP_TIMEVARYING) {
 			swarm->updateTimeVaryingTopology(config, iterations) ;
