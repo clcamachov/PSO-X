@@ -190,7 +190,7 @@
 #define IW_CONVERGE_BASED 	 			16
 
 // available omega2 strategies
-#define O2_EQUALS_IW					0
+#define O2_EQUAL_TO_O1					0
 #define O2_ZERO							1  //this makes the component Distribution = 0
 #define O2_ONE							2
 #define O2_RANDOM						3
@@ -202,7 +202,7 @@
 #define AC_RANDOM						3
 
 // available omega3 strategies
-#define O3_EQUALS_IW					0
+#define O3_EQUAL_TO_O1					0
 #define O3_ZERO							1  //this makes the component Perturbation = 0
 #define O3_ONE							2
 #define O3_RANDOM						3

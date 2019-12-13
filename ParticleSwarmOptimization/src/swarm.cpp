@@ -153,19 +153,18 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 }
 
 void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations){
-	//Topology update
-	if(((iterations > 0) && (config->getEsteps() < swarm.size()-3) && (iterations%config->getTopologyUpdatePeriod() == 0)
-			&& config->getPopulationCS() == POP_CONSTANT) ||
-			((iterations > 0) && (config->getEsteps() < config->getFinalPopSize()-3) && (iterations%config->getTopologyUpdatePeriod() == 0)
-					&& config->getPopulationCS() != POP_CONSTANT)){
+	//Topology update: Following the progression n-2, n-3, ..., 2. (see esteps variable)
+	if ((iterations > 0) && (config->getEsteps() < swarm.size()-3) &&
+			(iterations%config->getTopologyUpdatePeriod() == 0) && config->getPopulationCS() == POP_CONSTANT){
 		unsigned int removals = 0;
-		//cout << " -- esteps " << config->getEsteps() << endl;
+		cout << " --esteps " << config->getEsteps() << " --tschedule " << config->getTopologySchedule();
+		cout << " --updatePeriod  " <<config->getTopologyUpdatePeriod() << endl;
 		//cout << " -- Update topology at iteration: " << iterations << " Target: " << swarm.size()-(2+config->getEsteps()) << endl;
 		RNG::shufflePermutation();
 		while(removals < swarm.size()-(2+config->getEsteps())){
 			for(unsigned int i=0;i<swarm.size();i++){
 				int particleIndex = RNG::getPermutationElement(i);
-				if( swarm.at(particleIndex)->getNeighborhoodSize() > 3 ){ //3 because a particle is a neighbor to itself
+				if (swarm.at(particleIndex)->getNeighborhoodSize() > 3 ){ //3 because a particle is a neighbor to itself
 					int neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
 
 					//cout << " -- Erasing edge " << particleIndex << " <---> " << neighborID << endl;
@@ -175,20 +174,47 @@ void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations
 
 					removals++;
 				}
-				if(removals == swarm.size()-(2+config->getEsteps()))
+				if (removals == swarm.size()-(2+config->getEsteps()))
 					break;
 			}
 		}
 		config->setEsteps(config->getEsteps()+1);
-		//cout << "Removals " << removals << endl;
+		cout << "Removals " << removals << endl;
 		//for(unsigned int i=0;i<swarm.size();i++)
 		//	cout << "particleIndex: " << i << " -- Neighbors: " << swarm.at(i)->getNeighborhoodSize() << endl;
+	}
+	//Topology update: Following the progression 2, 3, ..., n-2. (see esteps variable)
+	if ((iterations > 0) && (config->getEsteps() > 0 ) &&
+			//(config->getEsteps() < config->getFinalPopSize()-3)
+			(iterations%config->getTopologyUpdatePeriod() == 0) && config->getPopulationCS() != POP_CONSTANT) {
+		unsigned int removals = 0;
+		cout << " --esteps " << config->getEsteps() << " --tschedule " << config->getTopologySchedule();
+		cout << " --updatePeriod  " <<config->getTopologyUpdatePeriod() << endl;
+		//cout << " -- Update topology at iteration: " << iterations << " Target: " << swarm.size()-(2+config->getEsteps()) << endl;
+		RNG::shufflePermutation();
+		 //--esteps 95 --tschedule 400 --updatePeriod  4
+		//100-(2+97)
+		while(removals < config->getFinalPopSize()-(2+config->getEsteps())){
+			for(unsigned int i=0;i<swarm.size();i++){
+				int particleIndex = RNG::getPermutationElement(i);
+				if (swarm.at(particleIndex)->getNeighborhoodSize() > 3 ){ //3 because a particle is a neighbor to itself
+					int neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
+					swarm.at(particleIndex)->eraseNeighborbyID(neighborID);
+					swarm.at(neighborID)->eraseNeighborbyID(particleIndex);
+					removals++;
+				}
+				if (removals == config->getFinalPopSize()-(2+config->getEsteps()) )
+					break;
+			}
+		}
+		config->setEsteps(config->getEsteps()-1);
+		cout << "Removals " << removals << endl;
 	}
 }
 
 void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iteration){
 	int particleToAdd = 0;
-	long int previous_size = size;
+	long int previous_size = swarm.size();
 
 	switch (config->getPopulationCS()) {
 	case POP_CONSTANT:
@@ -199,9 +225,9 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 	case POP_INCREMENTAL:
 		particleToAdd = 1; //Here instead of 1 we could use a different value
 		//Add one particle per iteration
-		if (size+particleToAdd < config->getFinalPopSize()){
+		if (size+particleToAdd <= config->getFinalPopSize()){
 			addParticles(problem, config, particleToAdd);
-			updateTopologyConnections( config, previous_size, iteration);
+			updateTopologyConnections(config, previous_size, iteration);
 		}
 		else{
 			//See if we can add the difference
@@ -211,31 +237,46 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 				updateTopologyConnections( config, previous_size, iteration);
 			}
 		}
+		//cout << "\n So far, so good" << endl; //remove
 		break;
 	}
 }
 
 void Swarm::updateTopologyConnections(Configuration* config, long previous_size, long int iteration){
+	int a,b,c;
 	switch (config->getTopology() ) {
 	case TOP_FULLYCONNECTED:
 		for(unsigned int i=previous_size; i<swarm.size(); i++){
 			for(unsigned int j=0; j<swarm.size(); j++){
 				swarm.at(i)->addNeighbour(swarm.at(j));
+				swarm.at(j)->addNeighbour(swarm.at(i));
 			}
 		}
 		break;
 	case TOP_HIERARCHICAL:
+		for(unsigned int i=previous_size; i<swarm.size(); i++){
+			for(unsigned int j=0; j<swarm.size(); j++){
+				swarm.at(i)->addNeighbour(swarm.at(j));
+				swarm.at(j)->addNeighbour(swarm.at(i));
+			}
+		}
 		//addParticleToHierarchy(config->getBranchingDegree());	//To implement
 		break;
 	case TOP_RING:
-		int a,b;
+		//Remove previous connect between the first and the last particle
+		swarm.at(0)->eraseNeighborbyID(previous_size-1);
+		swarm.at(previous_size-1)->eraseNeighborbyID(0);
 		for(unsigned int i=previous_size; i<swarm.size(); i++){
 			a=i-1;
 			b=i+1;
 			if(i==0)
 				a=swarm.size()-1;
-			if(i==(swarm.size()-1))
+			if(i==(swarm.size()-1)){
 				b=0;
+				//Reconnect first particle with the last particle
+				swarm.at(0)->addNeighbour(swarm.at(i));
+				swarm.at(previous_size-1)->addNeighbour(swarm.at(previous_size));
+			}
 			swarm.at(i)->addNeighbour(swarm.at(a));
 			swarm.at(i)->addNeighbour(swarm.at(b));
 		}
@@ -260,66 +301,144 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 	}
 	break;
 	case TOP_TIMEVARYING:
-		RNG::deallocatePermutation();
 		RNG::initializePermutation(config->getSwarmSize());
-		if (iteration > config->getTopologySchedule()){ //After the topology update period is finished
-			int a,b;
-			for(unsigned int i=previous_size; i<swarm.size(); i++){
-				a=i-1;
-				b=i+1;
-				if(i==0)
-					a=swarm.size()-1;
-				if(i==(swarm.size()-1))
-					b=0;
-				swarm.at(i)->addNeighbour(swarm.at(a));
-				swarm.at(i)->addNeighbour(swarm.at(b));
-			}
-		}
-		else if (iteration <= (config->getTopologySchedule()/2)){ //Between the second half and the end
-			//We connect a particle randomly with half of the swarm and ensuring that the particle is
-			//connected to the adjacent neighbors
-			unsigned int a,b;
-			for(unsigned int i=previous_size; i<swarm.size(); i++){
-				//First ring
-				a=i-1;
-				b=i+1;
-				if(i==0)
-					a=swarm.size()-1;
-				if(i==(swarm.size()-1))
-					b=0;
-				swarm.at(i)->addNeighbour(swarm.at(a));
-				swarm.at(i)->addNeighbour(swarm.at(b));
-
-				//Later with random neighbors
-				for(unsigned int j=0; j<swarm.size(); j++){
-					unsigned int randomEdge = (unsigned int)floor(RNG::randVal(0.0,(double)swarm.size()));
-					if (randomEdge != a && randomEdge != b && randomEdge !=i){
-						swarm.at(i)->addNeighbour(swarm.at(randomEdge));
-						j++;
-					}
-				}
-			}
-
-		}
-		else { //Between 0 and the first half
+		cout << "\n\titeration: " << iteration << " tschedule: " << config->getTopologySchedule() << " previous_size " << previous_size << endl;
+		if (iteration < config->getTopologyUpdatePeriod()){ // FULLY_CONNECTED -- Between 0 and the first removal of edges
 			for(unsigned int i=previous_size; i<swarm.size(); i++){
 				for(unsigned int j=0; j<swarm.size(); j++){
 					swarm.at(i)->addNeighbour(swarm.at(j));
+					swarm.at(j)->addNeighbour(swarm.at(i));
 				}
+			}
+		}
+
+		else if (iteration >= config->getTopologyUpdatePeriod()){ //Between the second half and the end
+			//We connect a particle randomly with half of the swarm ensuring that the particle is connected to the adjacent neighbors (RING)
+			//Get average connections number of the swarm.
+			int averageConnections = 0;
+			for(unsigned int i=0; i<previous_size; i++){
+				averageConnections += swarm.at(i)->neighbours.size();
+			}
+			averageConnections = (int)floor((double)averageConnections/previous_size);
+
+			unsigned int a,b;
+			for(unsigned int i=previous_size; i<swarm.size(); i++){
+				//First connect the new particles in RING
+				a=i-1;
+				b=i+1;
+				if(i==0)
+					a=swarm.size()-1;
+				if(i==(swarm.size()-1))
+					b=0;
+				swarm.at(i)->addNeighbour(swarm.at(a));
+				swarm.at(a)->addNeighbour(swarm.at(i));
+				swarm.at(i)->addNeighbour(swarm.at(b));
+				swarm.at(b)->addNeighbour(swarm.at(i));
+
+				//After connect the new particles with #averageConnections random neighbors
+				for(int j=0; j<averageConnections; j++){
+					unsigned int randomEdge = (unsigned int)floor(RNG::randVal(0.0,(double)swarm.size()));
+					if (randomEdge != a && randomEdge != b && randomEdge !=i){
+						swarm.at(i)->addNeighbour(swarm.at(randomEdge));
+						swarm.at(randomEdge)->addNeighbour(swarm.at(i));
+					}
+				}
+			}
+		}
+		else { //RING -- After the topology update period is finished
+			//Remove previous connect between the first and the last particle
+			swarm.at(0)->eraseNeighborbyID(previous_size-1);
+			swarm.at(previous_size-1)->eraseNeighborbyID(0);
+			for(unsigned int i=previous_size; i<swarm.size(); i++){
+				a=i-1;
+				b=i+1;
+				if(i==0)
+					a=swarm.size()-1;
+				if(i==(swarm.size()-1)){
+					b=0;
+					//Reconnect first particle with the last particle
+					swarm.at(0)->addNeighbour(swarm.at(i));
+					swarm.at(previous_size-1)->addNeighbour(swarm.at(previous_size));
+				}
+				swarm.at(i)->addNeighbour(swarm.at(a));
+				swarm.at(i)->addNeighbour(swarm.at(b));
 			}
 		}
 		break;
 	case TOP_VONNEUMANN:
-		swarm.at(size-1)->addNeighbour(swarm.at(size-2));
-		swarm.at(size-1)->addNeighbour(swarm.at(size-3));
-		swarm.at(size-1)->addNeighbour(swarm.at(0));
+		//If the swarm is bigger than 5 we can simply reconnect the first two particle according to the new size.
+		//The last one will be reconnected using the second for loop
+		if (swarm.size() >= 5){
+			//Reconnect two first and the last particle
+			for(unsigned int i=0; i<2; i++){
+				swarm.at(i)->neighbours.clear();
+				c=i+1;
+				if(i==0){
+					a=swarm.size()-1;
+					b=a-1;
+				}
+				if (i==1){
+					a=swarm.size()-1;
+					b=0;
+				}
+
+				swarm.at(i)->addNeighbour(swarm.at(a));
+				swarm.at(i)->addNeighbour(swarm.at(b));
+				swarm.at(i)->addNeighbour(swarm.at(c));
+
+			}
+			swarm.at(previous_size)->neighbours.clear();
+			//Connect the new particles added and the former last one in the previous iteration
+			for(unsigned int i=previous_size; i<swarm.size(); i++){
+				a=i-1;
+				b=a-1;
+				c=i+1;
+				if(i==0){
+					a=swarm.size()-1;
+					b=a-1;
+				}
+				if (i==1){
+					a=swarm.size()-1;
+					b=0;
+				}
+				if(i==(swarm.size()-1))
+					c=0;
+
+				swarm.at(i)->addNeighbour(swarm.at(a));
+				swarm.at(i)->addNeighbour(swarm.at(b));
+				swarm.at(i)->addNeighbour(swarm.at(c));
+			}
+		}
+		else {
+			//Reconnect the whole swarm
+			for(unsigned int i=0; i<swarm.size(); i++){
+				swarm.at(i)->neighbours.clear();
+				a=i-1;
+				b=a-1;
+				c=i+1;
+				if(i==0){
+					a=swarm.size()-1;
+					b=a-1;
+				}
+				if (i==1){
+					a=swarm.size()-1;
+					b=0;
+				}
+				if(i==(swarm.size()-1))
+					c=0;
+
+				swarm.at(i)->addNeighbour(swarm.at(a));
+				swarm.at(i)->addNeighbour(swarm.at(b));
+				swarm.at(i)->addNeighbour(swarm.at(c));
+			}
+		}
 		break;
 	}
 }
 
 
 void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParticles){
-	if (size < config->getFinalPopSize()){
+	if ((long)swarm.size() <= config->getFinalPopSize()){
 		//Add particles to the swarm
 		for (long int i=size; i<size+numOfParticles; i++){
 			Particle* aParticle = new Particle(problem, config, i);
@@ -328,9 +447,10 @@ void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParti
 				updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
 				best_particle = swarm.at(i);
 			}
+			//cout << "\n So far, so good" << endl; //remove
 		}
 		//Update variable size
-		config->setSwarmSize(size+numOfParticles); //long int particles
+		config->setSwarmSize(swarm.size()); //long int particles
 	}
 }
 
@@ -376,18 +496,18 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		cout << "\tParticle [" << i << "] -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
 		int sizeInformants = getInformants(config, i, iteration); //Get the informants of i
 
-		//print all neighbors
-		cout << "\tNeighbors ids:  [ ";
-		for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
-			cout << swarm.at(i)->neighbours[j]->getID() << " ";
-		}
-		cout << "]" << endl;
-		//print all neighbors
-		cout << "\tInformants pos: [ ";
-		for (int j=0;j<sizeInformants;j++){
-			cout << Informants[j] << " ";
-		}
-		cout << "]" << endl;
+//		//print all neighbors
+//		cout << "\tNeighbors ids:  [ ";
+//		for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
+//			cout << swarm.at(i)->neighbours[j]->getID() << " ";
+//		}
+//		cout << "]" << endl;
+//		//print all neighbors
+//		cout << "\tInformants pos: [ ";
+//		for (int j=0;j<sizeInformants;j++){
+//			cout << Informants[j] << " ";
+//		}
+//		cout << "]" << endl;
 
 		//If using a self-adaptive strategy compute omega1, otherwise this function simply returns the value already computed
 		double omega1 = computeOmega1(config, iteration, i, false);
@@ -1105,7 +1225,7 @@ void Swarm::rankParticles(SimplifySwarm* sS){
 
 double Swarm::computeOmega2(Configuration* config){
 	switch(config->getOmega2CS()){
-	case O2_EQUALS_IW:
+	case O2_EQUAL_TO_O1:
 		return config->getOmega1();
 	case O2_RANDOM:
 		return 0.5 * (problem->getRandom01()/2.0);
@@ -1118,7 +1238,7 @@ double Swarm::computeOmega2(Configuration* config){
 
 double Swarm::computeOmega3(Configuration* config){
 	//Same as Omega1
-	if (config->getOmega3CS() == O3_EQUALS_IW)
+	if (config->getOmega3CS() == O3_EQUAL_TO_O1)
 		return config->getOmega1();
 	//Random value
 	else if (config->getOmega3CS() == O3_RANDOM)

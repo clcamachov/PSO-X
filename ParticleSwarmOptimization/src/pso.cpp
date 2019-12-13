@@ -596,15 +596,14 @@ int main(int argc, char *argv[] ){
 		swarm->moveSwarm(config, iterations, config->getMinInitBound(),config->getMaxInitBound());
 		evaluations=evaluations + config->getSwarmSize();
 
-		swarm->resizeSwarm(problem, config, iterations);
-
-		//Update topology
-		if (config->getTopology() == TOP_TIMEVARYING) {
+		//Update dynamic topology
+		if (config->getTopology() == TOP_TIMEVARYING)
 			swarm->updateTimeVaryingTopology(config, iterations) ;
-		}
-		if (config->getTopology() == TOP_HIERARCHICAL){
+		if (config->getTopology() == TOP_HIERARCHICAL)
 			swarm->updateTree(config->getBranchingDegree());
-		}
+
+		//Update dynamic population size
+		swarm->resizeSwarm(problem, config, iterations);
 
 	}
 

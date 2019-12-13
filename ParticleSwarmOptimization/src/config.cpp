@@ -231,9 +231,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		tSchedule = 1;
 	if (populationCS == POP_CONSTANT)
 		tSchedule = particles*tSchedule;
-	else
+	else {
 		tSchedule = (int)floor((double)finalPopSize*tSchedule);
-
+		esteps = finalPopSize-3;
+	}
 
 	if (branching < 2)
 		branching = 2;
@@ -386,8 +387,8 @@ void Configuration::setDefaultParameters(){
 	finalIW = 0.4;							//final inertia value
 	iwSchedule = 2*pow(particles,2);		//inertia weight schedule
 	useVelClamping = true;					//clamp velocity (step size)
-	omega2CS = O2_EQUALS_IW;				//omega2 control strategy (see GVU formula)
-	omega3CS = O3_EQUALS_IW;				//omega3 control strategy (see GVU formula)
+	omega2CS = O2_EQUAL_TO_O1;				//omega2 control strategy (see GVU formula)
+	omega3CS = O3_EQUAL_TO_O1;				//omega3 control strategy (see GVU formula)
 
 	/** Perturbation **/
 	perturbation1 = PERT1_NONE;				//distribution-based perturbation
@@ -526,14 +527,14 @@ void Configuration::printParameters(){
 	}
 	//<< "  omega2CS          " << getomega2CS() << "\n"
 	switch (getOmega2CS()){
-	case O2_EQUALS_IW: 	cout	<< "  omega2:            EQUALS_IW\n"; break;
+	case O2_EQUAL_TO_O1: 	cout	<< "  omega2:            EQUALS_IW\n"; break;
 	case O2_ZERO: 		cout	<< "  omega2:            ZERO\n"; break;
 	case O2_ONE: 		cout	<< "  omega2:            ONE\n"; break;
 	case O2_RANDOM: 	cout	<< "  omega2:            RANDOM\n"; break;
 	}
 	//<< "  omega3CS          " << getomega3CS() << "\n"
 	switch (getOmega3CS()){
-	case O3_EQUALS_IW: 	cout	<< "  omega3:            EQUALS_IW\n"; break;
+	case O3_EQUAL_TO_O1: 	cout	<< "  omega3:            EQUALS_IW\n"; break;
 	case O3_ZERO:		cout	<< "  omega3:            ZERO\n"; break;
 	case O3_ONE:		cout	<< "  omega3:            ONE\n"; break;
 	case O3_RANDOM:		cout	<< "  omega3:            RANDOM\n"; break;
@@ -751,11 +752,11 @@ double Configuration::getFinalPhi2(){
 void Configuration::setEsteps(unsigned int num_esteps){
 	esteps = num_esteps;
 }
-void Configuration::setTopologyUpdatePeriod(int period){
-	topologyUpdatePeriod = period;
-}
 unsigned int Configuration::getEsteps(){
 	return esteps;
+}
+void Configuration::setTopologyUpdatePeriod(int period){
+	topologyUpdatePeriod = period;
 }
 int Configuration::getTopologyUpdatePeriod(){
 	return topologyUpdatePeriod;

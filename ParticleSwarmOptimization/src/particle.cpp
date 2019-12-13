@@ -332,11 +332,11 @@ double ** Particle::computeSubtractionPerturbationRotation(int DNNP, double ** v
 	double l[size]; //particle's Gbest
 	bool increase_numInformants = false;
 
-	cout << "\tParticleID [" << this->id << "] -- pBest is in theInformants [" << pBestIntheInformants << "]" << endl; //remove
+//	cout << "\tParticleID [" << this->id << "] -- pBest is in theInformants [" << pBestIntheInformants << "]" << endl; //remove
 
 	//1.- Check if the particle is pBest == gBest
 	if (this->id == this->gBestID && pBestIntheInformants){
-		cout << "\t\t ... using reinitialization to model (new position is somewhere around gBest)--" << endl;
+//		cout << "\t\t ... using reinitialization to model (new position is somewhere around gBest)--" << endl;
 		for (int i=0; i<size; i++)
 			l[i] = problem->getRandomX() + problem->getRandom01()*(gbest.x[i]-current.x[i]);
 	}
@@ -514,7 +514,7 @@ void Particle::getAdditiveStochasticDNPP(double * vect_distribution, int numInfo
 	else
 		p2Index = 0;
 
-	cout << "\tSimply dynamic PSO, p1 : [" << p1Index << "]" << "\t p2 : [" << p2Index << "]" <<endl;
+//	cout << "\tSimply dynamic PSO, p1 : [" << p1Index << "]" << "\t p2 : [" << p2Index << "]" <<endl;
 
 	switch (operatorQ) {
 	case Q_STANDARD:
@@ -563,7 +563,7 @@ void Particle::getRectangularDNPP(double * vect_distribution, int numInformants,
 	double varPhi2 = phi_2;
 	//Compute vect_distribution
 	for (int i=0; i<size; i++){
-		if (i==0) cout << "\tPhi2 values: [ ";
+//		if (i==0) cout << "\tPhi2 values: [ ";
 		for (int j=0; j<numInformants; j++){
 			if (pBestIntheInformants && (this->id != this->gBestID)) { //we look for pBest in the Array
 				if (this->id == neighbours.at(theInformants[j])->getID())
@@ -574,7 +574,7 @@ void Particle::getRectangularDNPP(double * vect_distribution, int numInformants,
 					if (j>0 && modelOfInflu == MOI_RANKED_FI)
 						varPhi2 = varPhi2/2.0;
 					vect_distribution[i] += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_1
-					if (i==0) cout << varPhi2 << " ";
+//					if (i==0) cout << varPhi2 << " ";
 				}
 			}
 			else{
@@ -586,12 +586,12 @@ void Particle::getRectangularDNPP(double * vect_distribution, int numInformants,
 					if (j>0 && modelOfInflu == MOI_RANKED_FI)
 						varPhi2 = varPhi2/2.0;
 					vect_distribution[i] += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_1
-					if (i==0) cout << varPhi2 << " ";
+//					if (i==0) cout << varPhi2 << " ";
 				}
 			}
 		}
 		varPhi2 = phi_2;
-		if (i==0) cout << "]" << endl;
+//		if (i==0) cout << "]" << endl;
 	}
 }
 
@@ -608,7 +608,7 @@ void Particle::getSphericalDNPP(double * vect_distribution, int numInformants, i
 	//Compute G (center of the sphere) and V1 (radius of each dimension)
 	double varPhi2 = phi_2;
 	for (int i=0; i<size; i++){
-		if (i==0) cout << "\tPhi2 values: [ ";
+//		if (i==0) cout << "\tPhi2 values: [ ";
 		//		if (i==1) cout << "\tPhi2 values: [ ";
 		double R = 0.0;
 		for (int j=0; j<numInformants; j++){
@@ -621,7 +621,7 @@ void Particle::getSphericalDNPP(double * vect_distribution, int numInformants, i
 					if (j>0 && modelOfInflu == MOI_RANKED_FI)
 						varPhi2 = varPhi2/2.0;
 					R += current.x[i] + (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
-					if (i==0) cout << varPhi2 << " ";
+//					if (i==0) cout << varPhi2 << " ";
 					//					if (i==1) cout << varPhi2 << " ";
 				}
 			}
@@ -634,7 +634,7 @@ void Particle::getSphericalDNPP(double * vect_distribution, int numInformants, i
 					if (j>0 && modelOfInflu == MOI_RANKED_FI)
 						varPhi2 = varPhi2/2.0;
 					R += current.x[i] + (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
-					if (i==0) cout << varPhi2 << " ";
+//					if (i==0) cout << varPhi2 << " ";
 					//					if (i==1) cout << varPhi2 << " ";
 				}
 			}
@@ -643,7 +643,7 @@ void Particle::getSphericalDNPP(double * vect_distribution, int numInformants, i
 		radius += pow(abs(current.x[i] - G[i]), 2);
 		V1[i] = G[i] - current.x[i];
 		varPhi2 = phi_2;
-		if (i==0) cout << "]" << endl;
+//		if (i==0) cout << "]" << endl;
 		//		if (i==1) cout << "]" << endl;
 	}
 	radius = sqrt(radius); //this is the actual radius of the hyper-sphere
