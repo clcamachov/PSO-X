@@ -50,7 +50,6 @@ double alpha_t = 1.0;						//side length of the rectangle for the success-rate p
 double delta = 1.0;							//side length of the rectangle for the uniform random perturbation
 double l = 0.01;							//scaling factor for the perturbation
 
-
 bool sortcol(const vector<int>& v1, const vector<int>& v2) {
 	return v1[1] < v2[1];
 }
@@ -122,7 +121,8 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 		createFullyConnectedTopology();
 	} else if (config->getTopology() == TOP_HIERARCHICAL) {
 		hierarchical = true;
-		createHierarchical(config->getBranchingDegree());
+		(config->getPopulationCS() == 0) ? createHierarchical(config->getBranchingDegree(), size) :
+				createHierarchical(config->getBranchingDegree(), config->getFinalPopSize());
 	} else if (config->getTopology() == TOP_RING) {
 		createRingTopology();
 	} else if (config->getTopology() == TOP_WHEEL) {
@@ -192,7 +192,7 @@ void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations
 		cout << " --updatePeriod  " <<config->getTopologyUpdatePeriod() << endl;
 		//cout << " -- Update topology at iteration: " << iterations << " Target: " << swarm.size()-(2+config->getEsteps()) << endl;
 		RNG::shufflePermutation();
-		 //--esteps 95 --tschedule 400 --updatePeriod  4
+		//--esteps 95 --tschedule 400 --updatePeriod  4
 		//100-(2+97)
 		while(removals < config->getFinalPopSize()-(2+config->getEsteps())){
 			for(unsigned int i=0;i<swarm.size();i++){
@@ -225,13 +225,13 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 	case POP_INCREMENTAL:
 		particleToAdd = 1; //Here instead of 1 we could use a different value
 		//Add one particle per iteration
-		if (size+particleToAdd <= config->getFinalPopSize()){
+		if (previous_size+particleToAdd <= config->getFinalPopSize()){
 			addParticles(problem, config, particleToAdd);
 			updateTopologyConnections(config, previous_size, iteration);
 		}
 		else{
 			//See if we can add the difference
-			particleToAdd = config->getFinalPopSize()-size;
+			particleToAdd = config->getFinalPopSize()-previous_size;
 			if ( particleToAdd > 0){
 				addParticles(problem, config, particleToAdd);
 				updateTopologyConnections( config, previous_size, iteration);
@@ -249,7 +249,8 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 		for(unsigned int i=previous_size; i<swarm.size(); i++){
 			for(unsigned int j=0; j<swarm.size(); j++){
 				swarm.at(i)->addNeighbour(swarm.at(j));
-				swarm.at(j)->addNeighbour(swarm.at(i));
+				if (j<previous_size)
+					swarm.at(j)->addNeighbour(swarm.at(i));
 			}
 		}
 		break;
@@ -257,28 +258,38 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 		for(unsigned int i=previous_size; i<swarm.size(); i++){
 			for(unsigned int j=0; j<swarm.size(); j++){
 				swarm.at(i)->addNeighbour(swarm.at(j));
-				swarm.at(j)->addNeighbour(swarm.at(i));
+				if (j<previous_size)
+					swarm.at(j)->addNeighbour(swarm.at(i));
 			}
 		}
-		//addParticleToHierarchy(config->getBranchingDegree());	//To implement
+		updateHierarchical(config->getBranchingDegree(),previous_size);
+		cout << "\n So far, so good" << endl; //remove
 		break;
 	case TOP_RING:
-		//Remove previous connect between the first and the last particle
-		swarm.at(0)->eraseNeighborbyID(previous_size-1);
-		swarm.at(previous_size-1)->eraseNeighborbyID(0);
-		for(unsigned int i=previous_size; i<swarm.size(); i++){
-			a=i-1;
-			b=i+1;
-			if(i==0)
-				a=swarm.size()-1;
-			if(i==(swarm.size()-1)){
-				b=0;
-				//Reconnect first particle with the last particle
-				swarm.at(0)->addNeighbour(swarm.at(i));
-				swarm.at(previous_size-1)->addNeighbour(swarm.at(previous_size));
+		if (swarm.size() > 3){
+			//Remove previous connect between the first and the last particle
+			swarm.at(0)->eraseNeighborbyID(previous_size-1);
+			swarm.at(previous_size-1)->eraseNeighborbyID(0);
+			for(unsigned int i=previous_size; i<swarm.size(); i++){
+				a=i-1;
+				b=i+1;
+				if(i==0)
+					a=swarm.size()-1;
+				if(i==(swarm.size()-1)){
+					b=0;
+					//Reconnect first particle with the last particle
+					swarm.at(0)->addNeighbour(swarm.at(i));
+					swarm.at(previous_size-1)->addNeighbour(swarm.at(previous_size));
+				}
+				swarm.at(i)->addNeighbour(swarm.at(a));
+				swarm.at(i)->addNeighbour(swarm.at(b));
 			}
-			swarm.at(i)->addNeighbour(swarm.at(a));
-			swarm.at(i)->addNeighbour(swarm.at(b));
+		}
+		else {
+			//Reconnect the whole swarm
+			for(unsigned int i=0; i<swarm.size(); i++)
+				swarm.at(i)->neighbours.clear();
+			createRingTopology();
 		}
 		break;
 	case TOP_WHEEL:
@@ -368,6 +379,7 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 	case TOP_VONNEUMANN:
 		//If the swarm is bigger than 5 we can simply reconnect the first two particle according to the new size.
 		//The last one will be reconnected using the second for loop
+		//cout << "\n swarm.size(): "  << swarm.size() << endl;
 		if (swarm.size() >= 5){
 			//Reconnect two first and the last particle
 			for(unsigned int i=0; i<2; i++){
@@ -385,10 +397,11 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 				swarm.at(i)->addNeighbour(swarm.at(a));
 				swarm.at(i)->addNeighbour(swarm.at(b));
 				swarm.at(i)->addNeighbour(swarm.at(c));
-
+				//cout << "\n So far, so good" << endl; //remove
+				//cout << "Reconnect first two particles" << endl; //remove
 			}
-			swarm.at(previous_size)->neighbours.clear();
 			//Connect the new particles added and the former last one in the previous iteration
+			swarm.at(previous_size)->neighbours.clear();
 			for(unsigned int i=previous_size; i<swarm.size(); i++){
 				a=i-1;
 				b=a-1;
@@ -407,30 +420,14 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 				swarm.at(i)->addNeighbour(swarm.at(a));
 				swarm.at(i)->addNeighbour(swarm.at(b));
 				swarm.at(i)->addNeighbour(swarm.at(c));
+				//cout << "Reconnect last particle" << endl; //remove
 			}
 		}
 		else {
 			//Reconnect the whole swarm
-			for(unsigned int i=0; i<swarm.size(); i++){
+			for(unsigned int i=0; i<swarm.size(); i++)
 				swarm.at(i)->neighbours.clear();
-				a=i-1;
-				b=a-1;
-				c=i+1;
-				if(i==0){
-					a=swarm.size()-1;
-					b=a-1;
-				}
-				if (i==1){
-					a=swarm.size()-1;
-					b=0;
-				}
-				if(i==(swarm.size()-1))
-					c=0;
-
-				swarm.at(i)->addNeighbour(swarm.at(a));
-				swarm.at(i)->addNeighbour(swarm.at(b));
-				swarm.at(i)->addNeighbour(swarm.at(c));
-			}
+			createVonNeumannTopology();
 		}
 		break;
 	}
@@ -440,7 +437,8 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParticles){
 	if ((long)swarm.size() <= config->getFinalPopSize()){
 		//Add particles to the swarm
-		for (long int i=size; i<size+numOfParticles; i++){
+		int current_size = swarm.size();
+		for (long int i=current_size; i<current_size+numOfParticles; i++){
 			Particle* aParticle = new Particle(problem, config, i);
 			swarm.push_back(aParticle);
 			if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
@@ -496,18 +494,18 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		cout << "\tParticle [" << i << "] -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
 		int sizeInformants = getInformants(config, i, iteration); //Get the informants of i
 
-//		//print all neighbors
-//		cout << "\tNeighbors ids:  [ ";
-//		for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
-//			cout << swarm.at(i)->neighbours[j]->getID() << " ";
-//		}
-//		cout << "]" << endl;
-//		//print all neighbors
-//		cout << "\tInformants pos: [ ";
-//		for (int j=0;j<sizeInformants;j++){
-//			cout << Informants[j] << " ";
-//		}
-//		cout << "]" << endl;
+		//print all neighbors
+		cout << "\tNeighbors ids:  [ ";
+		for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
+			cout << swarm.at(i)->neighbours[j]->getID() << " ";
+		}
+		cout << "]" << endl;
+		//print all neighbors
+		cout << "\tInformants pos: [ ";
+		for (int j=0;j<sizeInformants;j++){
+			cout << Informants[j] << " ";
+		}
+		cout << "]" << endl;
 
 		//If using a self-adaptive strategy compute omega1, otherwise this function simply returns the value already computed
 		double omega1 = computeOmega1(config, iteration, i, false);
@@ -543,7 +541,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 	if (particleID != -1){
 		//Best of neighborhood
 		if (config->getModelOfInfluence() == MOI_BEST_OF_N){
-			if (config->getTopology() == TOP_HIERARCHICAL ){
+			if (config->getTopology() == TOP_HIERARCHICAL){
 				int Array_size = 0;		//variable to the the size of Informants
 				int * TMP_Array;
 				TMP_Array = new int[lastLevelComplete];
@@ -563,7 +561,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 					Informants = new int[Array_size];
 				}
 
-				//We need to find the position index of the IDs in TMP_Array in the particles neighbours vector
+				//We need to find the position index of the IDs in TMP_Array in the particles neighbors vector
 				bool exitFlag;
 				for (unsigned int i=0; i<swarm.at(particleID)->neighbours.size(); i++){
 					for (int j=0; j<Array_size; j++)
@@ -575,7 +573,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 					if (exitFlag)
 						break;
 				}
-				cout << "Size of Informants of " << particleID << " is " << 1 << endl;
+				cout << "Size of Informants of " << particleID << " is " << 1 ;
 				return 1;
 			}
 			else {
@@ -586,14 +584,13 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 					Informants = new int [1];
 				}
 				int bestID = swarm.at(particleID)->getgBestID();
-				//We need to find the position index of the IDs in TMP_Array in the particles neighbours vector
+				//We need to find the position index of the IDs in TMP_Array in the particles neighbors vector
 				for (unsigned int i=0; i<swarm.at(particleID)->neighbours.size(); i++){
 					if (swarm.at(particleID)->neighbours.at(i)->getID() == bestID)
 						Informants[0] = i;
 				}
-				cout << "Size of Informants: " << 1 << endl;
+				cout << "Size of Informants: " << 1;
 				return 1;
-
 			}
 		}
 		//Fully informed
@@ -625,7 +622,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				}
 				//delete [] TMP_Array;
 				//swarm.at(particleID)->getBestOfNeibourhood(); //update particle's gbest
-				cout << "Size of Informants of " << particleID << " is " << Array_size << endl;
+				cout << "Size of Informants of " << particleID << " is " << Array_size ;
 				return Array_size;
 			}
 			else {
@@ -639,7 +636,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
 					Informants[i] = i; //we use the indexes of neighbours
 				}
-				cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
+				cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() ;
 				return swarm.at(particleID)->neighbours.size();
 			}
 		}
@@ -673,7 +670,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 			}
 			TMP_vect.clear();
 
-			cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() << endl;
+			cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() ;
 			return swarm.at(particleID)->neighbours.size();
 		}
 		else {
@@ -788,17 +785,27 @@ void Swarm::createFullyConnectedTopology(){       //All particles are neighbor a
 }
 
 void Swarm::createRingTopology(){       //Every particle is neighbor of the adjacent particles
-	int a,b;
-	for(unsigned int i=0;i<swarm.size();i++){
-		a=i-1;
-		b=i+1;
-		if(i==0)
-			a=swarm.size()-1;
-		if(i==(swarm.size()-1))
-			b=0;
+	if (swarm.size() > 2){
+		int a,b;
+		for(unsigned int i=0;i<swarm.size();i++){
+			a=i-1;
+			b=i+1;
+			if(i==0)
+				a=swarm.size()-1;
+			if(i==(swarm.size()-1))
+				b=0;
 
-		swarm.at(i)->addNeighbour(swarm.at(a));
-		swarm.at(i)->addNeighbour(swarm.at(b));
+			swarm.at(i)->addNeighbour(swarm.at(a));
+			swarm.at(i)->addNeighbour(swarm.at(b));
+		}
+	}
+	else {
+		for(unsigned int i=0;i<swarm.size();i++){
+			for(unsigned int j=0;j<swarm.size();j++){
+				if (i != j)
+					swarm.at(i)->addNeighbour(swarm.at(j));
+			}
+		}
 	}
 }
 
@@ -823,33 +830,46 @@ void Swarm::createRandomEdge(){			//Or random edge topology
 }
 
 void Swarm::createVonNeumannTopology(){
-	int a,b,c;
-	for(unsigned int i=0;i<swarm.size();i++){
-		a=i-1;
-		b=a-1;
-		c=i+1;
-		if(i==0){
-			a=swarm.size()-1;
+	if (swarm.size() > 3){
+		int a,b,c;
+		for(unsigned int i=0;i<swarm.size();i++){
+			a=i-1;
 			b=a-1;
-		}
-		if (i==1){
-			a=swarm.size()-1;
-			b=0;
-		}
-		if(i==(swarm.size()-1))
-			c=0;
+			c=i+1;
+			if(i==0){
+				a=swarm.size()-1;
+				b=a-1;
+			}
+			if (i==1){
+				a=swarm.size()-1;
+				b=0;
+			}
+			if(i==(swarm.size()-1))
+				c=0;
 
-		swarm.at(i)->addNeighbour(swarm.at(a));
-		swarm.at(i)->addNeighbour(swarm.at(b));
-		swarm.at(i)->addNeighbour(swarm.at(c));
+			swarm.at(i)->addNeighbour(swarm.at(a));
+			swarm.at(i)->addNeighbour(swarm.at(b));
+			swarm.at(i)->addNeighbour(swarm.at(c));
+		}
+	}
+	else {
+		for(unsigned int i=0;i<swarm.size();i++){
+			for(unsigned int j=0;j<swarm.size();j++){
+				if (i != j)
+					swarm.at(i)->addNeighbour(swarm.at(j));
+			}
+		}
 	}
 }
 
-void Swarm::createHierarchical(int branching){
+void Swarm::createHierarchical(int branching, int finalPopSize){
 	//cout  << "\nCreating hierarchical topology..." << endl;
 	//The topology is fully-connected, but we use a hierarchy as a model of influence
 	long int firstPart = 1;		//id of the last particle that can be added in a complete level without exceeding size
 	int actualSpace=1;			//actual number of nodes than can be stored in a given level. This depends on the swarm size and the branching degree
+	int maxWidth = 0;
+	int temp_LastLevelComplete = 0;
+	long int temp_firstPart = 1;
 
 	//Find last level that can be filled in the tree with max width and the id of the last particle
 	while (size - pow(branching,lastLevelComplete) >= pow(branching,lastLevelComplete+1)) {
@@ -868,8 +888,25 @@ void Swarm::createHierarchical(int branching){
 		actualSpace+=pow(branching,i);
 	if (firstPart > actualSpace)
 		firstPart = actualSpace;
-	int maxWidth = pow(branching,lastLevelComplete+1);
-
+	//Constant population size
+	if (finalPopSize == size){
+		maxWidth = pow(branching,lastLevelComplete+1);
+		temp_LastLevelComplete = lastLevelComplete;
+		temp_firstPart = firstPart;
+	}
+	//Dynamic population size
+	else {
+		//recompute everything to get the maxWidth, which is used to allocate memory
+		while (finalPopSize - pow(branching,temp_LastLevelComplete) >= pow(branching,temp_LastLevelComplete+1)){
+			temp_LastLevelComplete++;
+			temp_firstPart+=pow(branching,temp_LastLevelComplete);
+		}
+		while (temp_firstPart > finalPopSize){
+			temp_LastLevelComplete--;
+			temp_firstPart-=pow(branching,temp_LastLevelComplete);
+		}
+		maxWidth = pow(branching,temp_LastLevelComplete+1);
+	}
 	//cout << "Last level complete: \t" << lastLevelComplete << endl;
 	//cout << "Actual space: \t\t" << actualSpace << endl;
 	//cout << "First part: \t\t" << firstPart << endl;
@@ -884,11 +921,13 @@ void Swarm::createHierarchical(int branching){
 	}
 
 	//Initialize tree structure
-	hierarchy = new int*[lastLevelComplete+1];	//these are the level (depth of the tree)
-	for (int i=0; i<=lastLevelComplete+1; i++)
+	//Note that even when the population is dynamic, hierarchy already has the right size to allocate all
+	//the population size
+	hierarchy = new int*[temp_LastLevelComplete+1];	//these are the level (depth of the tree)
+	for (int i=0; i<=temp_LastLevelComplete+1; i++)
 		hierarchy[i] = new int[maxWidth];		//these are the nodes in a level (max width of the tree)
 
-	for (int i=0; i<=lastLevelComplete+1; i++){
+	for (int i=0; i<=temp_LastLevelComplete+1; i++){
 		for (int j=0; j<maxWidth; j++)
 			hierarchy[i][j] = -2;				//-2 indicates that the position is not in use
 	}
@@ -944,6 +983,102 @@ void Swarm::createHierarchical(int branching){
 	//updateTree(branching);
 	//printTree(branching);
 	//printAllParentNodes();
+}
+
+void Swarm::updateHierarchical(int branching, long previous_size){
+	int childsInLastLevel = 0;
+	int nodesToAdd = swarm.size()-previous_size;
+
+	printTree(branching);
+
+	cout << "\n New " << nodesToAdd << " particles will be added... " << endl; //remove
+
+	//Get the number of particles in the last level complete
+	for (int i=0; i<pow(branching,lastLevelComplete+1); i++){
+		if (hierarchy[lastLevelComplete+1][i] != -2) {
+			childsInLastLevel++;
+		}
+	}
+	cout << "\n" << childsInLastLevel << " particles in lastLevelComplete" << endl; //remove
+	//If the new set of particles to be added fits in lastLevelComplete
+	if (pow(branching,lastLevelComplete+1)-childsInLastLevel >= nodesToAdd){
+		addParticlesInLastLevel(previous_size, swarm.size(), branching);
+		if (nodesToAdd+childsInLastLevel == pow(branching,lastLevelComplete+1)-1)
+			lastLevelComplete++;
+	}
+	//If the number of particles to add is larger that the space in lastLevelComplete
+	else {
+		//Add the first part of the particles that fit in the last level
+		long firstPart = (pow(branching,lastLevelComplete+1)-childsInLastLevel);
+		addParticlesInLastLevel(previous_size, previous_size+firstPart, branching);
+		lastLevelComplete++;
+
+		//Compute the number of nodes that still need to be added
+		nodesToAdd = nodesToAdd-firstPart;
+		int newLastLevel = lastLevelComplete;
+
+		//Find last level that can be filled in the tree with max width and the id of the last particle
+		while (nodesToAdd - pow(branching,newLastLevel) >= pow(branching,newLastLevel+1)) {
+			newLastLevel++;
+		}
+
+		//first and last are the ids of the particles that are going to be added in the level
+		long first = previous_size+firstPart, last = 0;
+		if (nodesToAdd < pow(branching,lastLevelComplete+1))
+			last = first+nodesToAdd;
+		else
+			last = first+pow(branching,lastLevelComplete+1);
+
+
+		for (int j=lastLevelComplete; j<=newLastLevel; j++){
+			addParticlesInLastLevel(first, last, branching);
+			if (j+1 <=newLastLevel){
+				lastLevelComplete++;
+				nodesToAdd = nodesToAdd-(last-first);
+				first = last;
+				if (nodesToAdd < pow(branching,lastLevelComplete+1))
+					last = first + nodesToAdd;
+				else
+					last = first+pow(branching,lastLevelComplete+1);
+			}
+		}
+		lastLevelComplete = newLastLevel;
+	}
+	//updateTree(branching);
+	//printTree(branching);
+	//printAllParentNodes();
+}
+
+void Swarm::addParticlesInLastLevel(int first, int last, int branching){ //first = previous_size, last =
+	//tree variables
+	int width = 0;
+	int nodesCounter=0;
+	int iterCount = 0;
+	int parent = hierarchy[lastLevelComplete][nodesCounter];
+	bool particleAdded = false;
+	//Now we add one node at a time to each node in the last level complete
+	for (int i=first; i<last; ++i){	//particles to add
+		for (int j=0; j<pow(branching,lastLevelComplete+1); j++){ //maxWidth of the level
+			if (hierarchy[lastLevelComplete+1][width+(nodesCounter*(branching-1))+iterCount] == -2){ //look for free positions
+				hierarchy[lastLevelComplete+1][width+(nodesCounter*(branching-1))+iterCount] = swarm.at(i)->getID();
+				swarm.at(i)->setParent(parent);
+				particleAdded = true;
+			}
+			width++;		//last level degree
+			nodesCounter++; //we add one node to each parent node to have a fair distribution
+			parent = hierarchy[lastLevelComplete][nodesCounter];
+			if (width == pow(branching,lastLevelComplete)){
+				width=0;
+				nodesCounter=0;
+				iterCount++;
+				parent = hierarchy[lastLevelComplete][nodesCounter];
+			}
+			if (particleAdded){
+				break;
+				particleAdded = false;
+			}
+		}
+	}
 }
 
 void Swarm::getParticleParentsIDs(int particleID, int *ParentsArray1D){
@@ -1148,7 +1283,7 @@ void Swarm::printTree(int branching) {
 	int iterCount = 0;
 	int childCounter = 1;
 	int parentNode = swarm.at(hierarchy[0][0])->getParent();
-	for(unsigned int i=1;i<size;i++){
+	for(unsigned int i=1;i<swarm.size();i++){
 		if (h <= lastLevelComplete){
 			if (width < pow(branching,h)){ //max level width
 				if (parentNode!=swarm.at(hierarchy[h][width])->getParent()){
@@ -1183,7 +1318,7 @@ void Swarm::printTree(int branching) {
 			}
 			iterCount++;
 		}
-		if (childCounter==size)
+		if ((unsigned)childCounter==swarm.size())
 			break;
 	}
 }
