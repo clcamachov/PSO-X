@@ -599,9 +599,10 @@ int main(int argc, char *argv[] ){
 		//Update dynamic topology
 		if (config->getTopology() == TOP_TIMEVARYING)
 			swarm->updateTimeVaryingTopology(config, iterations) ;
-		if (config->getTopology() == TOP_HIERARCHICAL)
+		if (config->getTopology() == TOP_HIERARCHICAL){
 			swarm->updateTree(config->getBranchingDegree());
-
+			//cout << "\n Hierarchical topology updated" << endl;
+		}
 		//Update dynamic population size
 		swarm->resizeSwarm(problem, config, iterations);
 
