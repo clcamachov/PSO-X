@@ -45,6 +45,7 @@ long double Bohachevsky::evaluate(int dim, const double* x) {
 	} 
 
 	return result;
+
 }
 
 

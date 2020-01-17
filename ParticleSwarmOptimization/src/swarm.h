@@ -65,8 +65,8 @@ public:
 	void updateTimeVaryingTopology(Configuration* config, long int iterations);
 
 	//Hierarchical topology
-	void createHierarchical(int branching, int finalPopSize);
-	void printTree(int branching, long swarm_size);
+	void createHierarchical(int branching);
+	void printTree(int branching);
 	void swapNodes(int newParent, int newH, int newWidth, int parentNode, int parentH, int parentWidth, int branching, int h, int width, int iterCount);
 	void updateTree(int branching);
 	bool isHierarchical();
@@ -80,9 +80,6 @@ public:
 	void resizeSwarm(Problem* problem, Configuration* config, long int iteration);
 	void addParticles(Problem* problem, Configuration* config, int numOfParticles);
 	void updateTopologyConnections(Configuration* config, long previous_size, long int iteration);
-	void addParticlesInLastLevel(int first, int last, int branching);
-	void updateHierarchical(int branching, long previous_size);
-
 };
 
 #endif /* SWARM_H_ */
