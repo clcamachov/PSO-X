@@ -219,10 +219,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		particles = initialPopSize;
 
 	//Some velocity update rules have special requirements
-	if (vRule == VEL_BASIC ){ //do not require inertia
-		inertia = 1.0;
-		omega1CS = IW_CONSTANT;
-	}
+//	if (vRule == VEL_BASIC ){ //do not require inertia
+//		inertia = 1.0;
+//		omega1CS = IW_CONSTANT;
+//	}
 
 	//The topology schedule should be maximum six times the swarm size, i.e. it goes from n to 6n
 	if (tSchedule > 6)
@@ -254,7 +254,6 @@ bool Configuration::getConfig(int argc, char *argv[]){
 
 	//Check DNPPs
 	if (distributionNPP == DIST_ADD_STOCH){
-		//perturbation1 = PERT1_NONE;
 		randomMatrix = MATRIX_NONE;
 	}
 
@@ -353,13 +352,13 @@ void Configuration::setDefaultParameters(){
 	competitionID = CEC05;					//CEC05, CEC14, SOFT_COMPUTING, MIXTURE
 	problemID = 18;							//25, 19, 19 and 50, respectively
 	problemDimension = 2; 					//dimensions
-	minInitRange = -100;					//lower bound of the function
-	maxInitRange = 100;						//upper bound of the function
+	//minInitRange = -100;					//lower bound of the function
+	//maxInitRange = 100;					//upper bound of the function
 
 	/** Population **/
 	particles = 10;							//particles (swarm size)
 	populationCS = POP_CONSTANT;			//population control strategy
-	initialPopSize= 2;						//initial population
+	initialPopSize = 2;						//initial population
 	finalPopSize= 1000;						//final or maximum number of individuals allowed
 
 	/** Acceleration coefficients **/
@@ -381,7 +380,7 @@ void Configuration::setDefaultParameters(){
 	modelOfInfluence = MOI_FI;				//self-explanatory
 
 	/** Inertia control parameters (omega1 in the GVU) **/
-	omega1CS = IW_CONSTANT;					//inertia control strategy
+	omega1CS = IW_RANDOM;					//inertia control strategy
 	inertia = 1.0;							//inertia weight
 	initialIW =  0.9;						//initial inertia value
 	finalIW = 0.4;							//final inertia value
@@ -398,7 +397,7 @@ void Configuration::setDefaultParameters(){
 	/** NPPDistribution **/
 	distributionNPP = DIST_RECTANGULAR;		//distribution of next possible positions
 	operator_q = Q_STANDARD;				//q_operator in simple dynamics PSO
-	randNeighbor = false;					//chose a random neighbor as p2 in P
+	randNeighbor = false;					//chose a random neighbor as p2 in operator_q
 
 	/** Velocity rules **/
 	vRule = VEL_STANDARD;					//use to select a specific velocity update formula

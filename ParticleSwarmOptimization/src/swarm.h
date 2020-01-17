@@ -66,7 +66,7 @@ public:
 
 	//Hierarchical topology
 	void createHierarchical(int branching, int finalPopSize);
-	void printTree(int branching);
+	void printTree(int branching, long swarm_size);
 	void swapNodes(int newParent, int newH, int newWidth, int parentNode, int parentH, int parentWidth, int branching, int h, int width, int iterCount);
 	void updateTree(int branching);
 	bool isHierarchical();

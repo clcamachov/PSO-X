@@ -242,9 +242,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		branching = floor(particles/2);
 
 	//Topology and model of influence check
-	if (topology == TOP_HIERARCHICAL && modelOfInfluence == MOI_RANKED_FI )
+	if (topology == TOP_HIERARCHICAL && modelOfInfluence == MOI_RANKED_FI ){
 		modelOfInfluence = MOI_FI;
-
+		cout << "\nModelOfInfluence.type = ranked is not allowed in Hierarchical topology.\n";
+	}
 	//The inertia weight schedule
 	if (iwSchedule > 4)
 		iwSchedule = 4;
@@ -258,8 +259,8 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	}
 
 	//Check problem dimensions
-	if (problemDimension < 2 || problemDimension > 50) {
-		cerr << "\nError: Dimension should be between 2 and 50.\n";
+	if (problemDimension < 2 || problemDimension > 100) {
+		cerr << "\nError: Dimension should be between 2 and 100.\n";
 		return(false);
 	}
 

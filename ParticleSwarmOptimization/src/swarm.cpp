@@ -78,12 +78,12 @@ Swarm::~Swarm(){
 			delete [] simpSwarm.id;
 			delete [] simpSwarm.eval;
 		}
-		if (hierarchical){
+		/*if (hierarchical){
 			for (int r=0; r<=lastLevelComplete+1; r++){
 				delete [] hierarchy[r];
 			}
 			delete [] hierarchy;
-		}
+		}*/
 		if (modInfRanked){
 			delete [] rankedSwarm.id;
 			delete [] rankedSwarm.eval;
@@ -263,7 +263,7 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 			}
 		}
 		updateHierarchical(config->getBranchingDegree(),previous_size);
-		cout << "\n So far, so good" << endl; //remove
+		//cout << "\n So far, so good" << endl; //remove
 		break;
 	case TOP_RING:
 		if (swarm.size() > 3){
@@ -981,7 +981,7 @@ void Swarm::createHierarchical(int branching, int finalPopSize){
 		}
 	}
 	//updateTree(branching);
-	//printTree(branching);
+	//printTree(branching, swarm.size());
 	//printAllParentNodes();
 }
 
@@ -989,9 +989,7 @@ void Swarm::updateHierarchical(int branching, long previous_size){
 	int childsInLastLevel = 0;
 	int nodesToAdd = swarm.size()-previous_size;
 
-	printTree(branching);
-
-	cout << "\n New " << nodesToAdd << " particles will be added... " << endl; //remove
+	//printTree(branching,previous_size);
 
 	//Get the number of particles in the last level complete
 	for (int i=0; i<pow(branching,lastLevelComplete+1); i++){
@@ -999,18 +997,22 @@ void Swarm::updateHierarchical(int branching, long previous_size){
 			childsInLastLevel++;
 		}
 	}
-	cout << "\n" << childsInLastLevel << " particles in lastLevelComplete" << endl; //remove
+	//cout << "\n\tThere are " << childsInLastLevel << " particle(s) in lastLevelComplete-->" << lastLevelComplete << endl; //remove
 	//If the new set of particles to be added fits in lastLevelComplete
 	if (pow(branching,lastLevelComplete+1)-childsInLastLevel >= nodesToAdd){
+		//cout << "\n\t" << nodesToAdd << " new particle(s) will be added in lastLevelComplete+1... " << endl; //remove
 		addParticlesInLastLevel(previous_size, swarm.size(), branching);
-		if (nodesToAdd+childsInLastLevel == pow(branching,lastLevelComplete+1)-1)
+		if (nodesToAdd+childsInLastLevel == pow(branching,lastLevelComplete+1)){
 			lastLevelComplete++;
+			//cout << "\n\tlastLevelComplete+1 is now full [" << nodesToAdd+childsInLastLevel << "] particles, a new level will be added to the tree" << endl; //remove
+		}
 	}
 	//If the number of particles to add is larger that the space in lastLevelComplete
 	else {
 		//Add the first part of the particles that fit in the last level
 		long firstPart = (pow(branching,lastLevelComplete+1)-childsInLastLevel);
 		addParticlesInLastLevel(previous_size, previous_size+firstPart, branching);
+		//cout << "\n\t" << firstPart << " new particle(s) were added in lastLevelComplete+1... " << endl; //remove
 		lastLevelComplete++;
 
 		//Compute the number of nodes that still need to be added
@@ -1021,6 +1023,7 @@ void Swarm::updateHierarchical(int branching, long previous_size){
 		while (nodesToAdd - pow(branching,newLastLevel) >= pow(branching,newLastLevel+1)) {
 			newLastLevel++;
 		}
+		//cout << "\n\t" << newLastLevel-lastLevelComplete << " lastLevelComplete will be created" << endl; //remove
 
 		//first and last are the ids of the particles that are going to be added in the level
 		long first = previous_size+firstPart, last = 0;
@@ -1264,7 +1267,7 @@ void Swarm::printAllParentNodes(){
 	}
 }
 
-void Swarm::printTree(int branching) {
+void Swarm::printTree(int branching, long swarm_size) {
 	//Raw printing of the structure
 	cout << endl << endl;
 	for (int i=0; i<=lastLevelComplete+1; i++){
@@ -1283,7 +1286,7 @@ void Swarm::printTree(int branching) {
 	int iterCount = 0;
 	int childCounter = 1;
 	int parentNode = swarm.at(hierarchy[0][0])->getParent();
-	for(unsigned int i=1;i<swarm.size();i++){
+	for(unsigned int i=1;i<swarm_size;i++){
 		if (h <= lastLevelComplete){
 			if (width < pow(branching,h)){ //max level width
 				if (parentNode!=swarm.at(hierarchy[h][width])->getParent()){
