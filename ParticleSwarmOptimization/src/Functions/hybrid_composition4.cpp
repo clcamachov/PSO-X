@@ -55,7 +55,16 @@ HC_4::HC_4(Configuration* config, int variantID):Problem(config,variantID){
 
 	stringstream dim_name;
 	dim_name << dimension;
-	string file_m = "supportData/hybrid_func4_M_D" + dim_name.str() + ".txt";
+	string file_m; // = "supportData/hybrid_func4_M_D" + dim_name.str() + ".txt";
+
+	if (dimension > 2 && dimension < 10)
+		file_m = "supportData/hybrid_func4_M_D10.txt";
+	else if (dimension > 10 && dimension < 30)
+		file_m = "supportData/hybrid_func4_M_D30.txt";
+	else if (dimension > 30 && dimension < 50)
+		file_m = "supportData/hybrid_func4_M_D50.txt";
+	else
+		file_m = "supportData/hybrid_func4_M_D" + dim_name.str() + ".txt";
 
 	Utils::loadMatrixFromFile(file_data, NUM_OF_FUNC, dimension, shift_vector2D);
 

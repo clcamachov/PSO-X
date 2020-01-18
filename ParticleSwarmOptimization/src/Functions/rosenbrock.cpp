@@ -43,7 +43,21 @@ Rosenbrock::Rosenbrock(Configuration* config, int variantID):Problem(config, var
 			m_r = new double[dimension];
 			stringstream dim_name;
 			dim_name << dimension;
-			string file_m = "supportData/input_data/M_4_D" + dim_name.str() + ".txt";
+			string file_m; // = "supportData/input_data/M_4_D" + dim_name.str() + ".txt";
+
+			if (dimension > 2 && dimension < 10)
+				file_m = "supportData/input_data/M_4_D10.txt";
+			else if (dimension > 10 && dimension < 20)
+				file_m = "supportData/input_data/M_4_D20.txt";
+			else if (dimension > 20 && dimension < 30)
+				file_m = "supportData/input_data/M_4_D30.txt";
+			else if (dimension > 30 && dimension < 50)
+				file_m = "supportData/input_data/M_4_D50.txt";
+			else if (dimension > 50 && dimension < 100)
+				file_m = "supportData/input_data/M_4_D100.txt";
+			else
+				file_m = "supportData/input_data/M_4_D" + dim_name.str() + ".txt";
+
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}
 	}

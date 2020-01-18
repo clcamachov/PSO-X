@@ -214,7 +214,11 @@ bool Configuration::getConfig(int argc, char *argv[]){
 
 	if (initialPopSize > finalPopSize)
 		cerr << "\nError: Wrong initial (or) final population size..." << endl;
-
+	//Check that initialPopSize is at least of the size of the branching degree
+	if (topology == TOP_HIERARCHICAL && populationCS != POP_CONSTANT){
+		if (branching > (int)initialPopSize)
+			initialPopSize = branching;
+	}
 	if (populationCS != POP_CONSTANT)
 		particles = initialPopSize;
 
@@ -246,6 +250,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		modelOfInfluence = MOI_FI;
 		cout << "\nModelOfInfluence.type = ranked is not allowed in Hierarchical topology.\n";
 	}
+
 	//The inertia weight schedule
 	if (iwSchedule > 4)
 		iwSchedule = 4;

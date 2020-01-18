@@ -28,7 +28,20 @@ GriewankRosenbrock::GriewankRosenbrock(Configuration* config, int variantID):Pro
 		string file_data = "supportData/input_data/shift_data_15.txt";
 		stringstream dim_name;
 		dim_name << dimension;
-		string file_m = "supportData/input_data/M_15_D" + dim_name.str() + ".txt";
+		string file_m; // = "supportData/input_data/M_15_D" + dim_name.str() + ".txt";
+
+		if (dimension > 2 && dimension < 10)
+			file_m = "supportData/input_data/M_15_D10.txt";
+		else if (dimension > 10 && dimension < 20)
+			file_m = "supportData/input_data/M_15_D20.txt";
+		else if (dimension > 20 && dimension < 30)
+			file_m = "supportData/input_data/M_15_D30.txt";
+		else if (dimension > 30 && dimension < 50)
+			file_m = "supportData/input_data/M_15_D50.txt";
+		else if (dimension > 50 && dimension < 100)
+			file_m = "supportData/input_data/M_15_D100.txt";
+		else
+			file_m =  "supportData/input_data/M_15_D" + dim_name.str() + ".txt";
 
 		rotation_matrix  = allocateMemory2D(dimension, dimension);
 		shift_vector = new double[dimension];
@@ -37,19 +50,14 @@ GriewankRosenbrock::GriewankRosenbrock(Configuration* config, int variantID):Pro
 
 		Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 		Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
-
-
 	}
-
 }
-
 
 GriewankRosenbrock::~GriewankRosenbrock(){
 	if(vID == SHIFTED_EXPANDED){
 		delete [] shift_vector;
 		delete [] z;
 	}
-
 }
 
 long double GriewankRosenbrock::evaluate(int dim, const double* x) {

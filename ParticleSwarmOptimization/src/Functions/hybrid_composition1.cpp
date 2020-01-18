@@ -66,7 +66,17 @@ HC_1::HC_1(Configuration* config, int variantID):Problem(config, variantID){
 	if(variantID == ROTATED || vID == NOISE_ROTATED){
 		stringstream dim_name;
 		dim_name << dimension;
-		string file_m = "supportData/hybrid_func1_M_D" + dim_name.str() + ".txt";
+		string file_m; // = "supportData/hybrid_func1_M_D" + dim_name.str() + ".txt";
+
+		if (dimension > 2 && dimension < 10)
+			file_m = "supportData/hybrid_func1_M_D10.txt";
+		else if (dimension > 10 && dimension < 30)
+			file_m = "supportData/hybrid_func1_M_D30.txt";
+		else if (dimension > 30 && dimension < 50)
+			file_m = "supportData/hybrid_func1_M_D50.txt";
+		else
+			file_m = "supportData/hybrid_func1_M_D" + dim_name.str() + ".txt";
+
 		Utils::loadMatrixFromFile(file_m, NUM_OF_FUNC, dimension, dimension, rotation_matrix3D);
 	}else if(vID == BASIC)
 		loadIdentityMatrix(rotation_matrix3D,dimension,NUM_OF_FUNC, dimension);

@@ -32,7 +32,20 @@ Hybrid5CEC14::Hybrid5CEC14(Configuration* config, int variantID):Problem(config,
 		string file_data = "supportData/input_data/shift_data_21.txt";
 		stringstream dim_name;
 		dim_name << dimension;
-		string file_m = "supportData/input_data/M_21_D" + dim_name.str() + ".txt";
+		string file_m; // = "supportData/input_data/M_21_D" + dim_name.str() + ".txt";
+
+		if (dimension > 2 && dimension < 10)
+			file_m = "supportData/input_data/M_21_D10.txt";
+		else if (dimension > 10 && dimension < 20)
+			file_m = "supportData/input_data/M_21_D20.txt";
+		else if (dimension > 20 && dimension < 30)
+			file_m = "supportData/input_data/M_21_D30.txt";
+		else if (dimension > 30 && dimension < 50)
+			file_m = "supportData/input_data/M_21_D50.txt";
+		else if (dimension > 50 && dimension < 100)
+			file_m = "supportData/input_data/M_21_D100.txt";
+		else
+			file_m = "supportData/input_data/M_21_D" + dim_name.str() + ".txt";
 
 		rotation_matrix  = allocateMemory2D(dimension, dimension);
 		shift_vector = new double[dimension];
@@ -109,7 +122,7 @@ long double Hybrid5CEC14::h2Function(int dim, const double* x){
 
 	double part1[G_nx[0]];
 	for(int j= 0; j < G_nx[0]; j++)// divide into parts
-			part1[j]=m_r[G[0]+j];
+		part1[j]=m_r[G[0]+j];
 	f += problem1->evaluate(G_nx[0],part1);
 
 	double part2[G_nx[1]];

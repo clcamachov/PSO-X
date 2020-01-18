@@ -23,7 +23,17 @@ Rastrigin::Rastrigin(Configuration* config, int variantID):Problem(config, varia
 			string file_data = "supportData/rastrigin_CEC05_func_data.txt";
 			stringstream dim_name;
 			dim_name<< dimension;
-			string file_m = "supportData/rastrigin_M_D" + dim_name.str() + ".txt";
+			string file_m; // = "supportData/rastrigin_M_D" + dim_name.str() + ".txt";
+
+			if (dimension > 2 && dimension < 10)
+				file_m = "supportData/rastrigin_M_D10.txt";
+			else if (dimension > 10 && dimension < 30)
+				file_m = "supportData/rastrigin_M_D30.txt";
+			else if (dimension > 30 && dimension < 50)
+				file_m = "supportData/rastrigin_M_D50.txt";
+			else
+				file_m = "supportData/rastrigin_M_D" + dim_name.str() + ".txt";
+
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}
@@ -46,7 +56,21 @@ Rastrigin::Rastrigin(Configuration* config, int variantID):Problem(config, varia
 			m_r = new double[dimension];
 			stringstream dim_name;
 			dim_name << dimension;
-			string file_m = "supportData/input_data/M_8_D" + dim_name.str() + ".txt";
+			string file_m; // = "supportData/input_data/M_8_D" + dim_name.str() + ".txt";
+
+			if (dimension > 2 && dimension < 10)
+				file_m = "supportData/input_data/M_8_D10.txt";
+			else if (dimension > 10 && dimension < 20)
+				file_m = "supportData/input_data/M_8_D20.txt";
+			else if (dimension > 20 && dimension < 30)
+				file_m = "supportData/input_data/M_8_D30.txt";
+			else if (dimension > 30 && dimension < 50)
+				file_m = "supportData/input_data/M_8_D50.txt";
+			else if (dimension > 50 && dimension < 100)
+				file_m = "supportData/input_data/M_8_D100.txt";
+			else
+				file_m = "supportData/input_data/M_8_D" + dim_name.str() + ".txt";
+
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}
 
