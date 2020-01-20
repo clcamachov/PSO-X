@@ -300,6 +300,11 @@ private:
 	bool useVelClamping;
 	short omega2CS;
 	short omega3CS;
+	//Additional values for inertia control parameter omega1CS (only adaptive)
+	double iw_par_eta;				//from 0.1 to 1 in IW_SELF_REGULATING - 11
+	double iw_par_deltaOmega;		//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
+	double iw_par_alpha_2;			//from 0 to  1 in IW_CONVERGE_BASED - 16
+	double iw_par_beta_2;			//from 0 to  1 in IW_CONVERGE_BASED - 16
 
 	//Perturbation
 	short perturbation1; //distribution-based
@@ -368,6 +373,11 @@ public:
 
 	bool isVelocityClamped();
 	void setVelocityClamped(bool clamping);
+
+	double get_iw_par_eta();
+	double get_iw_par_deltaOmega();
+	double get_iw_par_alpha_2();
+	double get_iw_par_beta_2();
 
 	//Omega2 and Omega3
 	short getOmega2CS();

@@ -202,6 +202,22 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			vRule = atol(argv[i+1]);
 			i++;
 			//cout << "\n velocity rule has been received \n";
+		} else if (strcmp(argv[i], "--iw_par_eta") == 0) {
+			iw_par_eta = atof(argv[i+1]);
+			i++;
+			//cout << "\n parameter iw_par_eta for IW_SELF_REGULATING - 11 has been received \n";
+		} else if (strcmp(argv[i], "--iw_par_deltaOmega") == 0) {
+			iw_par_deltaOmega = atof(argv[i+1]);
+			i++;
+			//cout << "\n parameter iw_par_deltaOmega for IW_VELOCITY_BASED - 12 has been received \n";
+		} else if (strcmp(argv[i], "--iw_par_alpha_2") == 0) {
+			iw_par_alpha_2 = atof(argv[i+1]);
+			i++;
+			//cout << "\n parameter iw_par_alpha_2 for IW_CONVERGE_BASED - 16 has been received \n";
+		} else if (strcmp(argv[i], "--iw_par_beta_2") == 0) {
+			iw_par_beta_2 = atof(argv[i+1]);
+			i++;
+			//cout << "\n parameter iw_par_beta_2 for IW_CONVERGE_BASED - 16 has been received \n";
 		} else if (strcmp(argv[i], "--help") == 0) {
 			Configuration::printUsage();
 			return(false);
@@ -221,12 +237,6 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	}
 	if (populationCS != POP_CONSTANT)
 		particles = initialPopSize;
-
-	//Some velocity update rules have special requirements
-//	if (vRule == VEL_BASIC ){ //do not require inertia
-//		inertia = 1.0;
-//		omega1CS = IW_CONSTANT;
-//	}
 
 	//The topology schedule should be maximum six times the swarm size, i.e. it goes from n to 6n
 	if (tSchedule > 6)
@@ -394,6 +404,11 @@ void Configuration::setDefaultParameters(){
 	useVelClamping = true;					//clamp velocity (step size)
 	omega2CS = O2_EQUAL_TO_O1;				//omega2 control strategy (see GVU formula)
 	omega3CS = O3_EQUAL_TO_O1;				//omega3 control strategy (see GVU formula)
+	iw_par_eta = 1;								//from 0.1 to 1 in IW_SELF_REGULATING - 11
+	iw_par_deltaOmega = 0.1;						//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
+	iw_par_alpha_2 = 0.5;							//from 0 to  1 in IW_CONVERGE_BASED - 16
+	iw_par_beta_2 = 0.5;							//from 0 to  1 in IW_CONVERGE_BASED - 16
+
 
 	/** Perturbation **/
 	perturbation1 = PERT1_NONE;				//distribution-based perturbation
@@ -510,10 +525,12 @@ void Configuration::printParameters(){
 	case IW_SELF_REGULATING:
 		cout	<< "  omega1CS:          (adaptive) SELF_REGULATING\n"
 		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  iw_par_eta         " << get_iw_par_eta() << "\n"
 		<< "  finalIW            " << getFinalIW() << "\n"; break;
 	case IW_VELOCITY_BASED:
 		cout	<< "  omega1CS:          (adaptive) VELOCITY_BASED\n"
 		<< "  initialIW          " << getInitialIW() << "\n"
+		<< "  iw_par_deltaOmega  " << get_iw_par_deltaOmega() << "\n"
 		<< "  finalIW            " << getFinalIW() << "\n"; break;
 	case IW_DOUBLE_EXP:
 		cout	<< "  omega1CS:         (adaptive) DOUBLE_EXP\n"
@@ -528,7 +545,9 @@ void Configuration::printParameters(){
 		<< "  initialIW          " << getInitialIW() << "\n"
 		<< "  finalIW            " << getFinalIW() << "\n";  break;
 	case IW_CONVERGE_BASED:
-		cout	<< "  omega1CS:          (adaptive) CONVERGE_BASED\n"; break;
+		cout	<< "  omega1CS:          (adaptive) CONVERGE_BASED\n"
+		<< "  iw_par_alpha_2     " << get_iw_par_alpha_2() << "\n"
+		<< "  iw_par_beta_2      " << get_iw_par_beta_2() << "\n"; break;
 	}
 	//<< "  omega2CS          " << getomega2CS() << "\n"
 	switch (getOmega2CS()){
@@ -696,6 +715,18 @@ double Configuration::getFinalIW(){
 }
 unsigned int Configuration::getIWSchedule(){
 	return iwSchedule;
+}
+double Configuration::get_iw_par_eta(){
+	return iw_par_eta;
+}
+double Configuration::get_iw_par_deltaOmega(){
+	return iw_par_deltaOmega;
+}
+double Configuration::get_iw_par_alpha_2(){
+	return iw_par_alpha_2;
+}
+double Configuration::get_iw_par_beta_2(){
+	return iw_par_beta_2;
 }
 bool Configuration::isVelocityClamped(){
 	return useVelClamping;

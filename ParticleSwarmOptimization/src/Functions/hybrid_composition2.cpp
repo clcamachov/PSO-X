@@ -157,11 +157,10 @@ long double HC_2::hybrid_composition(int dim, const double* x) {
 HC_2::~HC_2(){
 	deallocateMemory3D(rotation_matrix3D, NUM_OF_FUNC, dimension);
 	deallocateMemory2D(zM, NUM_OF_FUNC);
-	deallocateMemory2D(shift_vector2D, NUM_OF_FUNC);
 	deallocateMemory2D(z2d, NUM_OF_FUNC);
+	deallocateMemory2D(shift_vector2D, NUM_OF_FUNC);
 	delete [] fmax;
 	delete [] w;
-
 }
 
 

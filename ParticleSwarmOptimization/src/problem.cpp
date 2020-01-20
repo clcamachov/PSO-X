@@ -11,6 +11,7 @@
 #include "rng.h"
 #include <iostream>
 #include <cstdlib>
+#include <new>
 
 #include <values.h>
 #include <float.h>
@@ -45,8 +46,8 @@ void Problem::printProblem(){
 			<< "  dimensions:         " << getProblemDimension() << "\n"
 			<< "  evaluations:        " << getFunctionEvaluations() << "\n"
 			<< "  maxEvaluations:     " << maxEvaluations << "\n"
-			<< "  optimum:   	      " << getProblemOptimum() << "\n"
-			<< "  oldResult:   	      " << oldResult << "\n"
+			<< "  optimum:   	      " << scientific << getProblemOptimum() << "\n"
+			<< "  oldResult:   	      " << scientific << oldResult << "\n"
 			<< "  firstEvaluation:    " << firstEvaluation << "\n"
 			<< "  bestSolutionValue:  " << getBestSolutionValue() << "\n"
 			<< "  bestSoFarSolution:  " << getBestSoFarSolution() << "\n"

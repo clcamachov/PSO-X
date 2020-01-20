@@ -30,13 +30,13 @@ int	   k = 7;								//positive integer constant		IW_OSCILLATING - 9
 double simNumOfCos = 2.0*M_PI*((4*k)+6);	//								IW_OSCILLATING - 9
 double a = 1;								//small positive constant		IW_LOG_DEC - 10
 double omega_2 = 0;							//								IW_SELF_REGULATING - 11
-double eta = 1;								//								IW_SELF_REGULATING - 11
+//double eta = 1;								//								IW_SELF_REGULATING - 11
 double idealVelocity;						//								IW_VELOCITY_BASED - 12
 double avVel;								//								IW_VELOCITY_BASED - 12
-double deltaOmega = 0.1;					//small positive constant		IW_VELOCITY_BASED - 12
+//double deltaOmega = 0.1;					//small positive constant		IW_VELOCITY_BASED - 12
 struct SimplifySwarm simpSwarm;				//								IW_RANKS_BASED - 14
-double alpha_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
-double beta_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
+//double alpha_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
+//double beta_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
 /* Variable for the topology and model of influence */
 int** hierarchy;							//tree structure for the hierarchical model of influence
 int lastLevelComplete = 0;					//global variable for the hierarchy
@@ -67,23 +67,23 @@ Swarm::Swarm(){
 Swarm::~Swarm(){
 	if (init) {
 		delete [] global_best.x;
-		//		delete [] Informants;
-		//
-		//		if (ranked){
-		//			//free memory reserved to the use rankings
-		//			delete [] simpSwarm.id;
-		//			delete [] simpSwarm.eval;
-		//		}
-		//		if (hierarchical){
-		//			for (int r=0; r<=lastLevelComplete+1; r++){
-		//				delete [] hierarchy[r];
-		//			}
-		//			delete [] hierarchy;
-		//		}
-		//		if (modInfRanked){
-		//			delete [] rankedSwarm.id;
-		//			delete [] rankedSwarm.eval;
-		//		}
+		delete [] Informants;
+
+//		if (ranked){
+//			//free memory reserved to the use rankings
+//			delete [] simpSwarm.id;
+//			delete [] simpSwarm.eval;
+//		}
+//		if (hierarchical){
+//			for (int r=0; r<=lastLevelComplete+1; r++){
+//				delete [] hierarchy[r];
+//			}
+//			delete [] hierarchy;
+//		}
+//		if (modInfRanked){
+//			delete [] rankedSwarm.id;
+//			delete [] rankedSwarm.eval;
+//		}
 		// Memory allocated dynamically
 		for (long int i=0;i<size;i++)
 			delete swarm.at(i);
@@ -228,6 +228,7 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 		if (previous_size+particleToAdd <= config->getFinalPopSize()){
 			addParticles(problem, config, particleToAdd);
 			updateTopologyConnections(config, previous_size, iteration);
+			RNG::initializePermutation(config->getSwarmSize());
 		}
 		else{
 			//See if we can add the difference
@@ -235,6 +236,7 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 			if ( particleToAdd > 0){
 				addParticles(problem, config, particleToAdd);
 				updateTopologyConnections( config, previous_size, iteration);
+				RNG::initializePermutation(config->getSwarmSize());
 			}
 		}
 		//cout << "\n So far, so good" << endl; //remove
@@ -1512,9 +1514,8 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		}
 		//IW_VELOCITY_BASED - 12 - Based on velocity information
 		else if (config->getOmega1CS() == IW_VELOCITY_BASED) {
-
 			static double T_0_95 = 95*config->getMaxIterations()/100; //iteration at which 95% of search process is completed
-
+			double deltaOmega = config->get_iw_par_deltaOmega();
 			if (iteration == 1)
 				config->setOmega1(config->getFinalIW());
 
@@ -1592,6 +1593,8 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				//simpSwarm contains a simplified copy of the swarm at t-1
 				simpSwarm.eval = new long double [config->getSwarmSize()];
 				simpSwarm.id = new int [config->getSwarmSize()];
+				double alpha_2 = config->get_iw_par_alpha_2();
+				double beta_2 = config->get_iw_par_beta_2();
 				//Copy particle's id and evaluation in simpSwarm
 				for (unsigned int i=0;i<swarm.size();i++){
 					simpSwarm.id[i] = swarm.at(i)->getID();
@@ -1621,6 +1624,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		if (id != -1){
 			//IW_SELF_REGULATING - 11 - Self-regulating
 			if (config->getOmega1CS() == IW_SELF_REGULATING) {
+				double eta = config->get_iw_par_eta();
 				//The best particle has a special inertia value
 				if (id == best_particle->getID()) {
 					//compute the inertia weight for the global_best particle
@@ -1663,6 +1667,9 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			//IW_CONVERGE_BASED - 16 Convergence-based
 			else if (config->getOmega1CS() == IW_CONVERGE_BASED) {
 				if (iteration > 1) {
+					double alpha_2 = config->get_iw_par_alpha_2();
+					double beta_2 = config->get_iw_par_beta_2();
+
 					//Find the particle in simpSwarm
 					for (unsigned int j=0; j<sizeof(simpSwarm.id); j++){
 						if (simpSwarm.id[j] == swarm.at(id)->getID()){
