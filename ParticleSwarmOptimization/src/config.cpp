@@ -248,7 +248,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	//Topology and model of influence check
 	if (topology == TOP_HIERARCHICAL && modelOfInfluence == MOI_RANKED_FI ){
 		modelOfInfluence = MOI_FI;
-		cout << "\nModelOfInfluence.type = ranked is not allowed in Hierarchical topology.\n";
+		//cout << "\nModelOfInfluence.type = ranked is not allowed in Hierarchical topology.\n";
 	}
 
 	//The inertia weight schedule

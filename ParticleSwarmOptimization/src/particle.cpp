@@ -12,6 +12,8 @@
 #include "rng.h"
 #include <math.h>
 #include <cmath>
+#include <new>
+
 #include "utils.h"
 
 using namespace std;
@@ -98,7 +100,6 @@ Particle::Particle (const Particle &p){
 		gbest.x = new double[size];
 		velocity = new double[size];
 	}
-
 	for(int i=0; i<size;i++){
 		current.x[i] = p.current.x[i];
 		pbest.x[i] = p.pbest.x[i];
@@ -110,22 +111,12 @@ Particle::Particle (const Particle &p){
 	pbest.eval = p.pbest.eval;
 	gbest.eval = p.gbest.eval;
 
-	inertia=p.inertia;
 	phi_1 = p.phi_1;
 	phi_2 = p.phi_2;
+	inertia=p.inertia;
+
 	init = true;
 
-}
-
-/* destructor */
-Particle::~Particle(){
-	if(init){
-		delete[] current.x;
-		delete[] pbest.x;
-		delete[] gbest.x;
-		delete[] velocity;
-	}
-	init=false;
 }
 
 /* overriding of '=' operator for particles
@@ -164,13 +155,27 @@ Particle& Particle::operator= (const Particle& p){
 		pbest.eval = p.pbest.eval;
 		gbest.eval = p.gbest.eval;
 
-		inertia=p.inertia;
 		phi_1 = p.phi_1;
 		phi_2 = p.phi_2;
+		inertia=p.inertia;
+
 		init = true;
 	}
 	return *this;
 }
+
+
+/* destructor */
+Particle::~Particle(){
+	if(init){
+		delete[] current.x;
+		delete[] pbest.x;
+		delete[] gbest.x;
+		delete[] velocity;
+	}
+	init=false;
+}
+
 
 /* Initialize particle */
 void Particle::initializeUniform(){
@@ -261,10 +266,12 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	/*** PERTURBATION 2	(additive)	--->	It has to be computed per dimension, but only once per particle  ***/
 	for (int i=0;i<size;i++)
 		vect_perturbation[i] = getPerturbationMagnitude(config->getPerturbation2Type(), alpha_t, delta); //Only additive perturbation
-
 	/*** ROTATION MATRICES	--->	has to be computed per Informant ***/
 	int numMatrices =(int)floor(((size*(size-1))/2)); //number of rotation matrices to rotate in all possible planes
 	double **rndMatrix[numMatrices];
+
+	cout << "\t<<So far so good>>" << endl;
+
 	//Allocate memory to be used
 	for(int i=0; i<numMatrices; i++){
 		rndMatrix[i] = new double*[size];
@@ -323,7 +330,23 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	//Evaluate the objective function and update pbest if a new one has been found
 	computeEvaluation();
 	cout << "\tParticle with ID:[" << this->id << "].status::MOVED" << endl;
+//	delete [] vect_distribution;
+//	delete [] vect_perturbation;
+//	for (int i=0; i<numInformants; i++)
+//		delete [] vect_PbestMinusPosition[i];
+//	delete [] vect_PbestMinusPosition;
+//
+//	//Allocate memory to be used
+//	for(int i=0; i<numMatrices; i++){
+//		for (unsigned int j=0; j<size; j++)
+//			delete [] rndMatrix[i][j];
+//	}
+//	for(int i=0; i<numMatrices; i++){
+//		delete [] rndMatrix[i];
+//	}
+//	cout << "\tMemory used by p[" << this->id << "] was freed" << endl; //remove
 	cout << "\t------------------------------------------" << endl;
+
 }
 
 
@@ -1098,22 +1121,22 @@ void Particle::setgBestID(int gB_ID){
 
 /*Check the neighborhood for the best particle */
 int Particle::getBestOfNeibourhood(){
-	double aux_eval=gbest.eval;;
+	//double aux_eval=gbest.eval;
+	double aux_eval=LDBL_MAX;
 	int best=-1;
 	bool pBestIsNeighbor = false;
-	//int prev_gBestID = this->gBestID;
 
 	//Check if the particle is its own neighbor
 	for(unsigned int i=0; i<neighbours.size(); i++){
-		if (neighbours.at(i)->getID() == id){
+		if (neighbours.at(i)->getID() == id)
 			pBestIsNeighbor = true;
-			aux_eval = DBL_MAX;
-		}
 	}
-	//Check personal best if the particles is its own neighbor
+	//If the particles is its own neighbor check personal best
 	if(pbest.eval < gbest.eval && pBestIsNeighbor == true){
 		updateGlobalBest(pbest.x, pbest.eval);
 		gBestID = id;
+		//aux_eval = LDBL_MAX;
+		aux_eval = pbest.eval;
 	}
 	//Check after the rest of the neighborhood
 	for(unsigned int i=0; i<neighbours.size();i++){

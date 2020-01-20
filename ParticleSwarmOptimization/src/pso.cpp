@@ -593,19 +593,20 @@ int main(int argc, char *argv[] ){
 	while(!terminationCondition()){
 		iterations++;
 
+		//Move swarm
 		swarm->moveSwarm(config, iterations, config->getMinInitBound(),config->getMaxInitBound());
 		evaluations=evaluations + config->getSwarmSize();
 
-		//Update dynamic topology
+		//Update dynamic topologies
 		if (config->getTopology() == TOP_TIMEVARYING)
 			swarm->updateTimeVaryingTopology(config, iterations) ;
 		if (config->getTopology() == TOP_HIERARCHICAL){
 			swarm->updateTree(config->getBranchingDegree());
 			//cout << "\n Hierarchical topology updated" << endl;
 		}
+
 		//Update dynamic population size
 		swarm->resizeSwarm(problem, config, iterations);
-
 	}
 
 	cout << "\nBest value found:\t" << scientific << swarm->getGlobalBest().eval << endl;
