@@ -196,7 +196,11 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			i++;
 			//cout << "\n operator_q has been received \n";
 		} else if (strcmp(argv[i], "--randNeighbor") == 0) {
-			randNeighbor = true;
+			if (atoi(argv[i+1]) == 0)
+				randNeighbor = false;
+			if (atoi(argv[i+1]) == 1)
+				randNeighbor = true;
+			i++;
 			//cout << "\n operator_q will be used with randNeighbor\n";
 		} else if (strcmp(argv[i], "--vRule") == 0) {
 			vRule = atol(argv[i+1]);
@@ -281,7 +285,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 
 	//Termination criterion of CEC'05:
 	maxFES = 10000 * problemDimension;
-	//max_iterations = maxFES;
+	if (populationCS != POP_CONSTANT && max_iterations == -1)
+		max_iterations = (int)floor((double)maxFES/finalPopSize);
+	if (populationCS == POP_CONSTANT && max_iterations == -1)
+			max_iterations = (int)floor((double)maxFES/particles);
 
 	return(true);
 }
@@ -362,7 +369,7 @@ void Configuration::setDefaultParameters(){
 	/** General parameters **/
 	rngSeed = 12345;						//seed for random numbers
 	maxFES = 1000*problemDimension;			//max function evaluation
-	max_iterations = 1000*problemDimension;	//max iterations
+	max_iterations = -1;	//max iterations
 
 	/** Problem parameters **/
 	competitionID = CEC05;					//CEC05, CEC14, SOFT_COMPUTING, MIXTURE

@@ -195,17 +195,17 @@
 #define O2_ONE							2
 #define O2_RANDOM						3
 
-// available acceleration coefficients strategies
-#define AC_CONSTANT						0
-#define AC_TIME_VARYING					1
-#define AC_EXTRAPOLATED					2
-#define AC_RANDOM						3
-
 // available omega3 strategies
 #define O3_EQUAL_TO_O1					0
 #define O3_ZERO							1  //this makes the component Perturbation = 0
 #define O3_ONE							2
 #define O3_RANDOM						3
+
+// available acceleration coefficients strategies
+#define AC_CONSTANT						0
+#define AC_TIME_VARYING					1
+#define AC_EXTRAPOLATED					2
+#define AC_RANDOM						3
 
 // available velocity update rules
 #define VEL_BASIC						0

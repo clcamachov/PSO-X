@@ -56,6 +56,7 @@ protected:
 public:
 
 	vector < Particle* > neighbours;  /* vector of neighbors particles */
+	vector < int > InformantsPos;
 	Particle ();  														/* empty constructor */
 	~Particle();  														/* destructor */
 	Particle (Problem* problem, Configuration* config, int identifier);	/* constructor */
@@ -63,7 +64,7 @@ public:
 	Particle& operator= (const Particle& p);  							/* overriding of '=' */
 
 	void move(Configuration* config, double minBound, double maxBound, long int iteration,
-			double omega1, double omega2, double omega3, int numInformants, int *theInformants, int lastLevelComplete, double alpha_t, double l, double delta);
+			double omega1, double omega2, double omega3, int numInformants, int lastLevelComplete, double alpha_t, double l, double delta);
 	double computeNewVelocity(Configuration* config, double vel, double rand1, double rand2,double perInf, double socInf, double pos, double additionalVal);
 
 	double* getCurrentPosition();
@@ -84,7 +85,7 @@ public:
 	double computeDistPbestGbest();
 	double computeDistance(double * x, double * p);
 
-	bool ispBestIntheInformants(int numInformants, int *theInformants);
+	bool ispBestIntheInformants(int numInformants);
 
 	//Velocity
 	void setVelocityLimits(Configuration* config);
@@ -95,14 +96,25 @@ public:
 	void printPosition();
 	void printNeighborByID(int id);
 
-	double ** computeSubtractionPerturbationRotation(int DNPP, double ** vect_PbestMinusPosition, int &numInformants, int *theInformants, double *** rndMatrix, int RmatrixType,
-				bool pBestIntheInformants, int pertubType, double alpha_t, double l_value);
-	void getRectangularDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition, int modelOfInflu);
-	void getSphericalDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition, int modelOfInflu);
-	void getAdditiveStochasticDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition, int modelOfInflu, bool randNeighbor, int operatorQ);
+//	double ** computeSubtractionPerturbationRotation(int DNPP, double vect_PbestMinusPosition[][], int &numInformants, int *theInformants, double *** rndMatrix, int RmatrixType,
+//			bool pBestIntheInformants, int pertubType, double alpha_t, double l_value);
+//	void getRectangularDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition, int modelOfInflu);
+//	void getSphericalDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition, int modelOfInflu);
+//	void getAdditiveStochasticDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition, int modelOfInflu, bool randNeighbor, int operatorQ);
+
+	void computeSubtractionPerturbationRotation(int DNPP, vector< vector<double> > &vect_PbestMinusPosition, int &numInformants,
+			int RmatrixType, bool pBestIntheInformants, int pertubType, double alpha_t, double l_value);
+	void getRectangularDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
+			vector< vector< double> > &vect_PbestMinusPosition, int modelOfInflu);
+	void getSphericalDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
+			vector< vector< double> > &vect_PbestMinusPosition, int modelOfInflu);
+	void getAdditiveStochasticDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
+			vector< vector< double> > &vect_PbestMinusPosition, bool randNeighbor, int operatorQ);
+
+
 	int getRandomNeighbor();
-	int getRandomInformantPosition(int numInformants, int *theInformants, bool pBestIntheInformants);
-	int getPositionOfpBest(int numInformants, int *theInformants, bool pBestIntheInformants);
+	int getRandomInformantPosition(int numInformants, bool pBestIntheInformants);
+	int getPositionOfpBest(int numInformants, bool pBestIntheInformants);
 
 
 	//Perturbation
@@ -112,8 +124,8 @@ public:
 	double applyPerturbation(int pertubType, double pos_xi);
 
 	//Random Matrix
-	void computeRndMatrix(double *** rndMatrix, int RmatrixType);
-	double * multiplyVectorByRndMatrix(double * aVector, double *** rndMatrix, int RmatrixType);
+	void computeRndMatrix(double ** rndMatrix[], int RmatrixType);
+	void multiplyVectorByRndMatrix(vector<vector< double> > &vect_PbestMinusPosition, int informant, double ** rndMatrix[], int RmatrixType);
 
 	//Frankenstein's members
 	int getID();

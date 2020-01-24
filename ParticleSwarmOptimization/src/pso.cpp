@@ -555,11 +555,11 @@ bool terminationCondition() {
 /*Free memory used*/
 void freeMemory(){
 	//Memory release
-	RNG::deallocateRNG();
-	RNG::deallocatePermutation();
 	delete problem;
 	delete swarm;
 	delete config;
+	RNG::deallocatePermutation();
+	RNG::deallocateRNG();
 }
 
 int main(int argc, char *argv[] ){
@@ -577,7 +577,7 @@ int main(int argc, char *argv[] ){
 	RNG::initializePermutation(config->getSwarmSize());
 
 	initializeProblem();
-	problem->printProblem();
+	//problem->printProblem();
 
 	swarm = new Swarm(problem, config);
 	config->printParameters();
@@ -609,12 +609,12 @@ int main(int argc, char *argv[] ){
 		swarm->resizeSwarm(problem, config, iterations);
 	}
 
-	cout << "\nBest value found:\t" << scientific << swarm->getGlobalBest().eval << endl;
-	//cout << "\n So far, so good" << endl; //remove
+	cout << "Best " << scientific << swarm->getGlobalBest().eval << endl;
+	//cout << scientific << swarm->getGlobalBest().eval << endl;
 
-	swarm->printGbest(config->getProblemDimension());
-	//problem->printProblem_results();
-	cout << "Optimum:\t" << scientific << problem->getProblemOptimum() << endl;
+	//swarm->printGbest(config->getProblemDimension());
+	problem->printProblem_results();
+	//cout << "Optimum:\t" << scientific << problem->getProblemOptimum() << endl;
 
 	freeMemory();   // Free memory.
 }

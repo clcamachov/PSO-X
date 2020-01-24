@@ -16,6 +16,12 @@
 
 #include <math.h>
 
+/* Simplified swarm structure */
+struct ssArray {
+	long double* eval;   /* value of the solution */
+	int* id;  		     /* particle id */
+};
+
 class Swarm {
 
 protected:
@@ -50,7 +56,7 @@ public:
 	double computeOmega2(Configuration* config);
 	double computeOmega3(Configuration* config);
 	double computeAvgVelocity(Configuration* config);
-	void rankParticles(SimplifySwarm* particles);
+	//void rankParticles(SimplifySwarm* particles);
 
 	// GlobalBest particle
 	Solution getGlobalBest();
@@ -82,6 +88,12 @@ public:
 	void updateTopologyConnections(Configuration* config, long previous_size, long int iteration);
 	void addParticlesInLastLevel(int first, int last, int branching);
 	void updateHierarchical(int branching, long previous_size);
+
+	//Utils
+	void rankParticles(vector<SimplifySwarm> &sSwarm);
+	void mergeSort(ssArray* arr, int l, int r);
+	void merge(ssArray* arr, int l, int m, int r);
+
 
 };
 

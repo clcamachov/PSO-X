@@ -14,11 +14,23 @@
 
 using namespace std;
 
+///* Simplified swarm structure */
+//struct SimplifySwarm {
+//	long double* eval;  /* value of the solution */
+//	int* id;  			/* particle id */
+//};
+
 /* Simplified swarm structure */
 struct SimplifySwarm {
-	long double* eval;  /* value of the solution */
-	int* id;  			/* particle id */
+	long double eval;  /* value of the solution */
+	int id;  		   /* particle id */
 };
+
+///* Simplified swarm structure */
+//struct SimplifySwarmArray {
+//	long double* eval;  /* value of the solution */
+//	int* id;  		   /* particle id */
+//};
 
 /* Data structure to organize particle hierarchically */
 struct Node { // Represents a node of an n-ary tree
