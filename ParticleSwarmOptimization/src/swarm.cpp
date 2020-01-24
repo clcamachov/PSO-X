@@ -42,7 +42,6 @@ vector<SimplifySwarm> simpSwarm;
 vector<vector< int > > hierarchy;
 //int** hierarchy;							//tree structure for the hierarchical model of influence
 int lastLevelComplete = 0;					//global variable for the hierarchy
-int* Informants;							//variable length array that contains the ID of informants of a particle
 //struct SimplifySwarm rankedSwarm;			//ranked FI model of influence
 vector<SimplifySwarm> rankedSwarm;			//ranked FI model of influence
 bool modInfRanked = false;					//flag to indicate that the rankedSwarm structure was used and delete it

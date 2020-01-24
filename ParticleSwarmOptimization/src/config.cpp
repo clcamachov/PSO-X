@@ -425,7 +425,7 @@ void Configuration::setDefaultParameters(){
 	/** NPPDistribution **/
 	distributionNPP = DIST_RECTANGULAR;		//distribution of next possible positions
 	operator_q = Q_STANDARD;				//q_operator in simple dynamics PSO
-	randNeighbor = false;					//chose a random neighbor as p2 in operator_q
+	randNeighbor = true;					//chose a random neighbor as p2 in operator_q
 
 	/** Velocity rules **/
 	vRule = VEL_STANDARD;					//use to select a specific velocity update formula

@@ -67,15 +67,15 @@ double** Problem::getRotation_matrix(){
 void Problem::printProblem_results(){
 
 	cout << "Optimum:\t" << scientific << getProblemOptimum() << endl;
-	if(config->getCompetitionID() == CEC05) {
-		if (config->getProblemID() < 14){
-			//cout << "Optimum solution vector:" << endl;
-			cout << "[ " ;
-			for(long int i=0; i<config->getProblemDimension(); i++){
-				cout << scientific << shift_vector[i] << "  ";
-			}
-			cout << " ]" << endl;
-		}
+//	if(config->getCompetitionID() == CEC05) {
+//		if (config->getProblemID() < 14){
+//			//cout << "Optimum solution vector:" << endl;
+//			cout << "[ " ;
+//			for(long int i=0; i<config->getProblemDimension(); i++){
+//				cout << scientific << shift_vector[i] << "  ";
+//			}
+//			cout << " ]" << endl;
+//		}
 //		else {
 //			switch(config->getProblemID()){
 //			case BASIC_HYBRIDCOMPOSITION1:
@@ -99,33 +99,33 @@ void Problem::printProblem_results(){
 //			break;
 //			}
 //		}
-	}
-	else if (config->getCompetitionID() == CEC14) {
-		//cout << "Optimum solution vector:" << endl;
-		cout << "[ " ;
-		for(long int i=0; i<config->getProblemDimension(); i++){
-			cout << scientific << shift_vector[i] << "  ";
-		}
-		cout << " ]" << endl;
-	}
-	else if (config->getCompetitionID() == SOFT_COMPUTING && vID != BASIC) {
-		//cout << "Optimum solution vector:" << endl;
-		cout << "[ " ;
-		for(long int i=0; i<config->getProblemDimension(); i++){
-			cout << scientific << shift_vector[i] << "  ";
-		}
-		cout << " ]" << endl;
-	}
-	else if (config->getCompetitionID() == MIXTURE){
-		if (config->getProblemID() < 40){
-			//cout << "Optimum solution vector:" << endl;
-			cout << "[ " ;
-			for(long int i=0; i<config->getProblemDimension(); i++){
-				cout << scientific << shift_vector[i] << "  ";
-			}
-			cout << " ]" << endl;
-		}
-	}
+//	}
+//	else if (config->getCompetitionID() == CEC14) {
+//		//cout << "Optimum solution vector:" << endl;
+//		cout << "[ " ;
+//		for(long int i=0; i<config->getProblemDimension(); i++){
+//			cout << scientific << shift_vector[i] << "  ";
+//		}
+//		cout << " ]" << endl;
+//	}
+//	else if (config->getCompetitionID() == SOFT_COMPUTING && vID != BASIC) {
+//		//cout << "Optimum solution vector:" << endl;
+//		cout << "[ " ;
+//		for(long int i=0; i<config->getProblemDimension(); i++){
+//			cout << scientific << shift_vector[i] << "  ";
+//		}
+//		cout << " ]" << endl;
+//	}
+//	else if (config->getCompetitionID() == MIXTURE){
+//		if (config->getProblemID() < 40){
+//			//cout << "Optimum solution vector:" << endl;
+//			cout << "[ " ;
+//			for(long int i=0; i<config->getProblemDimension(); i++){
+//				cout << scientific << shift_vector[i] << "  ";
+//			}
+//			cout << " ]" << endl;
+//		}
+//	}
 }
 
 /* get a random number in the range [lower_bound, upper_bound] */
