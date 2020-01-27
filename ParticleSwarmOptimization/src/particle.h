@@ -59,7 +59,7 @@ public:
 	vector < int > InformantsPos;
 	Particle ();  														/* empty constructor */
 	~Particle();  														/* destructor */
-	Particle (Problem* problem, Configuration* config, int identifier);	/* constructor */
+	Particle (Problem* problem, Configuration* config, int identifier, long int iteration);	/* constructor */
 	Particle (const Particle &p);  										/* copy constructor */
 	Particle& operator= (const Particle& p);  							/* overriding of '=' */
 
@@ -92,16 +92,14 @@ public:
 	double getMinVelLimit();
 	double getMaxVelLimit();
 
-	void initializeUniform();
+	//Initial position
+	void initUniform();
+	void initToModel();
+	void initializePosition(int initType, int popCS, long int initialPopSize);
 	void printPosition();
 	void printNeighborByID(int id);
 
-//	double ** computeSubtractionPerturbationRotation(int DNPP, double vect_PbestMinusPosition[][], int &numInformants, int *theInformants, double *** rndMatrix, int RmatrixType,
-//			bool pBestIntheInformants, int pertubType, double alpha_t, double l_value);
-//	void getRectangularDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition, int modelOfInflu);
-//	void getSphericalDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition, int modelOfInflu);
-//	void getAdditiveStochasticDNPP(double * vect_distribution, int numInformants, int *theInformants, bool pBestIntheInformants, double ** vect_PbestMinusPosition, int modelOfInflu, bool randNeighbor, int operatorQ);
-
+	//Velocity and position computation
 	void computeSubtractionPerturbationRotation(int DNPP, vector< vector<double> > &vect_PbestMinusPosition, int &numInformants,
 			int RmatrixType, bool pBestIntheInformants, int pertubType, double alpha_t, double l_value);
 	void getRectangularDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
@@ -110,7 +108,6 @@ public:
 			vector< vector< double> > &vect_PbestMinusPosition, int modelOfInflu);
 	void getAdditiveStochasticDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
 			vector< vector< double> > &vect_PbestMinusPosition, bool randNeighbor, int operatorQ);
-
 
 	int getRandomNeighbor();
 	int getRandomInformantPosition(int numInformants, bool pBestIntheInformants);

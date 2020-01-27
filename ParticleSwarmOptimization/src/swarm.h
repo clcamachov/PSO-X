@@ -84,7 +84,7 @@ public:
 
 	//Population size
 	void resizeSwarm(Problem* problem, Configuration* config, long int iteration);
-	void addParticles(Problem* problem, Configuration* config, int numOfParticles);
+	void addParticles(Problem* problem, Configuration* config, int numOfParticles, long int iteration);
 	void updateTopologyConnections(Configuration* config, long previous_size, long int iteration);
 	void addParticlesInLastLevel(int first, int last, int branching);
 	void updateHierarchical(int branching, long previous_size);

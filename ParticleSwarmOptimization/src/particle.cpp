@@ -43,7 +43,7 @@ Particle::Particle(){
 }
 
 /* Constructor*/
-Particle::Particle (Problem* problem, Configuration* config, int identifier){
+Particle::Particle (Problem* problem, Configuration* config, int identifier, long int iteration){
 
 	this->problem = problem;
 	size= problem->getProblemDimension();
@@ -72,7 +72,7 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier){
 	inertia = config->getOmega1();
 
 	//cout << "Particle " << id << " : [ ";
-	initializeUniform();
+	initializePosition(config->getParticleInitType(), config->getPopulationCS(), iteration);
 
 	//printPosition();
 	init = true;
@@ -177,8 +177,8 @@ Particle::~Particle(){
 }
 
 
-/* Initialize particle */
-void Particle::initializeUniform(){
+/* Initialize particle using uniformly random values */
+void Particle::initUniform(){
 	for(int i=0; i<size; i++){
 		current.x[i] = problem->getRandomX(); //random values within the bounds of the function
 		pbest.x[i]=current.x[i];
@@ -186,6 +186,33 @@ void Particle::initializeUniform(){
 	}
 	computeEvaluation();
 }
+
+/* Initialize particle using a model (as in Incremental PSO) */
+void Particle::initToModel(){
+	for (int i=0; i<size; i++){
+		current.x[i] = current.x[i] + problem->getRandom01()*(gbest.x[i]-current.x[i]);
+	}
+	computeEvaluation();
+}
+
+void Particle::initializePosition(int initType, int popCS, long int iteration){
+	switch (initType) {
+	case PARTICLE_INIT_RANDOM:
+		initUniform();
+		break;
+	case PARTICLE_INIT_MODEL:{ //Only available for dynamic PopCS and after the first iteration
+		if (popCS != POP_CONSTANT && iteration > 0){
+			initUniform();
+			initToModel();
+		}
+	}
+	break;
+	default:
+		initUniform();
+		break;
+	}
+}
+
 
 void Particle::setVelocityLimits(Configuration* config){
 	if((config->getProblemID() == 6 || config->getProblemID() == 24) && (config->getCompetitionID() == 0)){
@@ -1246,41 +1273,6 @@ int Particle::getRandomNonAdjacentNeighborID(Configuration* config){
 		return -1;
 }
 
-//int Particle::getParticle_gBestID(){
-//	double aux_eval = this->gbest.eval;
-//	int best= this->id;
-//
-//	//Check the neighborhood
-//	for(unsigned int i=0; i<this->neighbours.size(); i++){
-//		if(aux_eval > this->neighbours[i]->getPbestEvaluation()){
-//			best = this->neighbours[i]->getID();
-//		}
-//	}
-//	return best;
-//}
-
-///*Check the neighborhood for the best particle */
-//void Particle::checkNeibourhood(){
-//	double aux_eval;
-//	int best=-1;
-//
-//	//Check first personal best
-//	if(pbest.eval < gbest.eval){
-//		updateGlobalBest(pbest.x, pbest.eval);
-//	}
-//	//Check after the rest of the neighborhood
-//	aux_eval=gbest.eval;
-//	for(unsigned int i=0; i<neighbours.size();i++){
-//		if(aux_eval > neighbours[i]->getPbestEvaluation()){
-//			best = i;
-//		}
-//	}
-//
-//	//New best particle in the neighborhood
-//	if(best!=-1)
-//		updateGlobalBest(neighbours[best]->getPbestPosition(), neighbours[best]->getPbestEvaluation());
-//}
-
 //double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf, double socInf, double pos, double additionalVal){
 //	double new_vel = 0.0;
 //
@@ -1373,218 +1365,5 @@ int Particle::getRandomNonAdjacentNeighborID(Configuration* config){
 //	//----------------------------------- Step 3. Random vector
 //	for (int i=0;i<size;i++) {
 //		V2[i] = radius*r*V2[i]/length;
-//	}
-//}
-
-
-//// The computation of the radius and the random point in the HyperSphere
-//// was taken from the publicly available code of Maurice Clerc - Standard PSO 2011
-//// https://www.particleswarm.info/Programs.html
-//void Particle::getSphericalDNPP(double * vect_distribution, int &numInformants, int *theInformants, double *** rndMatrix, int RmatrixType,
-//		bool pBestIntheInformants, int pertubType, double alpha_t, double l_value){
-//	double V2[size], V1[size]; //working space arrays
-//	double G[size];	//center of the sphere
-//	double l[size]; //particle's Gbest
-//	double radius = 0.0;	//radius G-X
-//	double pw=1./(double)size;
-//	double * vect_PbestMinusPosition[numInformants];
-//	bool increase_numInformants = false;
-//
-//	//Print
-//	//print all neighbors
-//	//cout << "\tParticleID [" << this->id << "] -- pBest is in theInformants [" << pBestIntheInformants << "]" << endl; //remove
-//	//cout << "\t#Informants: " << numInformants << endl;
-//	//	cout << "\tInformants rec: [ ";
-//	//	for (int j=0;j<numInformants;j++){
-//	//		cout << theInformants[j] << " ";
-//	//	}
-//	//	cout << "]" << endl;
-//	//
-//
-//	//1.- Check if the particle is pBest == gBest
-//	if (this->id == this->gBestID && pBestIntheInformants){
-//		cout << "\t\t ... using reinitialization to model (new position is somewhere around gBest)--" << endl;
-//		for (int i=0; i<size; i++)
-//			l[i] = problem->getRandomX() + problem->getRandom01()*(gbest.x[i]-current.x[i]);
-//	}
-//
-//	//2.- Rotate and perturb
-//	//Create a temporary structure
-//	for (int i=0; i<numInformants; i++)
-//		vect_PbestMinusPosition[i] = new double [size];
-//
-//	//Get the p^k-x^i of all Informants and then add pBest as the end of the Array
-//	if (!pBestIntheInformants){
-//		//Copy the informants in a temporary structure
-//		for (int j=0; j<numInformants-1; j++){
-//			setPerturbationMagnitude(pertubType, current.x, neighbours[theInformants[j]]->pbest.x, alpha_t, l_value); //informant-wise
-//			for (int i=0; i<size; i++){
-//				vect_PbestMinusPosition[j][i] = (applyPerturbation(pertubType, neighbours.at(theInformants[j])->pbest.x[i])	-current.x[i]); //vector to be rotated
-//				setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
-//			}
-//		}
-//		//Add pBest at the end of the Array
-//		setPerturbationMagnitude(pertubType, current.x, pbest.x, alpha_t, l_value); //informant-wise
-//		for (int i=0; i<size; i++){
-//			vect_PbestMinusPosition[numInformants-1][i] = (applyPerturbation(pertubType, pbest.x[i])-current.x[i]); //vector to be rotated
-//			setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
-//		}
-//	}
-//	else {
-//		//Note that in this case, when gBest = pBest, we would be using only one of these two informants. However, for a model of influence such as
-//		//best-of-neighborhood, this will actually be limiting the number of informants to 1, which can't be little information to create the random
-//		//vector in hypersphere. Therefore, we use l[], which is a position close to gBest created using the method propose in Incremental PSO.
-//		//		if (this->id == this->gBestID){
-//		//			vect_PbestMinusPosition[numInformants] = new double [size];
-//		//			increase_numInformants = true;
-//		//		}
-//		cout << "\t      Final set:[ ";
-//		//copy the informants in a temporary structure
-//		for (int j=0; j<numInformants; j++){
-//			//use the right gBest
-//			if ((neighbours.at(theInformants[j])->getID() == this->gBestID) && (this->id == this->gBestID)){
-//				//use gBest in the form of l[]
-//				cout << neighbours.at(theInformants[j])->getID() << " ";
-//				setPerturbationMagnitude(pertubType, current.x, l, alpha_t, l_value); //informant-wise
-//				for (int i=0; i<size; i++){
-//					vect_PbestMinusPosition[j][i] = (applyPerturbation(pertubType, l[i])-current.x[i]);  //vector to be rotated
-//					setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
-//				}
-//				//create one extra space in vect_PbestMinusPosition for l[]
-//				vect_PbestMinusPosition[numInformants] = new double [size];
-//				increase_numInformants = true;
-//				//add pBest at the end of the array
-//				cout << neighbours.at(theInformants[j])->getID() << " ";
-//				setPerturbationMagnitude(pertubType, current.x, pbest.x, alpha_t, l_value); //informant-wise
-//				for (int i=0; i<size; i++){
-//					vect_PbestMinusPosition[numInformants][i] = (applyPerturbation(pertubType, pbest.x[i])-current.x[i]);  //vector to be rotated
-//					setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
-//				}
-//			}
-//			else{
-//				cout << neighbours.at(theInformants[j])->getID() << " ";
-//				setPerturbationMagnitude(pertubType, current.x, neighbours[theInformants[j]]->pbest.x, alpha_t, l_value); //informant-wise
-//				for (int i=0; i<size; i++){
-//					vect_PbestMinusPosition[j][i] = (applyPerturbation(pertubType, neighbours.at(theInformants[j])->pbest.x[i])-current.x[i]);  //vector to be rotated
-//					setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
-//				}
-//			}
-//		}
-//		cout << "]" << endl;
-//		if (increase_numInformants)
-//			numInformants++;
-//	}
-//
-//	//Rotate each vector
-//	computeRndMatrix(rndMatrix, RmatrixType); //we need to compute this for each informant
-//	for (int j=0; j<numInformants; j++){ //the rest of informants
-//		multiplyVectorByRndMatrix(vect_PbestMinusPosition[j], rndMatrix, RmatrixType);
-//		if (j<numInformants) //avoid computing a new random matrix in the last iteration
-//			computeRndMatrix(rndMatrix, RmatrixType); //compute a random matrix for the next informant
-//	}
-//
-//	//Compute G (center of the sphere) and V1 (radius of each dimension)
-//	for (int i=0; i<size; i++){
-//		double R = 0.0;
-//		for (int j=0; j<numInformants; j++){
-//			if (pBestIntheInformants && (this->id != this->gBestID))
-//				//TODO: get phi_1 and phi_2 according to the strategy chosen
-//				if (this->id == neighbours.at(theInformants[j])->getID())
-//					R += current.x[i] + (phi_1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
-//				else
-//					R += current.x[i] + (phi_2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
-//			else
-//				if (j == numInformants-1)
-//					R += current.x[i] + (phi_1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
-//				else
-//					R += current.x[i] + (phi_2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
-//		}
-//		G[i] = (current.x[i] + R )/(numInformants + 1);
-//		radius += pow(abs(current.x[i] - G[i]), 2);
-//		V1[i] = G[i] - current.x[i];
-//	}
-//	radius = sqrt(radius); //this is the actual radius of the hyper-sphere
-//
-//	// Get a random vector in the hyper-sphere H(G||G-X||)
-//	// ----------------------------------- Step 1.  Direction
-//	double length=0.0;
-//	for (int i=0;i<size;i++) {
-//		V2[i] = RNG::randGauss(1.0);
-//		length += pow(V2[i],2);
-//	}
-//	length=sqrt(length);
-//	//----------------------------------- Step 2. Random radius
-//	// Random uniform distribution on the sphere
-//	double r = pow(RNG::randVal(0.0,1.0),pw);
-//
-//	//----------------------------------- Step 3. Random vector
-//	for (int i=0;i<size;i++) {
-//		V2[i] = radius*r*V2[i]/length;
-//	}
-//
-//	//Return a vector from a hyperspherical distribution with center in G
-//	for (int i=0;i<size;i++) {
-//		vect_distribution[i] = V2[i] + V1[i];
-//	}
-//}
-
-//void Particle::getRectangularDNPP(double * vect_distribution, int numInformants, int *theInformants, double *** rndMatrix, int RmatrixType,
-//		bool pBestIntheInformants, int pertubType, double alpha_t, double l_value){
-//	double * vect_PbestMinusPosition[numInformants];
-//
-//	//Create a temporary structure
-//	for (int i=0; i<numInformants; i++)
-//		vect_PbestMinusPosition[i] = new double [size];
-//
-//	//Get the p^k-x^i of all Informants and then add pBest as the end of the Array
-//	if (!pBestIntheInformants){
-//		//Copy the informants in a temporary structure
-//		for (int j=0; j<numInformants-1; j++){
-//			setPerturbationMagnitude(pertubType, current.x, neighbours[theInformants[j]]->pbest.x, alpha_t, l_value); //informant-wise
-//			for (int i=0; i<size; i++){
-//				vect_PbestMinusPosition[j][i] = (applyPerturbation(pertubType, neighbours.at(theInformants[j])->pbest.x[i])	-current.x[i]); //vector to be rotated
-//				setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
-//			}
-//		}
-//		//Add pBest at the end of the Array
-//		setPerturbationMagnitude(pertubType, current.x, pbest.x, alpha_t, l_value); //informant-wise
-//		for (int i=0; i<size; i++){
-//			vect_PbestMinusPosition[numInformants-1][i] = (applyPerturbation(pertubType, pbest.x[i])-current.x[i]); //vector to be rotated
-//			setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
-//		}
-//	}
-//	else {
-//		//Copy the informants in a temporary structure
-//		for (int j=0; j<numInformants; j++){
-//			setPerturbationMagnitude(pertubType, current.x, neighbours[theInformants[j]]->pbest.x, alpha_t, l_value); //informant-wise
-//			for (int i=0; i<size; i++){
-//				vect_PbestMinusPosition[j][i] = (applyPerturbation(pertubType, neighbours.at(theInformants[j])->pbest.x[i])-current.x[i]);  //vector to be rotated
-//				setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
-//			}
-//		}
-//	}
-//	//Rotate each vector
-//	computeRndMatrix(rndMatrix, RmatrixType); //we need to compute this for each informant
-//	for (int j=0; j<numInformants; j++){ //the rest of informants
-//		multiplyVectorByRndMatrix(vect_PbestMinusPosition[j], rndMatrix, RmatrixType);
-//		if (j<numInformants) //avoid computing a new random matrix in the last iteration
-//			computeRndMatrix(rndMatrix, RmatrixType); //compute a random matrix for the next informant
-//	}
-//
-//	//Compute vect_distribution
-//	for (int i=0; i<size; i++){
-//		for (int j=0; j<numInformants; j++){
-//			if (pBestIntheInformants)
-//				//TODO: get phi_1 and phi_2 according to the strategy chosen
-//				if (this->id == neighbours.at(theInformants[j])->getID())
-//					vect_distribution[i] += current.x[i] + (phi_1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
-//				else
-//					vect_distribution[i] += current.x[i] + (phi_2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_1
-//			else
-//				if (j == numInformants-1)
-//					vect_distribution[i] += current.x[i] + (phi_1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
-//				else
-//					vect_distribution[i] += current.x[i] + (phi_2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_1
-//		}
 //	}
 //}

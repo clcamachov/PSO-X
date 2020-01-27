@@ -248,6 +248,9 @@
 #define POP_LADDERED					1
 #define POP_INCREMENTAL					2
 
+#define PARTICLE_INIT_RANDOM 			0
+#define PARTICLE_INIT_MODEL 			1
+
 class Configuration {
 
 private:
@@ -271,6 +274,8 @@ private:
 	int populationCS;
 	long int initialPopSize;
 	long int finalPopSize;
+	int particlesToAdd;
+	int p_intitType;		//new particle initialization type
 
 	//Acceleration coefficients
 	double accelCoeffCS;
@@ -357,6 +362,10 @@ public:
 	int getPopulationCS();
 	long int getInitialPopSize();
 	long int getFinalPopSize();
+	int getParticlesToAdd();
+	void setParticlesToAdd(int new_pool_size);
+	int getParticleInitType();
+	//void setParticleInitType(int new_pool_size);
 
 	//Velocity
 	void setVelocityRule(int rule);

@@ -76,6 +76,14 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			finalPopSize = atol(argv[i+1]);
 			i++;
 			//cout << "\n finalPopSize has been received \n";
+		} else if (strcmp(argv[i], "--particlesToAdd") == 0){
+			particlesToAdd = atoi(argv[i+1]);
+			i++;
+			//cout << "\n finalPopSize has been received \n";
+		} else if (strcmp(argv[i], "--pIntitType") == 0){
+			p_intitType = atoi(argv[i+1]);
+			i++;
+			//cout << "\n finalPopSize has been received \n";
 		} else if (strcmp(argv[i], "--inertia") == 0){
 			inertia = atof(argv[i+1]);
 			i++;
@@ -100,7 +108,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			finalPhi1 = atof(argv[i+1]);
 			i++;
 			//cout << "\n finalPhi1 has been received \n";
-		} else if (strcmp(argv[i], "--initPhi2") == 0) {
+		} else if (strcmp(argv[i], "--initialPhi2") == 0) {
 			initialPhi2 = atof(argv[i+1]);
 			i++;
 			//cout << "\n initPhi2 has been received \n";
@@ -288,7 +296,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	if (populationCS != POP_CONSTANT && max_iterations == -1)
 		max_iterations = (int)floor((double)maxFES/finalPopSize);
 	if (populationCS == POP_CONSTANT && max_iterations == -1)
-			max_iterations = (int)floor((double)maxFES/particles);
+		max_iterations = (int)floor((double)maxFES/particles);
 
 	return(true);
 }
@@ -383,6 +391,8 @@ void Configuration::setDefaultParameters(){
 	populationCS = POP_CONSTANT;			//population control strategy
 	initialPopSize = 2;						//initial population
 	finalPopSize= 1000;						//final or maximum number of individuals allowed
+	particlesToAdd = 1;						//number of particles added in a non-constant PopCS
+	p_intitType = PARTICLE_INIT_MODEL;     //type of initialization of particles in a non-constant PopCS
 
 	/** Acceleration coefficients **/
 	accelCoeffCS = AC_CONSTANT;				//acceleration coefficients control strategy
@@ -411,10 +421,10 @@ void Configuration::setDefaultParameters(){
 	useVelClamping = true;					//clamp velocity (step size)
 	omega2CS = O2_EQUAL_TO_O1;				//omega2 control strategy (see GVU formula)
 	omega3CS = O3_EQUAL_TO_O1;				//omega3 control strategy (see GVU formula)
-	iw_par_eta = 1;								//from 0.1 to 1 in IW_SELF_REGULATING - 11
-	iw_par_deltaOmega = 0.1;						//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
-	iw_par_alpha_2 = 0.5;							//from 0 to  1 in IW_CONVERGE_BASED - 16
-	iw_par_beta_2 = 0.5;							//from 0 to  1 in IW_CONVERGE_BASED - 16
+	iw_par_eta = 1;							//from 0.1 to 1 in IW_SELF_REGULATING - 11
+	iw_par_deltaOmega = 0.1;				//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
+	iw_par_alpha_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
+	iw_par_beta_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
 
 
 	/** Perturbation **/
@@ -460,10 +470,15 @@ void Configuration::printParameters(){
 	//<< "  populationCS      " << getModelOfInfluence() << "\n"
 	switch (getPopulationCS()){
 	case POP_CONSTANT: 		cout	<< "  populationCS:      POP_CONSTANT\n"; break;
-	case POP_LADDERED: 		cout	<< "  populationCS:      POP_LADDERED\n"; break;
+	case POP_LADDERED: 		cout	<< "  populationCS:      POP_LADDERED\n"
+			<< "  initialPopSize:    " << initialPopSize << "\n"
+			<< "  finalPopSize:      " << finalPopSize << "\n"
+			<< "  p_intitType:       " << getParticleInitType() << "\n"; break;
 	case POP_INCREMENTAL:	cout	<< "  populationCS:      POP_INCREMENTAL\n"
 			<< "  initialPopSize:    " << initialPopSize << "\n"
-			<< "  finalPopSize:      " << finalPopSize << "\n"; break;
+			<< "  finalPopSize:      " << finalPopSize << "\n"
+			<< "  particlesToAdd:    " << getParticlesToAdd() << "\n"
+			<< "  p_intitType:       " << getParticleInitType() << "\n"; break;
 	}
 	//<< "  modelOfInfluence  " << getModelOfInfluence() << "\n"
 	switch (getModelOfInfluence()){
@@ -698,6 +713,15 @@ long int Configuration::getInitialPopSize(){
 }
 long int Configuration::getFinalPopSize(){
 	return finalPopSize;
+}
+void Configuration::setParticlesToAdd(int new_pool_size){
+	particlesToAdd = new_pool_size;
+}
+int Configuration::getParticlesToAdd(){
+	return particlesToAdd;
+}
+int Configuration::getParticleInitType(){
+	return p_intitType;
 }
 short Configuration::getOmega1CS(){
 	return omega1CS;

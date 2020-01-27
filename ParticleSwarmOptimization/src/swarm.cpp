@@ -68,25 +68,8 @@ Swarm::Swarm(){
 
 Swarm::~Swarm(){
 	if (init) {
-		delete [] global_best.x;
-		//delete [] Informants;
-
-		//		if (ranked){
-		//			//free memory reserved to the use rankings
-		//			delete [] simpSwarm.id;
-		//			delete [] simpSwarm.eval;
-		//		}
-		//		if (hierarchical){
-		//			for (int r=0; r<=lastLevelComplete+1; r++){
-		//				delete [] hierarchy[r];
-		//			}
-		//			delete [] hierarchy;
-		//		}
-		//		if (modInfRanked){
-		//			delete [] rankedSwarm.id;
-		//			delete [] rankedSwarm.eval;
-		//		}
 		// Memory allocated dynamically
+		delete [] global_best.x;
 		for (long int i=0;i<size;i++)
 			delete swarm.at(i);
 	}
@@ -106,7 +89,7 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 	global_best.eval=LDBL_MAX;
 
 	for (long int i=0; i<size; i++) {
-		Particle* aParticle = new Particle(problem, config, i);
+		Particle* aParticle = new Particle(problem, config, i, 0);
 		swarm.push_back(aParticle);
 
 		if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
@@ -439,10 +422,10 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 		//		long int initialPopSize; config->getInitialPopSize()
 		break;
 	case POP_INCREMENTAL:
-		particleToAdd = 1; //Here instead of 1 we could use a different value
+		particleToAdd = config->getParticlesToAdd(); //Here instead of 1 we could use a different value
 		//Add one particle per iteration
 		if (previous_size+particleToAdd <= config->getFinalPopSize()){
-			addParticles(problem, config, particleToAdd);
+			addParticles(problem, config, particleToAdd, iteration);
 			updateTopologyConnections(config, previous_size, iteration);
 			//RNG::initializePermutation(config->getSwarmSize());
 		}
@@ -450,7 +433,7 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 			//See if we can add the difference
 			particleToAdd = config->getFinalPopSize()-previous_size;
 			if ( particleToAdd > 0){
-				addParticles(problem, config, particleToAdd);
+				addParticles(problem, config, particleToAdd, iteration);
 				updateTopologyConnections( config, previous_size, iteration);
 				//RNG::initializePermutation(config->getSwarmSize());
 			}
@@ -650,12 +633,12 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 }
 
 
-void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParticles){
+void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParticles, long int iteration){
 	if ((long)swarm.size() <= config->getFinalPopSize()){
 		//Add particles to the swarm
 		int current_size = swarm.size();
 		for (long int i=current_size; i<current_size+numOfParticles; i++){
-			Particle* aParticle = new Particle(problem, config, i);
+			Particle* aParticle = new Particle(problem, config, i, iteration);
 			swarm.push_back(aParticle);
 			if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
 				updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
@@ -1331,23 +1314,6 @@ double Swarm::computeAvgVelocity(Configuration* config){
 	return (sumVelocity/(swarm.size()*config->getProblemDimension()));
 }
 
-//void Swarm::rankParticles(SimplifySwarm* sS){
-//	//The ranking are obtained via the mergesort algorithm implemented in Utils.cpp
-//
-//	//Copy particle's id and evaluation in simpSwarm
-//	for (unsigned int i=0;i<swarm.size();i++){
-//		sS->id[i] = swarm.at(i)->getID();
-//		sS->eval[i] = swarm.at(i)->getCurrentEvaluation();
-//	}
-//	//Sort simpSwarm by the value of particles' evaluation
-//	Utils::mergeSort(sS, 0, swarm.size()-1); //mergeSort(array, left(LOWER) index, right (UPPER) index);
-//
-//	//Set particles' rank in the swarm
-//	for (unsigned int i=0;i<swarm.size();i++){
-//		swarm.at(sS->id[i])->setRanking(i+1);
-//	}
-//}
-
 void Swarm::rankParticles(vector<SimplifySwarm> &sSwarm){
 	//The ranking are obtained via the mergesort algorithm implemented in Utils.cpp
 
@@ -1806,242 +1772,3 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 	}
 	return config->getOmega1();
 }
-
-
-///* Copy constructor */
-//Swarm::Swarm (const Swarm &s, Configuration* config){
-//	problem = s.problem;
-//	size = s.size;
-//
-//	/*Initialize global best*/
-//	if (! init) {
-//		global_best.x = new double[config->getProblemDimension()];
-//		for(unsigned int i=0;i<config->getProblemDimension();i++)
-//			global_best.x[i] = 0;
-//		global_best.eval = LDBL_MAX;
-//		for (long int i=0; i<size; i++) {
-//			Particle* aParticle = new Particle(problem, config, i);
-//			swarm.push_back(aParticle);
-//
-//			if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
-//				updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
-//				best_particle = swarm.at(i);
-//			}
-//		}
-//		hierarchical = false;
-//
-//		//Select one of the available topologies
-//		if (config->getTopology() == TOP_FULLYCONNECTED) {
-//			createFullyConnectedTopology();
-//		} else if (config->getTopology() == TOP_HIERARCHICAL) {
-//			hierarchical = true;
-//			createHierarchical(config->getBranchingDegree());
-//		} else if (config->getTopology() == TOP_RING) {
-//			createRingTopology();
-//		} else if (config->getTopology() == TOP_WHEEL) {
-//			createWheelTopology();
-//		} else if (config->getTopology() == TOP_RANDOM) {
-//			createRandomEdge();
-//		} else if (config->getTopology() == TOP_TIMEVARYING) {
-//			createFullyConnectedTopology();
-//			if (config->getPopulationCS() == POP_CONSTANT)
-//				config->setTopologyUpdatePeriod((int)floor((double)config->getTopologySchedule()/(config->getSwarmSize()-3)));
-//			else
-//				config->setTopologyUpdatePeriod((int)floor((double)config->getTopologySchedule()/(config->getFinalPopSize()-3)));
-//			//RNG::initializePermutation(config->getSwarmSize());
-//		} else if (config->getTopology() == TOP_VONNEUMANN) {
-//			createVonNeumannTopology();
-//		}
-//		else {
-//			cerr << "Wrong topology" << endl;
-//			exit (-1);
-//		}
-//
-//		//rankings
-//		if (config->getOmega1CS() == IW_RANKS_BASED || config->getOmega1CS() == IW_SUCCESS_BASED
-//				|| config->getOmega1CS() == IW_CONVERGE_BASED)
-//			ranked = true;
-//	}
-//	else {
-//		//Copy swarm
-//		for (long int i=0; i<size; i++) {
-//			swarm.push_back(s.swarm.at(i));
-//		}
-//		//Copy global_best
-//		for(unsigned int i=0;i<config->getProblemDimension();i++)
-//			global_best.x[i] = s.global_best.x[i];
-//		global_best.eval=s.global_best.eval;
-//
-//		best_particle = s.best_particle;
-//		hierarchical = s.hierarchical;
-//
-//		for (long int i=0; i<size; i++) {
-//			for (unsigned int j= 0; j<swarm.at(i)->neighbours.size(); j++)
-//				swarm.at(i)->neighbours[j]=s.swarm.at(i)->neighbours[j];
-//		}
-//		ranked = s.ranked;
-//	}
-//	init = true;
-//}
-
-//int Swarm::getInformants(Configuration* config, int particleID, long int iteration){
-//	if (particleID != -1){
-//		//Best of neighborhood
-//		if (config->getModelOfInfluence() == MOI_BEST_OF_N){
-//			if (config->getTopology() == TOP_HIERARCHICAL){
-//				int Array_size = 0;		//variable to the the size of Informants
-//				int * TMP_Array;
-//				TMP_Array = new int[lastLevelComplete];
-//				getParticleParentsIDs(particleID, TMP_Array); //Get parents of the particle
-//				//cout << "\n\t\t parent nodes: " ;
-//				for (int i=0; i<=lastLevelComplete; i++){
-//					//cout << TMP_Array[i] << " ";
-//					if (TMP_Array[i] != -2){ //-2 indicates an empty position
-//						Array_size++;
-//					}
-//					else
-//						break;
-//				}
-//				//cout << "::[" <<  Array_size << "]";
-//				//This is the actual array with the ID of the informants
-//				if (iteration == 1 && particleID == 0)
-//					Informants = new int[Array_size];
-//				else {
-//					delete [] Informants;
-//					Informants = new int[Array_size];
-//				}
-//
-//				//We need to find the position index of the IDs in TMP_Array in the particles neighbors vector
-//				for (unsigned int i=0; i<swarm.at(particleID)->neighbours.size(); i++){
-//					for (int j=0; j<Array_size; j++)
-//						if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j])
-//							Informants[j] = i;
-//				}
-//				delete [] TMP_Array;
-//				//cout << "Size of Informants of " << particleID << " is " << 1 ;
-//				return 1;
-//			}
-//			else {
-//				if (iteration == 1 && particleID == 0) //allocate memory only first time
-//					Informants = new int [1];
-//				else {
-//					delete [] Informants;
-//					Informants = new int [1];
-//				}
-//				int bestID = swarm.at(particleID)->getgBestID();
-//				//We need to find the position index of the IDs in TMP_Array in the particles neighbors vector
-//				for (unsigned int i=0; i<swarm.at(particleID)->neighbours.size(); i++){
-//					if (swarm.at(particleID)->neighbours.at(i)->getID() == bestID)
-//						Informants[0] = i;
-//				}
-//				//cout << "Size of Informants: " << 1;
-//				return 1;
-//			}
-//		}
-//		//Fully informed
-//		else if (config->getModelOfInfluence() == MOI_FI) {
-//			if (config->getTopology() == TOP_HIERARCHICAL ){
-//				int Array_size = 0;		//variable to the the size of Informants
-//				int * TMP_Array;
-//				TMP_Array = new int[lastLevelComplete];
-//				getParticleParentsIDs(particleID, TMP_Array); //Get parents of the particle
-//				for (int i=0; i<=lastLevelComplete; i++){
-//					if (TMP_Array[i] != -2){ //-2 indicates an empty position
-//						Array_size++;
-//					}
-//					else
-//						break;
-//				}
-//				//This is the actual array with the ID of the informants
-//				if (iteration == 1 && particleID == 0)
-//					Informants = new int[Array_size];
-//				else {
-//					delete [] Informants;
-//					Informants = new int[Array_size];
-//				}
-//				//We need to find the position index of the IDs in TMP_Array in the particles neighbours vector
-//				for (unsigned int i=0; i<swarm.at(particleID)->neighbours.size(); i++){
-//					for (int j=0; j<Array_size; j++)
-//						if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j])
-//							Informants[j] = i;
-//				}
-//				delete [] TMP_Array;
-//				//swarm.at(particleID)->getBestOfNeibourhood(); //update particle's gbest
-//				//cout << "Size of Informants of " << particleID << " is " << Array_size ;
-//				return Array_size;
-//			}
-//			else {
-//				//cout << " ... So far, so good ..."; //remove
-//				//Since some topologies are dynamic, the size of informants may change from iteration to iteration
-//				if (iteration == 1 && particleID == 0)
-//					Informants = new int[swarm.at(particleID)->neighbours.size()];
-//				else {
-//					delete [] Informants;
-//					Informants = new int[swarm.at(particleID)->neighbours.size()];
-//				}
-//				for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
-//					Informants[i] = i; //we use the indexes of neighbors
-//				}
-//				//cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() ;
-//				return swarm.at(particleID)->neighbours.size();
-//			}
-//		}
-//		//Ranked fully informed
-//		else if (config->getModelOfInfluence() == MOI_RANKED_FI) {
-//			if (iteration == 1 && particleID == 0)
-//				Informants = new int[swarm.at(particleID)->neighbours.size()];
-//			else {
-//				delete [] Informants;
-//				Informants = new int[swarm.at(particleID)->neighbours.size()];
-//			}
-//
-//			//Container to sort the neighbors
-//			vector< vector<int> > TMP_vect;
-//			//Resize vector
-//			TMP_vect.resize((swarm.at(particleID)->neighbours.size()), vector<int>(2));
-//
-//			//This is the same as Fully informed
-//			for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
-//				TMP_vect.at(i).at(0) = i; ///we use the indexes of neighbours
-//				TMP_vect.at(i).at(1) = swarm.at(particleID)->neighbours.at(i)->getRanking();
-//			}
-//
-//			//we sort by the second column (see sortcol driver function above )
-//			sort(TMP_vect.begin(), TMP_vect.end(), sortcol);
-//
-//			//copy informants ID to Informants sorted
-//			for (unsigned int i=0; i<TMP_vect.size(); i++){ //rows
-//				Informants[i] = TMP_vect[i][0];
-//				TMP_vect[i].clear();
-//			}
-//			TMP_vect.clear();
-//
-//			//cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() ;
-//			return swarm.at(particleID)->neighbours.size();
-//		}
-//		else {
-//			cerr << "No model of influence matches the available options" << endl;
-//			exit (-1);
-//		}
-//	}
-//	else{
-//		//Ranked fully informed
-//		if (config->getModelOfInfluence() == MOI_RANKED_FI){
-//			//Implement ranks if particles are not using them already
-//			if (config->getOmega1CS() != IW_RANKS_BASED){
-//				if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
-//					if (!modInfRanked) //flag to delete the structure at the end
-//						modInfRanked = true;
-//					rankedSwarm.eval = new long double [config->getSwarmSize()];
-//					rankedSwarm.id = new int [config->getSwarmSize()];
-//					//Rank particles
-//					rankParticles(&rankedSwarm);
-//					//cout << "\nRanking swarm..." << endl;
-//				}
-//				else
-//					rankParticles(&rankedSwarm);
-//			}
-//		}
-//		return 0;
-//	}
-//}
