@@ -30,21 +30,21 @@ int	   k = 7;								//positive integer constant		IW_OSCILLATING - 9
 double simNumOfCos = 2.0*M_PI*((4*k)+6);	//								IW_OSCILLATING - 9
 double a = 1;								//small positive constant		IW_LOG_DEC - 10
 double omega_2 = 0;							//								IW_SELF_REGULATING - 11
-//double eta = 1;							//								IW_SELF_REGULATING - 11
 double idealVelocity;						//								IW_VELOCITY_BASED - 12
 double avVel;								//								IW_VELOCITY_BASED - 12
+//double eta = 1;							//								IW_SELF_REGULATING - 11
 //double deltaOmega = 0.1;					//small positive constant		IW_VELOCITY_BASED - 12
-//struct SimplifySwarm simpSwarm;			//								IW_RANKS_BASED - 14
-vector<SimplifySwarm> simpSwarm;
 //double alpha_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
 //double beta_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
+vector<SimplifySwarm> simpSwarm;
+
+
 /* Variable for the topology and model of influence */
 vector<vector< int > > hierarchy;
-//int** hierarchy;							//tree structure for the hierarchical model of influence
-int lastLevelComplete = 0;					//global variable for the hierarchy
-//struct SimplifySwarm rankedSwarm;			//ranked FI model of influence
 vector<SimplifySwarm> rankedSwarm;			//ranked FI model of influence
+int lastLevelComplete = 0;					//global variable for the hierarchy
 bool modInfRanked = false;					//flag to indicate that the rankedSwarm structure was used and delete it
+
 /* Variable for the perturbation strategies */
 int success = 15, failure = 5;				//success and failure thresholds for the additive rectangular perturbation
 int sc = 0, fc = 0;							//success and failure counters
@@ -196,11 +196,11 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
 			//Update best_particle (a.k.a Gbest) of the Swarm (not to be confused with the gBest of a particle)
 			Swarm::updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
-			best_particle = swarm[i];
+			best_particle = swarm.at(i);
 		}
 	}
 	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval, iteration);
-
+	//cout << "\n <<So far so good>>" << endl;
 }
 
 int Swarm::getInformants(Configuration* config, int particleID, long int iteration){
@@ -220,7 +220,6 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 					else
 						break;
 				}
-				//cout << "::[" <<  Array_size << "]";
 
 				//Clear the vector
 				swarm.at(particleID)->InformantsPos.clear();
@@ -231,8 +230,6 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 						if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j])
 							swarm.at(particleID)->InformantsPos.push_back(i);//	Informants[j] = i;
 				}
-				//delete [] TMP_Array;
-				//cout << "Size of Informants of " << particleID << " is " << 1 ;
 				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return 1;
 			}
@@ -247,7 +244,6 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 					if (swarm.at(particleID)->neighbours.at(i)->getID() == bestID)
 						swarm.at(particleID)->InformantsPos.push_back(i);
 				}
-				//cout << "Size of Informants: " << 1 ;
 				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return 1;
 			}
@@ -274,7 +270,6 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 						if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j])
 							swarm.at(particleID)->InformantsPos.push_back(i);
 				}
-				//cout << "Size of Informants of " << particleID << " is " << Array_size ;
 				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return Array_size;
 			}
@@ -287,7 +282,6 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
 					swarm.at(particleID)->InformantsPos.push_back(i); //we use the indexes of neighbors
 				}
-				//cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() ;
 				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return swarm.at(particleID)->InformantsPos.size();
 			}
@@ -319,7 +313,6 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 			}
 			TMP_vect.clear();
 
-			//cout << "Size of Informants is: " << swarm.at(particleID)->neighbours.size() ;
 			cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size(); ;
 			return swarm.at(particleID)->InformantsPos.size();;
 		}
@@ -350,64 +343,52 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 	}
 }
 
-
 void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations){
+	long int swarm_size;
+	config->getPopulationCS() == POP_CONSTANT ? swarm_size = swarm.size() : swarm_size = config->getFinalPopSize();
+//	cout << "\t\tvar::topologyUpdatePeriod:  " <<config->getTopologyUpdatePeriod() << endl;
+//	cout << "\t\tvar::tschedule: " << config->getTopologySchedule() << endl;
+
 	//Topology update: Following the progression n-2, n-3, ..., 2. (see esteps variable)
-	if ((iterations > 0) && (config->getEsteps() < swarm.size()-3) &&
-			(iterations%config->getTopologyUpdatePeriod() == 0) && config->getPopulationCS() == POP_CONSTANT){
+	if ((iterations > 0) &&	(iterations%config->getTopologyUpdatePeriod() == 0) &&
+			((config->getEsteps() < swarm_size-3 && config->getPopulationCS() == POP_CONSTANT)
+					|| ((config->getEsteps() > 0 && swarm.size() > 4 ) && config->getPopulationCS() != POP_CONSTANT))){
+
 		unsigned int removals = 0;
-		//cout << " --esteps " << config->getEsteps() << " --tschedule " << config->getTopologySchedule();
-		//cout << " --updatePeriod  " <<config->getTopologyUpdatePeriod() << endl;
-		//cout << " -- Update topology at iteration: " << iterations << " Target: " << swarm.size()-(2+config->getEsteps()) << endl;
 		RNG::shufflePermutation();
-		while(removals < swarm.size()-(2+config->getEsteps())){
-			for(unsigned int i=0;i<swarm.size();i++){
-				int particleIndex = RNG::getPermutationElement(i);
-				if (swarm.at(particleIndex)->getNeighborhoodSize() > 3 ){ //3 because a particle is a neighbor to itself
-					int neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
+		unsigned int target = swarm_size-(2+config->getEsteps());
 
-					//cout << " -- Erasing edge " << particleIndex << " <---> " << neighborID << endl;
-
-					swarm.at(particleIndex)->eraseNeighborbyID(neighborID);
-					swarm.at(neighborID)->eraseNeighborbyID(particleIndex);
-
-					removals++;
-				}
-				if (removals == swarm.size()-(2+config->getEsteps()))
-					break;
+		int averageConnections = 0;
+		if (config->getPopulationCS() != POP_CONSTANT){
+			for(unsigned int i=0; i<swarm.size(); i++){
+				averageConnections += swarm.at(i)->neighbours.size();
 			}
+			averageConnections = (int)floor((double)averageConnections/swarm.size())-1;
 		}
-		config->setEsteps(config->getEsteps()+1);
-		//cout << "Removals " << removals << endl;
-		//for(unsigned int i=0;i<swarm.size();i++)
-		//	cout << "particleIndex: " << i << " -- Neighbors: " << swarm.at(i)->getNeighborhoodSize() << endl;
-	}
-	//Topology update: Following the progression 2, 3, ..., n-2. (see esteps variable)
-	if ((iterations > 0) && (config->getEsteps() > 0 ) &&
-			//(config->getEsteps() < config->getFinalPopSize()-3)
-			(iterations%config->getTopologyUpdatePeriod() == 0) && config->getPopulationCS() != POP_CONSTANT) {
-		unsigned int removals = 0;
-		//cout << " --esteps " << config->getEsteps() << " --tschedule " << config->getTopologySchedule();
-		//cout << " --updatePeriod  " <<config->getTopologyUpdatePeriod() << endl;
-		//cout << " -- Update topology at iteration: " << iterations << " Target: " << swarm.size()-(2+config->getEsteps()) << endl;
-		RNG::shufflePermutation();
-		//--esteps 95 --tschedule 400 --updatePeriod  4
-		//100-(2+97)
-		while(removals < config->getFinalPopSize()-(2+config->getEsteps())){
+//		cout << "\t\tvar::averageConnections: " << averageConnections << endl;
+//		cout << "\t\tvar::esteps: " << config->getEsteps() << endl;
+//		cout << "\t\tvar::iteration: " << iterations << endl;
+//		cout << "\t\tvar::target: " << swarm_size-(2+config->getEsteps()) << endl;
+//		cout << "\t\tvar::swarm_size: " << swarm_size << endl;
+
+		while(removals < target && averageConnections > 3 ){
 			for(unsigned int i=0;i<swarm.size();i++){
 				int particleIndex = RNG::getPermutationElement(i);
+//				cout << "\t\tvar::id: " << i << "\tvar::particleIndex:  " << particleIndex << endl;
 				if (swarm.at(particleIndex)->getNeighborhoodSize() > 3 ){ //3 because a particle is a neighbor to itself
 					int neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
 					swarm.at(particleIndex)->eraseNeighborbyID(neighborID);
 					swarm.at(neighborID)->eraseNeighborbyID(particleIndex);
 					removals++;
 				}
-				if (removals == config->getFinalPopSize()-(2+config->getEsteps()) )
+				if (removals == target)
 					break;
 			}
+//			cout << "\t\tvar::removals: " << removals << endl;
 		}
-		config->setEsteps(config->getEsteps()-1);
-		//cout << "Removals " << removals << endl;
+		//cout << "\t\tvar::removals: " << removals << endl;
+		config->getPopulationCS() == POP_CONSTANT ? config->setEsteps(config->getEsteps()+1) : config->setEsteps(config->getEsteps()-1);
+//		cout << "\t\tfunc::updateTimeVaryingTopology().status() -> correct" << endl;
 	}
 }
 
@@ -426,16 +407,16 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 		//Add one particle per iteration
 		if (previous_size+particleToAdd <= config->getFinalPopSize()){
 			addParticles(problem, config, particleToAdd, iteration);
+			RNG::initializePermutation(config->getSwarmSize());
 			updateTopologyConnections(config, previous_size, iteration);
-			//RNG::initializePermutation(config->getSwarmSize());
 		}
 		else{
 			//See if we can add the difference
 			particleToAdd = config->getFinalPopSize()-previous_size;
 			if ( particleToAdd > 0){
 				addParticles(problem, config, particleToAdd, iteration);
+				RNG::initializePermutation(config->getSwarmSize());
 				updateTopologyConnections( config, previous_size, iteration);
-				//RNG::initializePermutation(config->getSwarmSize());
 			}
 		}
 		//cout << "\n So far, so good" << endl; //remove
@@ -502,6 +483,7 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 		long int randomEdge;
 		for(unsigned int i=previous_size; i<swarm.size(); i++){
 			randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
+			//randomEdge = RNG::getPermutationElement(i);
 			if (randomEdge == i){
 				randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
 				swarm.at(i)->addNeighbour(swarm.at(randomEdge));
@@ -512,26 +494,36 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 	}
 	break;
 	case TOP_TIMEVARYING:
-		RNG::initializePermutation(config->getSwarmSize());
+		//RNG::initializePermutation(config->getSwarmSize());
 		//cout << "\n\titeration: " << iteration << " tschedule: " << config->getTopologySchedule() << " previous_size " << previous_size << endl;
-		if (iteration < config->getTopologyUpdatePeriod()){ // FULLY_CONNECTED -- Between 0 and the first removal of edges
-			for(unsigned int i=previous_size; i<swarm.size(); i++){
-				for(unsigned int j=0; j<swarm.size(); j++){
-					swarm.at(i)->addNeighbour(swarm.at(j));
-					swarm.at(j)->addNeighbour(swarm.at(i));
-				}
-			}
-		}
-
-		else if (iteration >= config->getTopologyUpdatePeriod()){ //Between the second half and the end
-			//We connect a particle randomly with half of the swarm ensuring that the particle is connected to the adjacent neighbors (RING)
+		//		if (iteration < config->getTopologySchedule()){ // FULLY_CONNECTED -- Between 0 and the first removal of edges
+		//			//Clear connections
+		//			for(unsigned int i=0; i<swarm.size(); i++){
+		//				swarm.at(i)->neighbours.clear();
+		//			}
+		//			//Create new connections
+		//			createFullyConnectedTopology();
+		//			//			for(unsigned int i=previous_size; i<swarm.size(); i++){
+		//			//				for(unsigned int j=0; j<swarm.size(); j++){
+		//			//					swarm.at(i)->addNeighbour(swarm.at(j));
+		//			//					swarm.at(j)->addNeighbour(swarm.at(i));
+		//			//				}
+		//			//			}
+		//		}
+		//		else if (iteration >=  (int)floor(config->getTopologySchedule()/30)){
+		if (iteration < config->getTopologySchedule()){
+			//We connect a particle randomly with swarm ensuring that the particle is connected to the adjacent neighbors (RING)
 			//Get average connections number of the swarm.
 			int averageConnections = 0;
 			for(unsigned int i=0; i<previous_size; i++){
 				averageConnections += swarm.at(i)->neighbours.size();
 			}
 			averageConnections = (int)floor((double)averageConnections/previous_size);
+//			cout << "\tvar::averageConnections: " << averageConnections << endl;
+//			cout << "\tvar::previous_size: " << previous_size << endl;
 
+			//swarm.at(0)->eraseNeighborbyID(previous_size-1);
+			//swarm.at(previous_size-1)->eraseNeighborbyID(0);
 			unsigned int a,b;
 			for(unsigned int i=previous_size; i<swarm.size(); i++){
 				//First connect the new particles in RING
@@ -539,15 +531,24 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 				b=i+1;
 				if(i==0)
 					a=swarm.size()-1;
-				if(i==(swarm.size()-1))
+				if(i==(swarm.size()-1)){
 					b=0;
+					//Reconnect first particle with the last particle
+					swarm.at(0)->addNeighbour(swarm.at(i));
+					//Reconnect previous last particle with the next one
+					swarm.at(previous_size-1)->addNeighbour(swarm.at(previous_size));
+				}
+				swarm.at(i)->addNeighbour(swarm.at(i));
 				swarm.at(i)->addNeighbour(swarm.at(a));
-				swarm.at(a)->addNeighbour(swarm.at(i));
 				swarm.at(i)->addNeighbour(swarm.at(b));
-				swarm.at(b)->addNeighbour(swarm.at(i));
+
+				if (swarm.size()- previous_size > 2){
+
+				}
 
 				//After connect the new particles with #averageConnections random neighbors
-				for(int j=0; j<averageConnections; j++){
+				for(int j=0; j<averageConnections-3; j++){
+					//unsigned int randomEdge = RNG::getPermutationElement(j);
 					unsigned int randomEdge = (unsigned int)floor(RNG::randVal(0.0,(double)swarm.size()));
 					if (randomEdge != a && randomEdge != b && randomEdge !=i){
 						swarm.at(i)->addNeighbour(swarm.at(randomEdge));
@@ -571,6 +572,7 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 					swarm.at(0)->addNeighbour(swarm.at(i));
 					swarm.at(previous_size-1)->addNeighbour(swarm.at(previous_size));
 				}
+				//swarm.at(i)->addNeighbour(swarm.at(i));
 				swarm.at(i)->addNeighbour(swarm.at(a));
 				swarm.at(i)->addNeighbour(swarm.at(b));
 			}
@@ -787,6 +789,7 @@ void Swarm::createRandomEdge(){			//Or random edge topology
 	long int randomEdge;
 	for(unsigned int i=0;i<swarm.size();i++){
 		randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
+		//randomEdge = RNG::getPermutationElement(i);
 		if (randomEdge == i){
 			randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
 			swarm.at(i)->addNeighbour(swarm.at(randomEdge));
@@ -1460,7 +1463,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		if (config->getOmega1CS() == IW_CONSTANT){
 			if (config->getOmega1() < -1 || config->getOmega1() > 1) //check convergence bounds
 				config->setOmega1(CONSTRICTION_COEFFICIENT);
-			cout << "\tvar::Omega1: " << config->getOmega1() << " ";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << " ";
 		}
 		//IW_L_INC - 1 - Linear increasing
 		if (config->getOmega1CS() == IW_L_INC) {
@@ -1470,7 +1473,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 						((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
 						(config->getFinalIW() - config->getInitialIW()) + config->getInitialIW()
 				);
-				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 			}
 			else
 				config->setOmega1(config->getFinalIW());
@@ -1483,7 +1486,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 						((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
 						(config->getInitialIW() - config->getFinalIW()) + config->getFinalIW()
 				);
-				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 			}
 			else
 				config->setOmega1(config->getFinalIW());
@@ -1491,7 +1494,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		//IW_RANDOM - 3 - Random
 		else if (config->getOmega1CS() == IW_RANDOM) {
 			config->setOmega1( 0.5 * (problem->getRandom01()/2.0));
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_NONL_DEC - 4 - Nonlinear decreasing
 		else if (config->getOmega1CS() == IW_NONL_DEC) {
@@ -1500,7 +1503,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					pow((double)(iteration)/config->getMaxIterations(),alpha)
 			);
 			//cout << iteration << endl;
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_NONL_DEC_IMP - 5 - Nonlinear decreasing improved
 		else if (config->getOmega1CS() == IW_NONL_DEC_IMP) {
@@ -1508,7 +1511,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					pow(omegaXu, iteration)
 			);
 			//cout << iteration << endl;
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_NONL_DEC_TIME - 6 - Nonlinear decreasing time-dependent
 		else if (config->getOmega1CS() == IW_NONL_DEC_TIME) {
@@ -1516,7 +1519,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					pow((2.0/iteration), 0.3)
 			);
 			//cout << iteration << endl;
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_CHAOTIC_DEC - 7 Chaotic decreasing
 		else if (config->getOmega1CS() == IW_CHAOTIC_DEC) {
@@ -1526,7 +1529,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					((double)(config->getMaxIterations())-iteration)/config->getMaxIterations()
 			);
 			//cout << iteration << endl;
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_EXP_DEC - 8 - Natural exponential decreasing
 		else if (config->getOmega1CS() == IW_EXP_DEC) {
@@ -1535,7 +1538,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					exp((-10.0*iteration)/config->getMaxIterations())
 			);
 			//cout << iteration << endl;
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_OSCILLATING - 9 - Oscillating
 		else if (config->getOmega1CS() == IW_OSCILLATING) {
@@ -1548,7 +1551,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			else
 				config->setOmega1(config->getInitialIW());
 			//cout << iteration << endl;
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_LOG_DEC - 10 - Logarithm decreasing
 		else if (config->getOmega1CS() == IW_LOG_DEC) {
@@ -1557,7 +1560,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					log10(((10.0*iteration)/config->getMaxIterations())+ a )
 			);
 			//cout << iteration << endl;
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 
 		/* ****************************************************************************************************************/
@@ -1570,7 +1573,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			iteration == 1 ? omega_2 = config->getFinalIW() : omega_2 = omega_2-deltaOmega;
 			config->setOmega1(omega_2);
 			//cout << iteration << endl;
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_VELOCITY_BASED - 12 - Based on velocity information
 		else if (config->getOmega1CS() == IW_VELOCITY_BASED) {
@@ -1592,7 +1595,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			}
 			//cout << iteration << endl;
 			//cout << avVel << " -- " << idealVelocity << endl;
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_RANKS_BASED - 14 - Rank-based
 		else if (config->getOmega1CS() == IW_RANKS_BASED) {
@@ -1606,8 +1609,8 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			}
 			//Rank particles
 			rankParticles(simpSwarm);
-			cout << "\tfunc::rankParticles(simpSwarm).status() -> correct" << endl;
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tfunc::rankParticles(simpSwarm).status() -> correct" << endl;
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_SUCCESS_BASED - 15 Success-based
 		else if (config->getOmega1CS() == IW_SUCCESS_BASED) {
@@ -1651,7 +1654,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				//cout << iteration << endl;
 				//cout << "P[" << id << "]" << "rank: "<< ranking << " eval:" << current.eval << endl;
 			}
-			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_CONVERGE_BASED - 16 Convergence-based
 		else if (config->getOmega1CS() == IW_CONVERGE_BASED) {
@@ -1698,12 +1701,12 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				if (id == best_particle->getID()) {
 					//compute the inertia weight for the global_best particle
 					//cout << id << endl;
-					cout << "\tvar::Omega1: " << omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations()) << endl;
+//					cout << "\tvar::Omega1: " << omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations()) << endl;
 					return omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations());
 				}
 				else {
 					//cout << id << endl;
-					cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//					cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 					return config->getOmega1();
 				}
 			}
@@ -1720,7 +1723,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					config->setOmega1( exp(-1*exp((R*-1))));
 					//cout << id << endl;
 				}
-				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 				return config->getOmega1();
 			}
 			//IW_RANKS_BASED - 14 - Rank-based
@@ -1729,7 +1732,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 						((double) swarm.at(id)->getRanking()/config->getSwarmSize()))
 				);
 				//cout << id << endl;
-				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 				return config->getOmega1();
 			}
 			//IW_CONVERGE_BASED - 16 Convergence-based
@@ -1753,11 +1756,11 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 						}
 					}
 					//cout << id << endl;
-					cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//					cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 					return config->getOmega1();
 				}
 				else {
-					cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+//					cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 					return config->getOmega1();
 				}
 			}

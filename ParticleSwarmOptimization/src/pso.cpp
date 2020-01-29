@@ -573,23 +573,25 @@ int main(int argc, char *argv[] ){
 	}
 
 	//Random number generator
-	RNG::initializeRNG(config->getRNGSeed());
 	RNG::initializePermutation(config->getSwarmSize());
 
+	//Create an object of type Problem
 	initializeProblem();
-	//problem->printProblem();
 
+	//Create a swarm a particles
 	swarm = new Swarm(problem, config);
-	config->printParameters();
 
 	//Start timer
 	gettimeofday( &tp, NULL );
 	stime =(double) tp.tv_sec + (double) tp.tv_usec/1000000.0;
 	config->setStartTime(stime);
+	//cout.precision(20); //use to print more decimals, scientific's default is 6
 
 	//Iterations loop
-	//cout << "\nMoving swarm...\n"<< endl;
+	config->printParameters();
+	problem->printProblem();
 	cout << "\n";
+
 	while(!terminationCondition()){
 		iterations++;
 
@@ -604,16 +606,15 @@ int main(int argc, char *argv[] ){
 			swarm->updateTree(config->getBranchingDegree());
 			//cout << "\n Hierarchical topology updated" << endl;
 		}
-
+		//cout << "\n <<So far so good>>" << endl;
 		//Update dynamic population size
 		swarm->resizeSwarm(problem, config, iterations);
+		//problem->printProgress();
 	}
 
 	cout << "Best " << scientific << swarm->getGlobalBest().eval << endl;
 	//cout << scientific << swarm->getGlobalBest().eval << endl;
 
-	//swarm->printGbest(config->getProblemDimension());
-	problem->printProblem_results();
 	//cout << "Optimum:\t" << scientific << problem->getProblemOptimum() << endl;
 
 	freeMemory();   // Free memory.

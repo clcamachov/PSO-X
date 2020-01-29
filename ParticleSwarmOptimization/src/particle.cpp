@@ -288,7 +288,7 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	//double vect_PbestMinusPosition[numInformants][size];
 	vector<vector< double> > vect_PbestMinusPosition;
 	vect_PbestMinusPosition.resize(numInformants, vector<double>(size));
-	cout << "\tvec::vect_PbestMinusPosition.size(): " << vect_PbestMinusPosition.size() << " ";
+	//cout << "\tvec::vect_PbestMinusPosition.size(): " << vect_PbestMinusPosition.size() << " ";
 
 	/*** PERTURBATION 1 (distribution-based)	--->	It has to be computed per Informant and/or per Dimension depending on the strategy
 	 *** 						this component is applied directly in the DNNP members of DNPP  ***/
@@ -360,10 +360,7 @@ void Particle::computeSubtractionPerturbationRotation(int DNPP, vector<vector< d
 	double l[size]; //particle's Gbest
 	bool increase_numInformants = false;
 
-	if (pBestIntheInformants)
-		cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: TRUE" << " \n\tvar::DNPP: " << DNPP << endl;
-	else
-		cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: FALSE" << " \n\tvar::DNPP: " << DNPP << endl;
+	(pBestIntheInformants) ? cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: TRUE" << " \n\tvar::DNPP: " << DNPP << endl : cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: FALSE" << " \n\tvar::DNPP: " << DNPP << endl;
 
 	//1.- Check if the particle is pBest == gBest
 	if (this->id == this->gBestID && pBestIntheInformants){

@@ -45,15 +45,6 @@ Ackley::Ackley(Configuration* config, int variantID):Problem(config, variantID){
 			else
 				file_m = "supportData/ackley_M_D" + dim_name.str() + ".txt";
 
-
-			//			if (dimension > 2 && dimension < 10)
-			//				file_m = "10.txt";
-			//			else if (dimension > 10 && dimension < 30)
-			//				file_m = "30.txt";
-			//			else if (dimension > 30 && dimension < 50)
-			//				file_m = "50.txt";
-			//			else
-
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}
 	}else if(config->getCompetitionID() == CEC14 || config->getCompetitionID() == SOFT_COMPUTING
@@ -90,18 +81,6 @@ Ackley::Ackley(Configuration* config, int variantID):Problem(config, variantID){
 				file_m = "supportData/input_data/ackley_M_D100.txt";
 			else
 				file_m = "supportData/input_data/ackley_M_D" + dim_name.str() + ".txt";
-
-			//			if (dimension > 2 && dimension < 10)
-			//				file_m = "10.txt";
-			//			else if (dimension > 10 && dimension < 20)
-			//				file_m = "20.txt";
-			//			else if (dimension > 20 && dimension < 30)
-			//				file_m = "30.txt";
-			//			else if (dimension > 30 && dimension < 50)
-			//				file_m = "50.txt";
-			//			else if (dimension > 50 && dimension < 100)
-			//				file_m = "100.txt";
-			//			else
 
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}

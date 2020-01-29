@@ -251,8 +251,8 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		particles = initialPopSize;
 
 	//The topology schedule should be maximum six times the swarm size, i.e. it goes from n to 6n
-	if (tSchedule > 6)
-		tSchedule = 6;
+	if (tSchedule > 10)
+		tSchedule = 10;
 	if (tSchedule < 1)
 		tSchedule = 1;
 	if (populationCS == POP_CONSTANT)
@@ -292,7 +292,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	}
 
 	//Termination criterion of CEC'05:
-	maxFES = 10000 * problemDimension;
+	maxFES = 5000 * problemDimension;
 	if (populationCS != POP_CONSTANT && max_iterations == -1)
 		max_iterations = (int)floor((double)maxFES/finalPopSize);
 	if (populationCS == POP_CONSTANT && max_iterations == -1)
