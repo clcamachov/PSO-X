@@ -201,10 +201,9 @@ void Particle::initializePosition(int initType, int popCS, long int iteration){
 		initUniform();
 		break;
 	case PARTICLE_INIT_MODEL:{ //Only available for dynamic PopCS and after the first iteration
-		if (popCS != POP_CONSTANT && iteration > 0){
-			initUniform();
+		initUniform();
+		if (popCS != POP_CONSTANT && iteration > 0)
 			initToModel();
-		}
 	}
 	break;
 	default:

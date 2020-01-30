@@ -45,10 +45,10 @@ protected:
 	struct Solution gbest;    /* global best solution (According to the topology) */
 
 	/*Velocity variables*/
-	double* velocity;               /* velocity */
+	double* velocity;         /* velocity */
 	double phi_1;
 	double phi_2;
-	double inertia; 				/* parameters */
+	double inertia; 		  /* parameters */
 
 	double minVelLimit;
 	double maxVelLimit;
