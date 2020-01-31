@@ -44,7 +44,7 @@ all: ParticleSwarmOptimization
 # Tool invocations
 ParticleSwarmOptimization: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: MacOS X C++ Linker'
+	@echo 'Invoking: GCC C++ Linker'
 	g++ -o "ParticleSwarmOptimization" $(OBJS) $(USER_OBJS) $(LIBS) -L/usr/include/gsl -lgsl -lgslcblas -lm
 	@echo 'Finished building target: $@'
 	@echo ' '

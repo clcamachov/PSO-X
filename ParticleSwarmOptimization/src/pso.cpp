@@ -15,6 +15,12 @@
 #include <float.h>
 #include <iostream>
 #include <vector>
+#include <iostream>
+#include <fstream>
+#include <bits/stdc++.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <string>
 
 #include "config.h"
 #include "problem.h"
@@ -552,6 +558,114 @@ bool terminationCondition() {
 	return false;
 }
 
+
+int dirExists(const char *path) {
+	struct stat info;
+
+	if(stat( path, &info ) != 0){
+		//printf( "cannot access %s\n", path );
+		return 0;
+	}
+	else if(info.st_mode & S_IFDIR){
+		//printf( "%s is a directory\n", path );
+		return 1;
+	}
+	else{
+		//printf( "%s is no directory\n", path );
+		return 0;
+	}
+}
+
+//void outputToFile(){
+//	fstream outfile;
+//	stringstream comp, prob, dim;
+//	comp << config->getCompetitionID() ;
+//	prob << config->getProblemID();
+//	dim << config->getProblemDimension();
+//	string path = "../Output/";		//path to the file
+//	string log_file = path + "f" + comp.str() + "_" + prob.str() + "_" + dim.str() + ".dat";	//name of the file
+//	const char* cstr = log_file.c_str();
+//	const char* pstr = path.c_str();
+//
+//	if (dirExists(pstr) != 1) //1 exits, 0 otherwise
+//		if (mkdir(pstr, 0777) == -1)
+//			cerr << "Error :  " << strerror(errno) << endl;
+//
+//	outfile.open(cstr, ios::in|ios::out|ios::app);
+//	outfile.close();
+//	outfile.open(cstr, ios::in|ios::out);
+//
+//	//Print log in the file by redirecting cout to the file
+//	if (outfile.is_open()) {
+//		//outfile << "So far, so good" << endl;
+//		// Backup streambuffers of  cout
+//		streambuf* stream_buffer_cout = cout.rdbuf();
+//
+//		// Get the streambuffer of the file
+//		streambuf* stream_buffer_file = outfile.rdbuf();
+//
+//		// Redirect cout to file
+//		cout.rdbuf(stream_buffer_file);
+//
+//		config->printParameters();
+//		problem->printProblem();
+//		cout << "\n";
+//
+//		// Redirect cout back to screen
+//		cout.rdbuf(stream_buffer_cout);
+//	}
+//	else
+//		cerr << "Error :  " << strerror(errno) << endl;
+//
+//
+//	//close the file
+//	outfile.close();
+//}
+
+void openLogFile(fstream &outfile){
+	stringstream comp, prob, dim;
+	comp << config->getCompetitionID() ;
+	prob << config->getProblemID();
+	dim << config->getProblemDimension();
+	string path = "../Output/";		//path to the file
+	string log_file = path + "f" + comp.str() + "_" + prob.str() + "_" + dim.str() + ".dat";	//name of the file
+	const char* cstr = log_file.c_str();
+	const char* pstr = path.c_str();
+
+	if (dirExists(pstr) != 1) //1 exits, 0 otherwise
+		if (mkdir(pstr, 0777) == -1)
+			cerr << "Error :  " << strerror(errno) << endl;
+
+	outfile.open(cstr, ios::in|ios::out|ios::app);
+	outfile.close();
+	outfile.open(cstr, ios::in|ios::out);
+
+	if (outfile.is_open()) {
+		// Backup streambuffers of  cout
+		streambuf* stream_buffer_cout = cout.rdbuf();
+
+		// Get the streambuffer of the file
+		streambuf* stream_buffer_file = outfile.rdbuf();
+
+		// Redirect cout to file
+		cout.rdbuf(stream_buffer_file);
+
+		config->printParameters();
+		problem->printProblem();
+		cout << "\n";
+
+		// Redirect cout back to screen
+		cout.rdbuf(stream_buffer_cout);
+	}
+	else
+		cerr << "Error :  " << strerror(errno) << endl;
+}
+
+void closeLogFile(fstream &outfile){
+	if (outfile.is_open())
+		outfile.close();
+}
+
 /*Free memory used*/
 void freeMemory(){
 	//Memory release
@@ -567,19 +681,11 @@ int main(int argc, char *argv[] ){
 	double stime;
 	static struct timeval tp;
 
+	//Get the configuration parameters
 	config = new Configuration();
 	if(!config->getConfig(argc, argv)){
 		exit(-1);
 	}
-
-	//Random number generator
-	RNG::initializePermutation(config->getSwarmSize());
-
-	//Create an object of type Problem
-	initializeProblem();
-
-	//Create a swarm a particles
-	swarm = new Swarm(problem, config);
 
 	//Start timer
 	gettimeofday( &tp, NULL );
@@ -587,7 +693,17 @@ int main(int argc, char *argv[] ){
 	config->setStartTime(stime);
 	//cout.precision(20); //use to print more decimals, scientific's default is 6
 
-	//Iterations loop
+	//Random number generator
+	RNG::initializePermutation(config->getSwarmSize());
+	//Initialize the Problem
+	initializeProblem();
+	//Create a swarm a particles
+	swarm = new Swarm(problem, config);
+
+	//Create/open log file
+	fstream outfile;
+	openLogFile(outfile);
+
 	config->printParameters();
 	problem->printProblem();
 	cout << "\n";
@@ -610,12 +726,14 @@ int main(int argc, char *argv[] ){
 		//Update dynamic population size
 		swarm->resizeSwarm(problem, config, iterations);
 		//problem->printProgress();
+		outfile << "iteration: " << iterations << " func_evaluations: " << evaluations  << " best: " << scientific << swarm->getGlobalBest().eval << endl;
 	}
 
 	cout << "Best " << scientific << swarm->getGlobalBest().eval << endl;
 	//cout << scientific << swarm->getGlobalBest().eval << endl;
 
 	//cout << "Optimum:\t" << scientific << problem->getProblemOptimum() << endl;
-
+	//close the file
+	closeLogFile(outfile);
 	freeMemory();   // Free memory.
 }

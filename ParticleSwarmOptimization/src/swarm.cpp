@@ -343,55 +343,6 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 	}
 }
 
-void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations){
-	long int swarm_size;
-	config->getPopulationCS() == POP_CONSTANT ? swarm_size = swarm.size() : swarm_size = config->getFinalPopSize();
-	//	cout << "\t\tvar::topologyUpdatePeriod:  " <<config->getTopologyUpdatePeriod() << endl;
-	//	cout << "\t\tvar::tschedule: " << config->getTopologySchedule() << endl;
-
-	//Topology update: Following the progression n-2, n-3, ..., 2. (see esteps variable)
-	if ((iterations > 0) &&	(iterations%config->getTopologyUpdatePeriod() == 0) &&
-			((config->getEsteps() < swarm_size-3 && config->getPopulationCS() == POP_CONSTANT)
-					|| ((config->getEsteps() > 0 && swarm.size() > 4 ) && config->getPopulationCS() != POP_CONSTANT))){
-
-		unsigned int removals = 0;
-		RNG::shufflePermutation();
-		unsigned int target = swarm_size-(2+config->getEsteps());
-
-		int averageConnections = 0;
-		if (config->getPopulationCS() != POP_CONSTANT){
-			for(unsigned int i=0; i<swarm.size(); i++){
-				averageConnections += swarm.at(i)->neighbours.size();
-			}
-			averageConnections = (int)floor((double)averageConnections/swarm.size())-1;
-		}
-		//		cout << "\t\tvar::averageConnections: " << averageConnections << endl;
-		//		cout << "\t\tvar::esteps: " << config->getEsteps() << endl;
-		//		cout << "\t\tvar::iteration: " << iterations << endl;
-		//		cout << "\t\tvar::target: " << swarm_size-(2+config->getEsteps()) << endl;
-		//		cout << "\t\tvar::swarm_size: " << swarm_size << endl;
-
-		while(removals < target && averageConnections > 3 ){
-			for(unsigned int i=0;i<swarm.size();i++){
-				int particleIndex = RNG::getPermutationElement(i);
-				//				cout << "\t\tvar::id: " << i << "\tvar::particleIndex:  " << particleIndex << endl;
-				if (swarm.at(particleIndex)->getNeighborhoodSize() > 3 ){ //3 because a particle is a neighbor to itself
-					int neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
-					swarm.at(particleIndex)->eraseNeighborbyID(neighborID);
-					swarm.at(neighborID)->eraseNeighborbyID(particleIndex);
-					removals++;
-				}
-				if (removals == target)
-					break;
-			}
-			//			cout << "\t\tvar::removals: " << removals << endl;
-		}
-		//cout << "\t\tvar::removals: " << removals << endl;
-		config->getPopulationCS() == POP_CONSTANT ? config->setEsteps(config->getEsteps()+1) : config->setEsteps(config->getEsteps()-1);
-		//		cout << "\t\tfunc::updateTimeVaryingTopology().status() -> correct" << endl;
-	}
-}
-
 void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iteration){
 	int particleToAdd = 0;
 	long int previous_size = swarm.size();
@@ -634,7 +585,6 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 	}
 }
 
-
 void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParticles, long int iteration){
 	if ((long)swarm.size() <= config->getFinalPopSize()){
 		//Add particles to the swarm
@@ -667,6 +617,11 @@ void Swarm::printGbest(unsigned int dimensions){
 		cout << scientific << getGlobalBest().x[i] << "  ";
 	}
 	cout << " ]\n" << endl;
+}
+
+
+Solution Swarm::getGlobalBest(){
+	return global_best;
 }
 
 void Swarm::decomposePhi2(int modelOfInflu, int part_id, int numInformants){
@@ -829,6 +784,55 @@ void Swarm::createVonNeumannTopology(){
 					swarm.at(i)->addNeighbour(swarm.at(j));
 			}
 		}
+	}
+}
+
+void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations){
+	long int swarm_size;
+	config->getPopulationCS() == POP_CONSTANT ? swarm_size = swarm.size() : swarm_size = config->getFinalPopSize();
+	//	cout << "\t\tvar::topologyUpdatePeriod:  " <<config->getTopologyUpdatePeriod() << endl;
+	//	cout << "\t\tvar::tschedule: " << config->getTopologySchedule() << endl;
+
+	//Topology update: Following the progression n-2, n-3, ..., 2. (see esteps variable)
+	if ((iterations > 0) &&	(iterations%config->getTopologyUpdatePeriod() == 0) &&
+			((config->getEsteps() < swarm_size-3 && config->getPopulationCS() == POP_CONSTANT)
+					|| ((config->getEsteps() > 0 && swarm.size() > 4 ) && config->getPopulationCS() != POP_CONSTANT))){
+
+		unsigned int removals = 0;
+		RNG::shufflePermutation();
+		unsigned int target = swarm_size-(2+config->getEsteps());
+
+		int averageConnections = 0;
+		if (config->getPopulationCS() != POP_CONSTANT){
+			for(unsigned int i=0; i<swarm.size(); i++){
+				averageConnections += swarm.at(i)->neighbours.size();
+			}
+			averageConnections = (int)floor((double)averageConnections/swarm.size())-1;
+		}
+		//		cout << "\t\tvar::averageConnections: " << averageConnections << endl;
+		//		cout << "\t\tvar::esteps: " << config->getEsteps() << endl;
+		//		cout << "\t\tvar::iteration: " << iterations << endl;
+		//		cout << "\t\tvar::target: " << swarm_size-(2+config->getEsteps()) << endl;
+		//		cout << "\t\tvar::swarm_size: " << swarm_size << endl;
+
+		while(removals < target && averageConnections > 3 ){
+			for(unsigned int i=0;i<swarm.size();i++){
+				int particleIndex = RNG::getPermutationElement(i);
+				//				cout << "\t\tvar::id: " << i << "\tvar::particleIndex:  " << particleIndex << endl;
+				if (swarm.at(particleIndex)->getNeighborhoodSize() > 3 ){ //3 because a particle is a neighbor to itself
+					int neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
+					swarm.at(particleIndex)->eraseNeighborbyID(neighborID);
+					swarm.at(neighborID)->eraseNeighborbyID(particleIndex);
+					removals++;
+				}
+				if (removals == target)
+					break;
+			}
+			//			cout << "\t\tvar::removals: " << removals << endl;
+		}
+		//cout << "\t\tvar::removals: " << removals << endl;
+		config->getPopulationCS() == POP_CONSTANT ? config->setEsteps(config->getEsteps()+1) : config->setEsteps(config->getEsteps()-1);
+		//		cout << "\t\tfunc::updateTimeVaryingTopology().status() -> correct" << endl;
 	}
 }
 
@@ -1299,8 +1303,359 @@ void Swarm::printTree(int branching, long swarm_size) {
 	}
 }
 
-Solution Swarm::getGlobalBest(){
-	return global_best;
+// This function computes the inertia weight (omega1 in the GVU formula) according to the selected strategy
+double Swarm::computeOmega1(Configuration* config, long int iteration, long int id, bool newIteration){
+	//If all particle use the same inertia value, it is more efficient
+	//to compute it once at the beginning of the iteration
+	if (newIteration) {
+		/* Non-adaptive strategies */
+		//IW_CONSTANT - 0 - Constant value
+		if (config->getOmega1CS() == IW_CONSTANT){
+			if (config->getOmega1() < -1 || config->getOmega1() > 1) //check convergence bounds
+				config->setOmega1(CONSTRICTION_COEFFICIENT);
+			//cout << "\tvar::Omega1: " << config->getOmega1() << " ";
+		}
+		//IW_L_INC - 1 - Linear increasing
+		else if (config->getOmega1CS() == IW_L_INC) {
+			//from Frankenstein's PSO
+			if(iteration <= config->getIWSchedule()){
+				config->setOmega1(
+						((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
+						(config->getFinalIW() - config->getInitialIW()) + config->getInitialIW()
+				);
+				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+			}
+			else
+				config->setOmega1(config->getFinalIW());
+		}
+		//IW_L_DEC - 2 - Linear decreasing
+		else if (config->getOmega1CS() == IW_L_DEC) {
+			//from Frankenstein's PSO
+			if(iteration <= config->getIWSchedule()){
+				config->setOmega1(
+						((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
+						(config->getInitialIW() - config->getFinalIW()) + config->getFinalIW()
+				);
+				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+			}
+			else
+				config->setOmega1(config->getFinalIW());
+		}
+		//IW_RANDOM - 3 - Random
+		else if (config->getOmega1CS() == IW_RANDOM) {
+			config->setOmega1( 0.5 * (problem->getRandom01()/2.0));
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_NONL_DEC - 4 - Nonlinear decreasing
+		else if (config->getOmega1CS() == IW_NONL_DEC) {
+			config->setOmega1(
+					config->getFinalIW() - (config->getFinalIW()-config->getInitialIW())*
+					pow((double)(iteration)/config->getMaxIterations(),alpha)
+			);
+			//cout << iteration << endl;
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_NONL_DEC_IMP - 5 - Nonlinear decreasing improved
+		else if (config->getOmega1CS() == IW_NONL_DEC_IMP) {
+			config->setOmega1(
+					pow(omegaXu, iteration)
+			);
+			//cout << iteration << endl;
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_NONL_DEC_TIME - 6 - Nonlinear decreasing time-dependent
+		else if (config->getOmega1CS() == IW_NONL_DEC_TIME) {
+			config->setOmega1(
+					pow((2.0/iteration), 0.3)
+			);
+			//cout << iteration << endl;
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_CHAOTIC_DEC - 7 Chaotic decreasing
+		else if (config->getOmega1CS() == IW_CHAOTIC_DEC) {
+			iteration == 1 ? zFunction = problem->getRandom01() : zFunction = 4*zFunction*(1-zFunction);
+			config->setOmega1(
+					(zFunction*config->getInitialIW()) + (config->getFinalIW()-config->getInitialIW()) *
+					((double)(config->getMaxIterations())-iteration)/config->getMaxIterations()
+			);
+			//cout << iteration << endl;
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_EXP_DEC - 8 - Natural exponential decreasing
+		else if (config->getOmega1CS() == IW_EXP_DEC) {
+			config->setOmega1(
+					config->getInitialIW() + (config->getFinalIW()-config->getInitialIW())*
+					exp((-10.0*iteration)/config->getMaxIterations())
+			);
+			//cout << iteration << endl;
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_OSCILLATING - 9 - Oscillating
+		else if (config->getOmega1CS() == IW_OSCILLATING) {
+			if (iteration < (3*config->getMaxIterations())/4)
+				config->setOmega1(
+						((config->getInitialIW() + config->getFinalIW()) /2.0) +
+						((config->getFinalIW() + config->getInitialIW()) /2.0) *
+						cos((simNumOfCos*iteration)/(config->getMaxIterations()*3.0))
+				);
+			else
+				config->setOmega1(config->getInitialIW());
+			//cout << iteration << endl;
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_LOG_DEC - 10 - Logarithm decreasing
+		else if (config->getOmega1CS() == IW_LOG_DEC) {
+			config->setOmega1(
+					config->getFinalIW() + (config->getInitialIW()-config->getFinalIW())*
+					log10(((10.0*iteration)/config->getMaxIterations())+ a )
+			);
+			//cout << iteration << endl;
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+
+		/* ****************************************************************************************************************/
+		/* ****************************************************************************************************************/
+
+		/* Adaptive strategies */
+		//IW_SELF_REGULATING - 11 - Self-regulating
+		else if (config->getOmega1CS() == IW_SELF_REGULATING) {
+			static double deltaOmega = (((double)config->getFinalIW()) - config->getInitialIW())/config->getMaxIterations();
+			iteration == 1 ? omega_2 = config->getFinalIW() : omega_2 = omega_2-deltaOmega;
+			config->setOmega1(omega_2);
+			//cout << iteration << endl;
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_VELOCITY_BASED - 12 - Based on velocity information
+		else if (config->getOmega1CS() == IW_VELOCITY_BASED) {
+			static double T_0_95 = 95*config->getMaxIterations()/100; //iteration at which 95% of search process is completed
+			double deltaOmega = config->get_iw_par_deltaOmega();
+			if (iteration == 1)
+				config->setOmega1(config->getFinalIW());
+
+			idealVelocity = swarm.at(0)->getMaxVelLimit() * ((1.0 + cos(M_PI*(iteration/T_0_95)))/2);
+			avVel=computeAvgVelocity(config);	//average absolute velocity of the swarm
+
+			if (avVel >= idealVelocity){
+				(config->getOmega1()-deltaOmega) >= config->getInitialIW() ?
+						config->setOmega1(config->getOmega1()-deltaOmega) : config->setOmega1(config->getInitialIW());
+			}
+			else{
+				(config->getOmega1()+deltaOmega) >= config->getFinalIW() ?
+						config->setOmega1(config->getFinalIW()) : config->setOmega1(config->getOmega1()+deltaOmega);
+			}
+			//cout << iteration << endl;
+			//cout << avVel << " -- " << idealVelocity << endl;
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_RANKS_BASED - 14 - Rank-based
+		else if (config->getOmega1CS() == IW_RANKS_BASED) {
+			if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
+				//Memory allocation to rank particles
+				//simpSwarm contains a simplified copy of the swarm at t-1 ordered according to their ranks
+				//Note that in this case rankParticles(simpSwarm) will fill the vector simpSwarm, the only
+				//thing we have to do here is set the right size of vector
+				simpSwarm.clear();
+				simpSwarm.resize(swarm.size());
+			}
+			//Rank particles
+			rankParticles(simpSwarm);
+			//cout << "\tfunc::rankParticles(simpSwarm).status() -> correct" << endl;
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_SUCCESS_BASED - 15 Success-based
+		else if (config->getOmega1CS() == IW_SUCCESS_BASED) {
+			//if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
+			if (iteration == 1){
+				//simpSwarm contains a simplified copy of the swarm at t-1
+				simpSwarm.clear();
+				simpSwarm.resize(swarm.size());
+				for (unsigned int i=0;i<swarm.size();i++){
+					simpSwarm.at(i).id = swarm.at(i)->getID();
+					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
+				}
+				config->setOmega1(config->getFinalIW()); //set inertia weight to its maximum value for the first iteration
+			}
+			if (iteration > 1){
+				int S_i = 0; //Number of solutions that improved after the last iteration
+				for (unsigned int i=0; i<swarm.size(); i++){
+					for (unsigned int j=0; j<simpSwarm.size(); j++){
+						if (swarm.at(i)->getID() == simpSwarm.at(j).id){
+							//evaluate if the solution improved
+							if (swarm.at(i)->getCurrentEvaluation() < simpSwarm.at(j).eval){
+								S_i++;
+								break;
+							}
+							else
+								break;
+						}
+					}
+				}
+				//set the inertia weight
+				config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
+						((double)S_i/swarm.size()))
+				);
+				//Copy particle's id and evaluation in simpSwarm for the next iteration
+				simpSwarm.clear();
+				simpSwarm.resize(swarm.size());
+				for (unsigned int i=0;i<swarm.size();i++){
+					simpSwarm.at(i).id = swarm.at(i)->getID();
+					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
+				}
+				//cout << iteration << endl;
+				//cout << "P[" << id << "]" << "rank: "<< ranking << " eval:" << current.eval << endl;
+			}
+			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		}
+		//IW_CONVERGE_BASED - 16 Convergence-based
+		else if (config->getOmega1CS() == IW_CONVERGE_BASED) {
+			//if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
+			if (iteration == 1 ){
+				double alpha_2 = config->get_iw_par_alpha_2();
+				double beta_2 = config->get_iw_par_beta_2();
+				//simpSwarm contains a simplified copy of the swarm at t-1
+				simpSwarm.clear();
+				simpSwarm.resize(swarm.size());
+				//Copy particle's id and evaluation in simpSwarm
+				for (unsigned int i=0;i<swarm.size();i++){
+					simpSwarm.at(i).id = swarm.at(i)->getID();
+					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
+				}
+				if (config->getPopulationCS() == POP_CONSTANT)
+					config->setOmega1(1 - abs(alpha_2/(1+beta_2)));
+			}
+			else{
+				simpSwarm.clear();
+				simpSwarm.resize(swarm.size());
+				//Copy particle's id and evaluation in simpSwarm for the next iteration
+				for (unsigned int i=0;i<swarm.size();i++){
+					simpSwarm.at(i).id = swarm.at(i)->getID();
+					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
+				}
+			}
+		}
+		//Keep inertia constant during the execution
+		else {
+			config->setOmega1(config->getOmega1()); //kind of unnecessary, but ensures integrity
+			//cout << inertia << endl;
+			//return inertia;
+		}
+		cout << "\tvar::Omega1: " << config->getOmega1() << " ";
+	}
+	else {
+		//These are the strategies that need to compute a independent inertia value for each particle
+		//Note that the variables used here are computed/allocated when (newIteration == true).
+		if (id != -1){
+			double temp_Omega = 0;
+
+			switch (config->getOmega1CS()) {
+			//IW_SELF_REGULATING - 11 - Self-regulating
+			case IW_SELF_REGULATING:{
+				double eta = config->get_iw_par_eta();
+				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+				//cout << "\tvar::eta: " << eta << "\n";
+				//cout << "\tvar::id: " << id << "\n";
+				//cout << "\tvar::best_particle->getID(): " << best_particle->getID() << "\n";
+				//The best particle has a special inertia value
+				if (id == best_particle->getID())
+					temp_Omega = omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations());
+				else
+					temp_Omega = config->getOmega1();
+			}
+			break;
+			//IW_DOUBLE_EXP - 13 - Double exponential self-adaptive
+			case IW_DOUBLE_EXP:{
+				double R =0.0;
+				if (iteration == 1){
+					config->setOmega1(config->getFinalIW());
+					//cout << id << endl;
+				}
+				else {
+					R = swarm.at(id)->computeDistPbestGbest()*((((double)config->getMaxIterations())-iteration)/config->getMaxIterations());
+					config->setOmega1( exp(-1*exp((R*-1))));
+					//cout << id << endl;
+				}
+				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+				temp_Omega = config->getOmega1();
+			}
+			break;
+			//IW_RANKS_BASED - 14 - Rank-based
+			case IW_RANKS_BASED:{
+				config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
+						((double) swarm.at(id)->getRanking()/config->getSwarmSize()))
+				);
+				//cout << id << endl;
+				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+				temp_Omega = config->getOmega1();
+			}
+			break;
+			//IW_CONVERGE_BASED - 16 Convergence-based
+			case IW_CONVERGE_BASED:{
+				if (iteration > 1) {
+					double alpha_2 = config->get_iw_par_alpha_2();
+					double beta_2 = config->get_iw_par_beta_2();
+
+					//Find the particle in simpSwarm
+					for (unsigned int j=0; j<simpSwarm.size(); j++){
+						if (simpSwarm.at(j).id == swarm.at(id)->getID()){
+							//convergence factor
+							long double c_i = abs(simpSwarm.at(j).eval - swarm.at(id)->getCurrentEvaluation())/
+									(simpSwarm.at(j).eval + swarm.at(id)->getCurrentEvaluation());
+							//diffusion factor
+							long double d_i = abs(swarm.at(id)->getCurrentEvaluation() - global_best.eval) /
+									(swarm.at(id)->getCurrentEvaluation() + global_best.eval);
+							//set the inertia weight
+							config->setOmega1(1 - abs(alpha_2*(1-c_i)) / (1+d_i)*(1+beta_2));
+							break;
+						}
+					}
+					//cout << id << endl;
+					//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+					temp_Omega = config->getOmega1();
+				}
+			}
+			break;
+			default:
+				temp_Omega = config->getOmega1();
+				break;
+			}
+			cout << "\tvar::Omega1: " << config->getOmega1() << " ";
+			return temp_Omega;
+		}
+		else{
+			cerr << "Unexpected error while computing the value of inertia: id=-1 is not valid" << endl;
+			exit (-1);
+		}
+	}
+	return config->getOmega1();
+}
+
+
+double Swarm::computeOmega2(Configuration* config){
+	switch(config->getOmega2CS()){
+	case O2_EQUAL_TO_O1:
+		return config->getOmega1();
+	case O2_RANDOM:
+		return 0.5 * (problem->getRandom01()/2.0);
+	case O2_ZERO:
+		return 0.0; //the component is not used
+	default :
+		return 1.0; //no strategy, set the value to one
+	}
+}
+
+double Swarm::computeOmega3(Configuration* config){
+	//Same as Omega1
+	if (config->getOmega3CS() == O3_EQUAL_TO_O1)
+		return config->getOmega1();
+	//Random value
+	else if (config->getOmega3CS() == O3_RANDOM)
+		return 0.5 * (problem->getRandom01()/2.0);
+	//Zero -- component is not being used
+	else if (config->getOmega3CS() == O3_ZERO)
+		return 0.0;
+	//One -- no strategy in particular
+	else
+		return 1.0;
 }
 
 bool Swarm::isHierarchical(){
@@ -1422,433 +1777,4 @@ void Swarm::merge(ssArray* arr, int l, int m, int r){
 		j++;
 		k++;
 	}
-}
-
-
-// This function computes the inertia weight (omega1 in the GVU formula) according to the selected strategy
-double Swarm::computeOmega1(Configuration* config, long int iteration, long int id, bool newIteration){
-	//If all particle use the same inertia value, it is more efficient
-	//to compute it once at the beginning of the iteration
-	if (newIteration) {
-		/* Non-adaptive strategies */
-		//IW_CONSTANT - 0 - Constant value
-		if (config->getOmega1CS() == IW_CONSTANT){
-			if (config->getOmega1() < -1 || config->getOmega1() > 1) //check convergence bounds
-				config->setOmega1(CONSTRICTION_COEFFICIENT);
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << " ";
-		}
-		//IW_L_INC - 1 - Linear increasing
-		else if (config->getOmega1CS() == IW_L_INC) {
-			//from Frankenstein's PSO
-			if(iteration <= config->getIWSchedule()){
-				config->setOmega1(
-						((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
-						(config->getFinalIW() - config->getInitialIW()) + config->getInitialIW()
-				);
-				//				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-			}
-			else
-				config->setOmega1(config->getFinalIW());
-		}
-		//IW_L_DEC - 2 - Linear decreasing
-		else if (config->getOmega1CS() == IW_L_DEC) {
-			//from Frankenstein's PSO
-			if(iteration <= config->getIWSchedule()){
-				config->setOmega1(
-						((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
-						(config->getInitialIW() - config->getFinalIW()) + config->getFinalIW()
-				);
-				//				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-			}
-			else
-				config->setOmega1(config->getFinalIW());
-		}
-		//IW_RANDOM - 3 - Random
-		else if (config->getOmega1CS() == IW_RANDOM) {
-			config->setOmega1( 0.5 * (problem->getRandom01()/2.0));
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_NONL_DEC - 4 - Nonlinear decreasing
-		else if (config->getOmega1CS() == IW_NONL_DEC) {
-			config->setOmega1(
-					config->getFinalIW() - (config->getFinalIW()-config->getInitialIW())*
-					pow((double)(iteration)/config->getMaxIterations(),alpha)
-			);
-			//cout << iteration << endl;
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_NONL_DEC_IMP - 5 - Nonlinear decreasing improved
-		else if (config->getOmega1CS() == IW_NONL_DEC_IMP) {
-			config->setOmega1(
-					pow(omegaXu, iteration)
-			);
-			//cout << iteration << endl;
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_NONL_DEC_TIME - 6 - Nonlinear decreasing time-dependent
-		else if (config->getOmega1CS() == IW_NONL_DEC_TIME) {
-			config->setOmega1(
-					pow((2.0/iteration), 0.3)
-			);
-			//cout << iteration << endl;
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_CHAOTIC_DEC - 7 Chaotic decreasing
-		else if (config->getOmega1CS() == IW_CHAOTIC_DEC) {
-			iteration == 1 ? zFunction = problem->getRandom01() : zFunction = 4*zFunction*(1-zFunction);
-			config->setOmega1(
-					(zFunction*config->getInitialIW()) + (config->getFinalIW()-config->getInitialIW()) *
-					((double)(config->getMaxIterations())-iteration)/config->getMaxIterations()
-			);
-			//cout << iteration << endl;
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_EXP_DEC - 8 - Natural exponential decreasing
-		else if (config->getOmega1CS() == IW_EXP_DEC) {
-			config->setOmega1(
-					config->getInitialIW() + (config->getFinalIW()-config->getInitialIW())*
-					exp((-10.0*iteration)/config->getMaxIterations())
-			);
-			//cout << iteration << endl;
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_OSCILLATING - 9 - Oscillating
-		else if (config->getOmega1CS() == IW_OSCILLATING) {
-			if (iteration < (3*config->getMaxIterations())/4)
-				config->setOmega1(
-						((config->getInitialIW() + config->getFinalIW()) /2.0) +
-						((config->getFinalIW() + config->getInitialIW()) /2.0) *
-						cos((simNumOfCos*iteration)/(config->getMaxIterations()*3.0))
-				);
-			else
-				config->setOmega1(config->getInitialIW());
-			//cout << iteration << endl;
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_LOG_DEC - 10 - Logarithm decreasing
-		else if (config->getOmega1CS() == IW_LOG_DEC) {
-			config->setOmega1(
-					config->getFinalIW() + (config->getInitialIW()-config->getFinalIW())*
-					log10(((10.0*iteration)/config->getMaxIterations())+ a )
-			);
-			//cout << iteration << endl;
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-
-		/* ****************************************************************************************************************/
-		/* ****************************************************************************************************************/
-
-		/* Adaptive strategies */
-		//IW_SELF_REGULATING - 11 - Self-regulating
-		else if (config->getOmega1CS() == IW_SELF_REGULATING) {
-			static double deltaOmega = (((double)config->getFinalIW()) - config->getInitialIW())/config->getMaxIterations();
-			iteration == 1 ? omega_2 = config->getFinalIW() : omega_2 = omega_2-deltaOmega;
-			config->setOmega1(omega_2);
-			//cout << iteration << endl;
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_VELOCITY_BASED - 12 - Based on velocity information
-		else if (config->getOmega1CS() == IW_VELOCITY_BASED) {
-			static double T_0_95 = 95*config->getMaxIterations()/100; //iteration at which 95% of search process is completed
-			double deltaOmega = config->get_iw_par_deltaOmega();
-			if (iteration == 1)
-				config->setOmega1(config->getFinalIW());
-
-			idealVelocity = swarm.at(0)->getMaxVelLimit() * ((1.0 + cos(M_PI*(iteration/T_0_95)))/2);
-			avVel=computeAvgVelocity(config);	//average absolute velocity of the swarm
-
-			if (avVel >= idealVelocity){
-				(config->getOmega1()-deltaOmega) >= config->getInitialIW() ?
-						config->setOmega1(config->getOmega1()-deltaOmega) : config->setOmega1(config->getInitialIW());
-			}
-			else{
-				(config->getOmega1()+deltaOmega) >= config->getFinalIW() ?
-						config->setOmega1(config->getFinalIW()) : config->setOmega1(config->getOmega1()+deltaOmega);
-			}
-			//cout << iteration << endl;
-			//cout << avVel << " -- " << idealVelocity << endl;
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_RANKS_BASED - 14 - Rank-based
-		else if (config->getOmega1CS() == IW_RANKS_BASED) {
-			if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
-				//Memory allocation to rank particles
-				//simpSwarm contains a simplified copy of the swarm at t-1 ordered according to their ranks
-				//Note that in this case rankParticles(simpSwarm) will fill the vector simpSwarm, the only
-				//thing we have to do here is set the right size of vector
-				simpSwarm.clear();
-				simpSwarm.resize(swarm.size());
-			}
-			//Rank particles
-			rankParticles(simpSwarm);
-			//			cout << "\tfunc::rankParticles(simpSwarm).status() -> correct" << endl;
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_SUCCESS_BASED - 15 Success-based
-		else if (config->getOmega1CS() == IW_SUCCESS_BASED) {
-			//if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
-			if (iteration == 1){
-				//simpSwarm contains a simplified copy of the swarm at t-1
-				simpSwarm.clear();
-				simpSwarm.resize(swarm.size());
-				for (unsigned int i=0;i<swarm.size();i++){
-					simpSwarm.at(i).id = swarm.at(i)->getID();
-					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				}
-				config->setOmega1(config->getFinalIW()); //set inertia weight to its maximum value for the first iteration
-			}
-			if (iteration > 1){
-				int S_i = 0; //Number of solutions that improved after the last iteration
-				for (unsigned int i=0; i<swarm.size(); i++){
-					for (unsigned int j=0; j<simpSwarm.size(); j++){
-						if (swarm.at(i)->getID() == simpSwarm.at(j).id){
-							//evaluate if the solution improved
-							if (swarm.at(i)->getCurrentEvaluation() < simpSwarm.at(j).eval){
-								S_i++;
-								break;
-							}
-							else
-								break;
-						}
-					}
-				}
-				//set the inertia weight
-				config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
-						((double)S_i/swarm.size()))
-				);
-				//Copy particle's id and evaluation in simpSwarm for the next iteration
-				simpSwarm.clear();
-				simpSwarm.resize(swarm.size());
-				for (unsigned int i=0;i<swarm.size();i++){
-					simpSwarm.at(i).id = swarm.at(i)->getID();
-					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				}
-				//cout << iteration << endl;
-				//cout << "P[" << id << "]" << "rank: "<< ranking << " eval:" << current.eval << endl;
-			}
-			//			cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-		}
-		//IW_CONVERGE_BASED - 16 Convergence-based
-		else if (config->getOmega1CS() == IW_CONVERGE_BASED) {
-			//if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
-			if (iteration == 1 ){
-				double alpha_2 = config->get_iw_par_alpha_2();
-				double beta_2 = config->get_iw_par_beta_2();
-				//simpSwarm contains a simplified copy of the swarm at t-1
-				simpSwarm.clear();
-				simpSwarm.resize(swarm.size());
-				//Copy particle's id and evaluation in simpSwarm
-				for (unsigned int i=0;i<swarm.size();i++){
-					simpSwarm.at(i).id = swarm.at(i)->getID();
-					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				}
-				if (config->getPopulationCS() == POP_CONSTANT)
-					config->setOmega1(1 - abs(alpha_2/(1+beta_2)));
-			}
-			else{
-				simpSwarm.clear();
-				simpSwarm.resize(swarm.size());
-				//Copy particle's id and evaluation in simpSwarm for the next iteration
-				for (unsigned int i=0;i<swarm.size();i++){
-					simpSwarm.at(i).id = swarm.at(i)->getID();
-					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				}
-			}
-		}
-		//Keep inertia constant during the execution
-		else {
-			config->setOmega1(config->getOmega1()); //kind of unnecessary, but ensures integrity
-			//cout << inertia << endl;
-			//return inertia;
-		}
-		cout << "\tvar::Omega1: " << config->getOmega1() << " ";
-	}
-	else {
-		//These are the strategies that need to compute a independent inertia value for each particle
-		//Note that the variables used here are computed/allocated when (newIteration == true).
-		if (id != -1){
-			double temp_Omega = 0;
-
-			switch (config->getOmega1CS()) {
-			//IW_SELF_REGULATING - 11 - Self-regulating
-			case IW_SELF_REGULATING:{
-				double eta = config->get_iw_par_eta();
-				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-				cout << "\tvar::eta: " << eta << "\n";
-				cout << "\tvar::id: " << id << "\n";
-				cout << "\tvar::best_particle->getID(): " << best_particle->getID() << "\n";
-				//The best particle has a special inertia value
-				if (id == best_particle->getID())
-					temp_Omega = omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations());
-				else
-					temp_Omega = config->getOmega1();
-				//cout << "\n So far, so good" << endl;
-			}
-			break;
-			//IW_DOUBLE_EXP - 13 - Double exponential self-adaptive
-			case IW_DOUBLE_EXP:{
-				double R =0.0;
-				if (iteration == 1){
-					config->setOmega1(config->getFinalIW());
-					//cout << id << endl;
-				}
-				else {
-					R = swarm.at(id)->computeDistPbestGbest()*((((double)config->getMaxIterations())-iteration)/config->getMaxIterations());
-					config->setOmega1( exp(-1*exp((R*-1))));
-					//cout << id << endl;
-				}
-				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-				temp_Omega = config->getOmega1();
-			}
-			break;
-			//IW_RANKS_BASED - 14 - Rank-based
-			case IW_RANKS_BASED:{
-				config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
-						((double) swarm.at(id)->getRanking()/config->getSwarmSize()))
-				);
-				//cout << id << endl;
-				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-				temp_Omega = config->getOmega1();
-			}
-			break;
-			//IW_CONVERGE_BASED - 16 Convergence-based
-			case IW_CONVERGE_BASED:{
-				if (iteration > 1) {
-					double alpha_2 = config->get_iw_par_alpha_2();
-					double beta_2 = config->get_iw_par_beta_2();
-
-					//Find the particle in simpSwarm
-					for (unsigned int j=0; j<simpSwarm.size(); j++){
-						if (simpSwarm.at(j).id == swarm.at(id)->getID()){
-							//convergence factor
-							long double c_i = abs(simpSwarm.at(j).eval - swarm.at(id)->getCurrentEvaluation())/
-									(simpSwarm.at(j).eval + swarm.at(id)->getCurrentEvaluation());
-							//diffusion factor
-							long double d_i = abs(swarm.at(id)->getCurrentEvaluation() - global_best.eval) /
-									(swarm.at(id)->getCurrentEvaluation() + global_best.eval);
-							//set the inertia weight
-							config->setOmega1(1 - abs(alpha_2*(1-c_i)) / (1+d_i)*(1+beta_2));
-							break;
-						}
-					}
-					//cout << id << endl;
-					cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-					temp_Omega = config->getOmega1();
-				}
-			}
-			break;
-			default:
-				temp_Omega = config->getOmega1();
-				break;
-			}
-			return temp_Omega;
-
-			//IW_SELF_REGULATING - 11 - Self-regulating
-			//			if (config->getOmega1CS() == IW_SELF_REGULATING) {
-			//				double eta = config->get_iw_par_eta();
-			//				double temp_Omega = config->getOmega1();
-			//				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-			//				cout << "\tvar::eta: " << eta << "\n";
-			//				//The best particle has a special inertia value
-			//				if (id == best_particle->getID()) {
-			//					//compute the inertia weight for the global_best particle
-			//					//cout << id << endl;
-			//					//cout << "\tvar::Omega1: " << omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations()) << endl;
-			//					//return omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations());
-			//					temp_Omega = omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations());
-			//				}
-			//				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-			//				return temp_Omega;
-			//				//cout << "\n So far, so good" << endl;
-			//			}
-			//IW_DOUBLE_EXP - 13 - Double exponential self-adaptive
-			//			else if (config->getOmega1CS() == IW_DOUBLE_EXP) {
-			//				double R =0.0;
-			//				//swarm.at(id)->getBestOfNeibourhood();  //update particle's gbest
-			//				if (iteration == 1){
-			//					config->setOmega1(config->getFinalIW());
-			//					//cout << id << endl;
-			//				}
-			//				else {
-			//					R = swarm.at(id)->computeDistPbestGbest()*((((double)config->getMaxIterations())-iteration)/config->getMaxIterations());
-			//					config->setOmega1( exp(-1*exp((R*-1))));
-			//					//cout << id << endl;
-			//				}
-			//				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-			//				return config->getOmega1();
-			//			}
-			//IW_RANKS_BASED - 14 - Rank-based
-			//			else if (config->getOmega1CS() == IW_RANKS_BASED){
-			//				config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
-			//						((double) swarm.at(id)->getRanking()/config->getSwarmSize()))
-			//				);
-			//				//cout << id << endl;
-			//				cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-			//				return config->getOmega1();
-			//			}
-			//IW_CONVERGE_BASED - 16 Convergence-based
-			//			else if (config->getOmega1CS() == IW_CONVERGE_BASED) {
-			//				if (iteration > 1) {
-			//					double alpha_2 = config->get_iw_par_alpha_2();
-			//					double beta_2 = config->get_iw_par_beta_2();
-			//
-			//					//Find the particle in simpSwarm
-			//					for (unsigned int j=0; j<simpSwarm.size(); j++){
-			//						if (simpSwarm.at(j).id == swarm.at(id)->getID()){
-			//							//convergence factor
-			//							long double c_i = abs(simpSwarm.at(j).eval - swarm.at(id)->getCurrentEvaluation())/
-			//									(simpSwarm.at(j).eval + swarm.at(id)->getCurrentEvaluation());
-			//							//diffusion factor
-			//							long double d_i = abs(swarm.at(id)->getCurrentEvaluation() - global_best.eval) /
-			//									(swarm.at(id)->getCurrentEvaluation() + global_best.eval);
-			//							//set the inertia weight
-			//							config->setOmega1(1 - abs(alpha_2*(1-c_i)) / (1+d_i)*(1+beta_2));
-			//							break;
-			//						}
-			//					}
-			//					//cout << id << endl;
-			//					cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-			//					return config->getOmega1();
-			//				}
-			//				else {
-			//					cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-			//					return config->getOmega1();
-			//				}
-			//			}
-		}
-		else{
-			cerr << "Unexpected error while computing the value of inertia: id=-1 is not valid" << endl;
-			exit (-1);
-		}
-	}
-	return config->getOmega1();
-}
-
-
-double Swarm::computeOmega2(Configuration* config){
-	switch(config->getOmega2CS()){
-	case O2_EQUAL_TO_O1:
-		return config->getOmega1();
-	case O2_RANDOM:
-		return 0.5 * (problem->getRandom01()/2.0);
-	case O2_ZERO:
-		return 0.0; //the component is not used
-	default :
-		return 1.0; //no strategy, set the value to one
-	}
-}
-
-double Swarm::computeOmega3(Configuration* config){
-	//Same as Omega1
-	if (config->getOmega3CS() == O3_EQUAL_TO_O1)
-		return config->getOmega1();
-	//Random value
-	else if (config->getOmega3CS() == O3_RANDOM)
-		return 0.5 * (problem->getRandom01()/2.0);
-	//Zero -- component is not being used
-	else if (config->getOmega3CS() == O3_ZERO)
-		return 0.0;
-	//One -- no strategy in particular
-	else
-		return 1.0;
 }

@@ -212,7 +212,6 @@ void Particle::initializePosition(int initType, int popCS, long int iteration){
 	}
 }
 
-
 void Particle::setVelocityLimits(Configuration* config){
 	if((config->getProblemID() == 6 || config->getProblemID() == 24) && (config->getCompetitionID() == 0)){
 		minVelLimit= (LDBL_MAX)/-2;
