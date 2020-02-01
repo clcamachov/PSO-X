@@ -98,6 +98,17 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 		}
 	}
 
+	try{
+		long int tryId = best_particle->getID();
+		if (tryId != -1)
+			cout << "";
+	}
+	catch (const std::exception& e) {
+		cerr << "The program could not determine an initial solution quality. " << endl;
+		cerr << "HINT: check that all input files can be accessed by the program" << endl;
+		exit (-1);
+	}
+
 	hierarchical = false;
 
 	//Select one of the available topologies

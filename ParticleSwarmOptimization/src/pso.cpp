@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <string>
+#include <sstream>
 
 #include "config.h"
 #include "problem.h"
@@ -576,59 +577,15 @@ int dirExists(const char *path) {
 	}
 }
 
-//void outputToFile(){
-//	fstream outfile;
-//	stringstream comp, prob, dim;
-//	comp << config->getCompetitionID() ;
-//	prob << config->getProblemID();
-//	dim << config->getProblemDimension();
-//	string path = "../Output/";		//path to the file
-//	string log_file = path + "f" + comp.str() + "_" + prob.str() + "_" + dim.str() + ".dat";	//name of the file
-//	const char* cstr = log_file.c_str();
-//	const char* pstr = path.c_str();
-//
-//	if (dirExists(pstr) != 1) //1 exits, 0 otherwise
-//		if (mkdir(pstr, 0777) == -1)
-//			cerr << "Error :  " << strerror(errno) << endl;
-//
-//	outfile.open(cstr, ios::in|ios::out|ios::app);
-//	outfile.close();
-//	outfile.open(cstr, ios::in|ios::out);
-//
-//	//Print log in the file by redirecting cout to the file
-//	if (outfile.is_open()) {
-//		//outfile << "So far, so good" << endl;
-//		// Backup streambuffers of  cout
-//		streambuf* stream_buffer_cout = cout.rdbuf();
-//
-//		// Get the streambuffer of the file
-//		streambuf* stream_buffer_file = outfile.rdbuf();
-//
-//		// Redirect cout to file
-//		cout.rdbuf(stream_buffer_file);
-//
-//		config->printParameters();
-//		problem->printProblem();
-//		cout << "\n";
-//
-//		// Redirect cout back to screen
-//		cout.rdbuf(stream_buffer_cout);
-//	}
-//	else
-//		cerr << "Error :  " << strerror(errno) << endl;
-//
-//
-//	//close the file
-//	outfile.close();
-//}
-
-void openLogFile(fstream &outfile){
-	stringstream comp, prob, dim;
+void openLogFile(fstream &outfile, time_t start, time_t end){
+	stringstream comp, prob, dim, seed, rand;
 	comp << config->getCompetitionID() ;
 	prob << config->getProblemID();
 	dim << config->getProblemDimension();
-	string path = "../Output/";		//path to the file
-	string log_file = path + "f" + comp.str() + "_" + prob.str() + "_" + dim.str() + ".dat";	//name of the file
+	seed << config->getRNGSeed();
+	rand << setw(8) << fixed << problem->getRandomX((double)start, (double)end);
+	string path = "../OUTPUT-ParticleSwarmOptimization/";		//path to the file
+	string log_file = path + "f" + prob.str() + "-" + dim.str() + "-" + comp.str() + "_" + seed.str() + "-" + rand.str() + ".dat";	//name of the file
 	const char* cstr = log_file.c_str();
 	const char* pstr = path.c_str();
 
@@ -662,6 +619,7 @@ void openLogFile(fstream &outfile){
 }
 
 void closeLogFile(fstream &outfile){
+	outfile << "Best " << scientific << swarm->getGlobalBest().eval << endl;
 	if (outfile.is_open())
 		outfile.close();
 }
@@ -677,10 +635,10 @@ void freeMemory(){
 }
 
 int main(int argc, char *argv[] ){
-
+	time_t start, end;
 	double stime;
 	static struct timeval tp;
-
+	time(&start);
 	//Get the configuration parameters
 	config = new Configuration();
 	if(!config->getConfig(argc, argv)){
@@ -699,10 +657,10 @@ int main(int argc, char *argv[] ){
 	initializeProblem();
 	//Create a swarm a particles
 	swarm = new Swarm(problem, config);
-
+	time(&end);
 	//Create/open log file
 	fstream outfile;
-	openLogFile(outfile);
+	openLogFile(outfile, start, end);
 
 	config->printParameters();
 	problem->printProblem();
