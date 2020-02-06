@@ -291,12 +291,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		return(false);
 	}
 
-	//Termination criterion of CEC'05:
-	maxFES = 5000 * problemDimension;
-	if (populationCS != POP_CONSTANT && max_iterations == -1)
-		max_iterations = (int)floor((double)maxFES/finalPopSize);
-	if (populationCS == POP_CONSTANT && max_iterations == -1)
-		max_iterations = (int)floor((double)maxFES/particles);
+	//Termination criterion 10000 * dimensions
+	maxFES = 1000 * problemDimension;
+	if (max_iterations == -1)
+		max_iterations = maxFES;
 
 	return(true);
 }

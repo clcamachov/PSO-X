@@ -105,7 +105,7 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 	}
 	catch (const std::exception& e) {
 		cerr << "The program could not determine an initial solution quality. " << endl;
-		cerr << "HINT: check that all input files can be accessed by the program" << endl;
+		cerr << "HINT: Make sure that all input files can be accessed by the program" << endl;
 		exit (-1);
 	}
 
@@ -165,25 +165,25 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	computeAccelerationCoefficients(config, iteration);
 
 	//Move particles
-	cout << "iteration: " << iteration << endl; //remove
+//	cout << "iteration: " << iteration << endl; //remove
 
 	for (unsigned int i=0;i<swarm.size();i++){
 
-		cout << "\tParticle [" << i << "] -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
+//		cout << "\tParticle [" << i << "] -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
 		int sizeInformants = getInformants(config, i, iteration); //Get the informants of i
 
 		//print all neighbors
-		cout << "\tNeighbors ids:  [ ";
-		for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
-			cout << swarm.at(i)->neighbours[j]->getID() << " ";
-		}
-		cout << "]" << endl;
-		//print all neighbors
-		cout << "\tInformants pos: [ ";
-		for (int j=0;j<sizeInformants;j++){
-			cout << swarm.at(i)->InformantsPos[j] << " ";
-		}
-		cout << "]" << endl;
+//		cout << "\tNeighbors ids:  [ ";
+//		for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
+//			cout << swarm.at(i)->neighbours[j]->getID() << " ";
+//		}
+//		cout << "]" << endl;
+//		//print all neighbors
+//		cout << "\tInformants pos: [ ";
+//		for (int j=0;j<sizeInformants;j++){
+//			cout << swarm.at(i)->InformantsPos[j] << " ";
+//		}
+//		cout << "]" << endl;
 
 		//If using a self-adaptive strategy compute omega1, otherwise this function simply returns the value already computed
 		double omega1 = computeOmega1(config, iteration, i, false);
@@ -241,7 +241,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 						if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j])
 							swarm.at(particleID)->InformantsPos.push_back(i);//	Informants[j] = i;
 				}
-				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
+//				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return 1;
 			}
 			else {
@@ -255,7 +255,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 					if (swarm.at(particleID)->neighbours.at(i)->getID() == bestID)
 						swarm.at(particleID)->InformantsPos.push_back(i);
 				}
-				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
+//				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return 1;
 			}
 		}
@@ -281,7 +281,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 						if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j])
 							swarm.at(particleID)->InformantsPos.push_back(i);
 				}
-				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
+//				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return Array_size;
 			}
 			else {
@@ -293,7 +293,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
 					swarm.at(particleID)->InformantsPos.push_back(i); //we use the indexes of neighbors
 				}
-				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
+//				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return swarm.at(particleID)->InformantsPos.size();
 			}
 		}
@@ -324,7 +324,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 			}
 			TMP_vect.clear();
 
-			cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size(); ;
+//			cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size(); ;
 			return swarm.at(particleID)->InformantsPos.size();;
 		}
 		else {
@@ -1550,7 +1550,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			//cout << inertia << endl;
 			//return inertia;
 		}
-		cout << "\tvar::Omega1: " << config->getOmega1() << " ";
+//		cout << "\tvar::Omega1: " << config->getOmega1() << " ";
 	}
 	else {
 		//These are the strategies that need to compute a independent inertia value for each particle
@@ -1629,7 +1629,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				temp_Omega = config->getOmega1();
 				break;
 			}
-			cout << "\tvar::Omega1: " << config->getOmega1() << " ";
+//			cout << "\tvar::Omega1: " << config->getOmega1() << " ";
 			return temp_Omega;
 		}
 		else{

@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <math.h>
 #include <limits.h>
 #include <assert.h>
@@ -662,9 +663,9 @@ int main(int argc, char *argv[] ){
 	fstream outfile;
 	openLogFile(outfile, start, end);
 
-	config->printParameters();
-	problem->printProblem();
-	cout << "\n";
+//	config->printParameters();
+//	problem->printProblem();
+//	cout << "\n";
 
 	while(!terminationCondition()){
 		iterations++;
@@ -680,7 +681,6 @@ int main(int argc, char *argv[] ){
 			swarm->updateTree(config->getBranchingDegree());
 			//cout << "\n Hierarchical topology updated" << endl;
 		}
-		//cout << "\n <<So far so good>>" << endl;
 		//Update dynamic population size
 		swarm->resizeSwarm(problem, config, iterations);
 		//problem->printProgress();

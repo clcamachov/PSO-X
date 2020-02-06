@@ -282,8 +282,7 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	//to avoid including it twice.
 	if (!pBestIntheInformants)
 		numInformants = numInformants+1;
-	cout << "\tvar::numInformants: " << numInformants << " ";
-	//double vect_PbestMinusPosition[numInformants][size];
+//	cout << "\tvar::numInformants: " << numInformants << " ";
 	vector<vector< double> > vect_PbestMinusPosition;
 	vect_PbestMinusPosition.resize(numInformants, vector<double>(size));
 	//cout << "\tvec::vect_PbestMinusPosition.size(): " << vect_PbestMinusPosition.size() << " ";
@@ -347,8 +346,8 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 
 	//Evaluate the objective function and update pbest if a new one has been found
 	computeEvaluation();
-	cout << "\tParticle with ID:[" << this->id << "].status::MOVED" << endl;
-	cout << "\t------------------------------------------" << endl;
+//	cout << "\tParticle with ID:[" << this->id << "].status::MOVED" << endl;
+//	cout << "\t------------------------------------------" << endl;
 
 }
 
@@ -358,11 +357,11 @@ void Particle::computeSubtractionPerturbationRotation(int DNPP, vector<vector< d
 	double l[size]; //particle's Gbest
 	bool increase_numInformants = false;
 
-	(pBestIntheInformants) ? cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: TRUE" << " \n\tvar::DNPP: " << DNPP << endl : cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: FALSE" << " \n\tvar::DNPP: " << DNPP << endl;
+//	(pBestIntheInformants) ? cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: TRUE" << " \n\tvar::DNPP: " << DNPP << endl : cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: FALSE" << " \n\tvar::DNPP: " << DNPP << endl;
 
 	//1.- Check if the particle is pBest == gBest
 	if (this->id == this->gBestID && pBestIntheInformants){
-		cout << "\t\t ... using reinitialization to model (new position is somewhere around gBest)--" << endl;
+//		cout << "\t\t ... using reinitialization to model (new position is somewhere around gBest)--" << endl;
 		for (int i=0; i<size; i++)
 			l[i] = problem->getRandomX() + problem->getRandom01()*(gbest.x[i]-current.x[i]);
 	}

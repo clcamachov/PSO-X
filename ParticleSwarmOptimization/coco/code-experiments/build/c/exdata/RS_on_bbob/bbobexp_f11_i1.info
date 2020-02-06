@@ -1,0 +1,18 @@
+suite = 'bbob', funcId = 11, DIM = 2, Precision = 1.000e-08, algId = 'ALG', coco_version = '', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f11/bbobexp_f11_DIM2_i1.dat, 1:4|8.1e+06, 2:4|1.0e+07, 3:4|9.4e+03, 4:4|4.1e+06, 5:4|1.6e+06, 71:4|3.4e+06, 72:4|1.7e+06, 73:4|3.6e+05, 74:4|3.8e+03, 75:4|5.2e+05, 76:4|4.7e+02, 77:4|8.1e+06, 78:4|1.4e+07, 79:4|4.3e+06, 80:4|5.1e+04
+suite = 'bbob', funcId = 11, DIM = 3, Precision = 1.000e-08, algId = 'ALG', coco_version = '', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f11/bbobexp_f11_DIM3_i1.dat, 1:6|4.8e+05, 2:6|1.0e+06, 3:6|1.5e+05, 4:6|5.5e+05, 5:6|8.4e+04, 71:6|6.7e+05, 72:6|2.0e+06, 73:6|1.0e+04, 74:6|6.0e+06, 75:6|4.6e+05, 76:6|1.4e+04, 77:6|1.2e+06, 78:6|2.0e+05, 79:6|8.7e+06, 80:6|1.2e+04
+suite = 'bbob', funcId = 11, DIM = 5, Precision = 1.000e-08, algId = 'ALG', coco_version = '', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f11/bbobexp_f11_DIM5_i1.dat, 1:10|6.1e+04, 2:10|5.5e+04, 3:10|3.8e+04, 4:10|8.3e+02, 5:10|4.6e+04, 71:10|8.1e+02, 72:10|4.1e+03, 73:10|1.5e+04, 74:10|3.4e+03, 75:10|1.6e+04, 76:10|1.3e+05, 77:10|6.1e+06, 78:10|1.8e+06, 79:10|1.1e+05, 80:10|4.4e+03
+suite = 'bbob', funcId = 11, DIM = 10, Precision = 1.000e-08, algId = 'ALG', coco_version = '', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f11/bbobexp_f11_DIM10_i1.dat, 1:20|7.8e+01, 2:20|3.6e+03, 3:20|6.6e+04, 4:20|2.9e+03, 5:20|1.3e+05, 71:20|1.9e+04, 72:20|3.6e+04, 73:20|2.4e+02, 74:20|3.1e+06, 75:20|8.2e+02, 76:20|5.0e+01, 77:20|2.6e+05, 78:20|4.0e+04, 79:20|2.7e+05, 80:20|1.9e+05
+suite = 'bbob', funcId = 11, DIM = 20, Precision = 1.000e-08, algId = 'ALG', coco_version = '', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f11/bbobexp_f11_DIM20_i1.dat, 1:40|4.1e+04, 2:40|1.6e+04, 3:40|1.2e+04, 4:40|8.4e+03, 5:40|2.1e+04, 71:40|3.4e+04, 72:40|1.8e+03, 73:40|3.9e+03, 74:40|5.1e+02, 75:40|4.1e+03, 76:40|5.6e+03, 77:40|3.5e+03, 78:40|3.1e+03, 79:40|1.6e+04, 80:40|5.0e+02
+suite = 'bbob', funcId = 11, DIM = 40, Precision = 1.000e-08, algId = 'ALG', coco_version = '', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f11/bbobexp_f11_DIM40_i1.dat, 1:80|2.6e+03, 2:80|5.8e+02, 3:80|7.5e+02, 4:80|1.3e+03, 5:80|5.3e+02, 71:80|7.4e+02, 72:80|1.4e+03, 73:80|1.1e+04, 74:80|2.5e+03, 75:80|1.7e+03, 76:80|4.3e+02, 77:80|4.9e+03, 78:80|4.5e+03, 79:80|1.6e+03, 80:80|1.4e+04

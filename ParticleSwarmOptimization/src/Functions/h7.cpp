@@ -48,8 +48,8 @@ long double Hybrid7::h7Function(int dim, const double* x){
 
 	f1 = problem1->evaluate(size1,part1);
 	f2 = problem2->evaluate(size2,part2);
-	assert(f1 >= 0);
-	assert(f2 >= 0);
+	//assert(f1 >= 0);
+	//assert(f2 >= 0);
 
 	return f1+f2;
 }

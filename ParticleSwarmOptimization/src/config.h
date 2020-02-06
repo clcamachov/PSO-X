@@ -11,27 +11,6 @@
 #include <vector>
 #include <cmath>
 
-//SOCO problems
-#define	SHIFTED_SPHERE_SOCO 			0
-#define SHIFTED_SCHWEFEL221_SOCO		1
-#define SHIFTED_ROSENBROCK_SOCO 		2
-#define SHIFTED_RASTRIGIN_SOCO			3
-#define SHIFTED_GRIEWANK_SOCO 			4
-#define SHIFTED_ACKLEY_SOCO 			5
-#define SHIFTED_SCHWEFEL222_SOCO 		6
-#define SHIFTED_SCHWEFEL12_SOCO			7
-#define SHIFTED_EXTENDED_F10_SOCO 		8
-#define SHIFTED_BOHACHEVSKY_SOCO 		9
-#define SHIFTED_SCHAFFER_SOCO 			10
-#define H1 								11
-#define H2								12
-#define H3								13
-#define H4								14
-#define H7								15
-#define H8								16
-#define H9								17
-#define H10								18
-
 //CEC2005 problems
 #define	SHIFTED_SPHERE_CEC05									0
 #define	SHIFTED_SCHWEFEL12_CEC05								1
@@ -58,6 +37,48 @@
 #define	NONCONTINUOUS_ROTATED_HYBRIDCOMPOSITION3				22
 #define	ROTATED_HYBRIDCOMPOSITION4								23
 #define	ROTATED_HYBRIDCOMPOSITION4_NO_BOUNDS					24
+
+//CEC2014 problems
+#define SHIFTED_ROTATED_HIGH_CONDITIONED_ELLIPTIC_CEC14			0
+#define ROTATED_BENT_CIGER_CEC14								1
+#define ROTATED_DISCUS_CEC14									2
+#define SHIFTED_ROTATED_ACKLEY_CEC14							3
+#define SHIFTED_ROTATED_ROSENBROCK_CEC14						4
+#define SHIFTED_ROTATED_GRIEWANK_CEC14							5
+#define SHIFTED_ROTATED_RASTRIGIN_CEC14							6
+#define SHIFTED_SCHWEFEL_CEC14									7
+#define SHIFTED_ROTATED_SCHWEFEL_CEC14							8
+#define SHIFTED_ROTATED_WEIERSTRASS_CEC14						9
+#define SHIFTED_ROTATED_KATSUURA_CEC14							10
+#define SHIFTED_ROTATED_HAPPYCAT_CEC14							11
+#define SHIFTED_ROTATED_HGBAT_CEC14								12
+#define H1_CEC14_CEC14											13
+#define H2_CEC14_CEC14											14
+#define H3_CEC14_CEC14											15
+#define H4_CEC14_CEC14											16
+#define H5_CEC14_CEC14											17
+#define H6_CEC14_CEC14											18
+
+//SOCO problems
+#define	SHIFTED_SPHERE_SOCO 					0
+#define SHIFTED_SCHWEFEL221_SOCO				1
+#define SHIFTED_ROSENBROCK_SOCO 				2
+#define SHIFTED_RASTRIGIN_SOCO					3
+#define SHIFTED_GRIEWANK_SOCO 					4
+#define SHIFTED_ACKLEY_SOCO 					5
+#define SHIFTED_SCHWEFEL222_SOCO 				6
+#define SHIFTED_SCHWEFEL12_SOCO					7
+#define SHIFTED_EXTENDED_F10_SOCO 				8
+#define SHIFTED_BOHACHEVSKY_SOCO 				9
+#define SHIFTED_SCHAFFER_SOCO 					10
+#define H1 										11
+#define H2										12
+#define H3										13
+#define H4										14
+#define H7										15
+#define H8										16
+#define H9										17
+#define H10										18
 
 //ABC-X PROBLEMS (MIXTURE)
 //UNIMODAL FUNCTIONS
@@ -115,32 +136,38 @@
 #define COMPOSITION_F9						48 //CEC05
 #define COMPOSITION_F10						49 //CEC05
 
-//CEC2014 problems
-#define SHIFTED_ROTATED_HIGH_CONDITIONED_ELLIPTIC_CEC14			0
-#define ROTATED_BENT_CIGER_CEC14								1
-#define ROTATED_DISCUS_CEC14									2
-#define SHIFTED_ROTATED_ACKLEY_CEC14							3
-#define SHIFTED_ROTATED_ROSENBROCK_CEC14						4
-#define SHIFTED_ROTATED_GRIEWANK_CEC14							5
-#define SHIFTED_ROTATED_RASTRIGIN_CEC14							6
-#define SHIFTED_SCHWEFEL_CEC14									7
-#define SHIFTED_ROTATED_SCHWEFEL_CEC14							8
-#define SHIFTED_ROTATED_WEIERSTRASS_CEC14						9
-#define SHIFTED_ROTATED_KATSUURA_CEC14							10
-#define SHIFTED_ROTATED_HAPPYCAT_CEC14							11
-#define SHIFTED_ROTATED_HGBAT_CEC14								12
-#define H1_CEC14_CEC14											13
-#define H2_CEC14_CEC14											14
-#define H3_CEC14_CEC14											15
-#define H4_CEC14_CEC14											16
-#define H5_CEC14_CEC14											17
-#define H6_CEC14_CEC14											18
+//BBOB
+//#define SPHERE_FUNCTION_BBOB											0 //BBOB
+//#define ELLIPSOIDAL_FUNCTION_BBOB										1 //BBOB
+//#define RASTRIGIN_FUNCTION_BBOB											2 //BBOB
+//#define BUCHE_RASTRIGIN_FUNCTION_BBOB									3 //BBOB
+//#define LINEAR_SLOPE_BBOB												4 //BBOB
+//#define ATTRACTIVE_SECTOR_FUNCTION_BBOB									5 //BBOB
+//#define STEP_ELLIPSOIDAL_FUNCTION_BBOB									6 //BBOB
+//#define ROSENBROCK_FUNCTION_ORIGINAL_BBOB								7 //BBOB
+//#define ROSENBROCK_FUNCTION_ROTATED_BBOB								8 //BBOB
+//#define ELLIPSOIDAL_FUNCTION_BBOB										9 //BBOB
+//#define DISCUS_FUNCTION_BBOB											10 //BBOB
+//#define BENT_CIGAR_FUNCTION_BBOB										11 //BBOB
+//#define SHARP_RIDGE_FUNCTION_BBOB										12 //BBOB
+//#define DIFFERENT_POWERS_FUNCTION_BBOB									13 //BBOB
+//#define RASTRIGIN_FUNCTION_BBOB											14 //BBOB
+//#define WEIERSTRASS_FUNCTION_BBOB										15 //BBOB
+//#define SCHAFFERS_F7_FUNCTION_BBOB										16 //BBOB
+//#define SCHAFFERS_F7_FUNCTION_MODERATELY_ILL_CONDITIONED_BBOB			17 //BBOB
+//#define COMPOSITE_GRIEWANK_ROSENBROCK_FUNCTION_F8F2_BBOB				18 //BBOB
+//#define SCHWEFEL_FUNCTION_BBOB											19 //BBOB
+//#define GALLAGHER_GAUSSIAN_101_ME_PEAKS_FUNCTION_BBOB					20 //BBOB
+//#define GALLAGHER_GAUSSIAN_21_HI_PEAKS_FUNCTION_BBOB					21 //BBOB
+//#define KATSUURA_FUNCTION_BBOB											22 //BBOB
+//#define LUNACEK_BI_RASTRIGIN_FUNCTION_BBOB								23 //BBOB
 
 //competitions
 #define CEC05	 				0
 #define CEC14					1
 #define SOFT_COMPUTING 			2
 #define MIXTURE					3
+#define BBOB					4
 
 //Useful constants
 #define PI acos(-1)
