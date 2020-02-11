@@ -77,8 +77,6 @@ Swarm::~Swarm(){
 }
 
 Swarm::Swarm (Problem* problem, Configuration* config){
-	//cout << "Creating swarm.\n\n";
-
 	this->problem = problem;
 	size = config->getSwarmSize();
 
@@ -88,9 +86,16 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 		global_best.x[i] = 0;
 	global_best.eval=LDBL_MAX;
 
+	if (config->verboseMode())
+		cout << "\tvar::(default)::global_best.eval: " << global_best.eval << endl;
+
+
 	for (long int i=0; i<size; i++) {
 		Particle* aParticle = new Particle(problem, config, i, 0);
 		swarm.push_back(aParticle);
+
+		if (config->verboseMode())
+			cout << "\tvar::swarm.at(" << i <<")->getPbestEvaluation(): " << swarm.at(i)->getPbestEvaluation() << endl;
 
 		if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
 			updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
@@ -98,17 +103,26 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 		}
 	}
 
-	try{
-		long int tryId = best_particle->getID();
-		if (tryId != -1)
-			cout << "";
+	//	try{
+	//best_particle->getID();
+	if (best_particle != NULL){
+		if (config->verboseMode()) cout << "\tvar::best_particle.id: " << best_particle->getID() << endl;
 	}
-	catch (const std::exception& e) {
+	else {
 		cerr << "The program could not determine an initial solution quality. " << endl;
-		cerr << "HINT: Make sure that all input files can be accessed by the program" << endl;
+		cerr << "HINT 1: Make sure that all input files can be accessed by the program" << endl;
+		cerr << "HINT 2: This error is typically produced when the o.f. cannot be correctly evaluated" << endl;
 		exit (-1);
 	}
 
+	if (config->verboseMode())
+		cout << "\tvar::best_particle.id: " << best_particle->getID() << endl;
+	//	}
+	//	catch (const std::exception& e) {
+	//		cerr << "The program could not determine an initial solution quality. " << endl;
+	//		cerr << "HINT: Make sure that all input files can be accessed by the program" << endl;
+	//		exit (-1);
+	//	}
 	hierarchical = false;
 
 	//Select one of the available topologies
@@ -165,25 +179,29 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	computeAccelerationCoefficients(config, iteration);
 
 	//Move particles
-//	cout << "iteration: " << iteration << endl; //remove
+	if (config->verboseMode())
+		cout << "iteration: " << iteration << endl; //remove
 
 	for (unsigned int i=0;i<swarm.size();i++){
 
-//		cout << "\tParticle [" << i << "] -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
+		if (config->verboseMode())
+			cout << "\tParticle [" << i << "] -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
 		int sizeInformants = getInformants(config, i, iteration); //Get the informants of i
 
-		//print all neighbors
-//		cout << "\tNeighbors ids:  [ ";
-//		for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
-//			cout << swarm.at(i)->neighbours[j]->getID() << " ";
-//		}
-//		cout << "]" << endl;
-//		//print all neighbors
-//		cout << "\tInformants pos: [ ";
-//		for (int j=0;j<sizeInformants;j++){
-//			cout << swarm.at(i)->InformantsPos[j] << " ";
-//		}
-//		cout << "]" << endl;
+		if (config->verboseMode()) {
+			//print all neighbors
+			cout << "\tNeighbors ids:  [ ";
+			for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
+				cout << swarm.at(i)->neighbours[j]->getID() << " ";
+			}
+			cout << "]" << endl;
+			//print all neighbors
+			cout << "\tInformants pos: [ ";
+			for (int j=0;j<sizeInformants;j++){
+				cout << swarm.at(i)->InformantsPos[j] << " ";
+			}
+			cout << "]" << endl;
+		}
 
 		//If using a self-adaptive strategy compute omega1, otherwise this function simply returns the value already computed
 		double omega1 = computeOmega1(config, iteration, i, false);
@@ -198,7 +216,6 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 				sizeInformants,
 				lastLevelComplete,
 				alpha_t, l, delta);
-		//cout << "\n <<So far so good>>" << endl;
 	}
 	long double prev_Gbest_eval = global_best.eval; //best solution at iteration t-1
 
@@ -241,7 +258,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 						if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j])
 							swarm.at(particleID)->InformantsPos.push_back(i);//	Informants[j] = i;
 				}
-//				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
+				if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return 1;
 			}
 			else {
@@ -255,7 +272,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 					if (swarm.at(particleID)->neighbours.at(i)->getID() == bestID)
 						swarm.at(particleID)->InformantsPos.push_back(i);
 				}
-//				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
+				if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return 1;
 			}
 		}
@@ -281,11 +298,10 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 						if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j])
 							swarm.at(particleID)->InformantsPos.push_back(i);
 				}
-//				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
+				if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return Array_size;
 			}
 			else {
-				//cout << " ... So far, so good ..."; //remove
 				//Since some topologies are dynamic, the size of informants may change from iteration to iteration
 				//Clear the vector
 				swarm.at(particleID)->InformantsPos.clear();
@@ -293,7 +309,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
 					swarm.at(particleID)->InformantsPos.push_back(i); //we use the indexes of neighbors
 				}
-//				cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
+				if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
 				return swarm.at(particleID)->InformantsPos.size();
 			}
 		}
@@ -324,7 +340,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 			}
 			TMP_vect.clear();
 
-//			cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size(); ;
+			if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size(); ;
 			return swarm.at(particleID)->InformantsPos.size();;
 		}
 		else {
@@ -381,7 +397,6 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 				updateTopologyConnections( config, previous_size, iteration);
 			}
 		}
-		//cout << "\n So far, so good" << endl; //remove
 		break;
 	}
 }
@@ -456,23 +471,6 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 	}
 	break;
 	case TOP_TIMEVARYING:
-		//RNG::initializePermutation(config->getSwarmSize());
-		//cout << "\n\titeration: " << iteration << " tschedule: " << config->getTopologySchedule() << " previous_size " << previous_size << endl;
-		//		if (iteration < config->getTopologySchedule()){ // FULLY_CONNECTED -- Between 0 and the first removal of edges
-		//			//Clear connections
-		//			for(unsigned int i=0; i<swarm.size(); i++){
-		//				swarm.at(i)->neighbours.clear();
-		//			}
-		//			//Create new connections
-		//			createFullyConnectedTopology();
-		//			//			for(unsigned int i=previous_size; i<swarm.size(); i++){
-		//			//				for(unsigned int j=0; j<swarm.size(); j++){
-		//			//					swarm.at(i)->addNeighbour(swarm.at(j));
-		//			//					swarm.at(j)->addNeighbour(swarm.at(i));
-		//			//				}
-		//			//			}
-		//		}
-		//		else if (iteration >=  (int)floor(config->getTopologySchedule()/30)){
 		if (iteration < config->getTopologySchedule()){
 			//We connect a particle randomly with swarm ensuring that the particle is connected to the adjacent neighbors (RING)
 			//Get average connections number of the swarm.
@@ -677,7 +675,6 @@ void Swarm::computeAccelerationCoefficients(Configuration* config, long int iter
 	} break;
 	}
 }
-
 
 void Swarm::updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration){
 	if(		config->getPerturbation1Type() == PERT1_NORMAL_SUCCESS ||
@@ -1550,7 +1547,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			//cout << inertia << endl;
 			//return inertia;
 		}
-//		cout << "\tvar::Omega1: " << config->getOmega1() << " ";
+		if (config->verboseMode()) cout << "\tvar::Omega1: " << config->getOmega1() << " ";
 	}
 	else {
 		//These are the strategies that need to compute a independent inertia value for each particle
@@ -1629,7 +1626,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				temp_Omega = config->getOmega1();
 				break;
 			}
-//			cout << "\tvar::Omega1: " << config->getOmega1() << " ";
+			if (config->verboseMode()) cout << "\tvar::Omega1: " << config->getOmega1() << " ";
 			return temp_Omega;
 		}
 		else{

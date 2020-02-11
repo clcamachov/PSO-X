@@ -25,7 +25,7 @@ Ackley::Ackley(Configuration* config, int variantID):Problem(config, variantID){
 				|| vID == SHIFTED_ROTATED_GLOBAL_OPTIMUM_ON_BOUNDS){
 			shift_vector = new double[dimension];
 			z = new double[dimension];
-			string file_data = "supportData/ackley_CEC05_func_data.txt";
+			string file_data = "../supportData/ackley_CEC05_func_data.txt";
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 		}
 
@@ -37,13 +37,13 @@ Ackley::Ackley(Configuration* config, int variantID):Problem(config, variantID){
 			string file_m;
 
 			if (dimension > 2 && dimension < 10)
-				file_m = "supportData/ackley_M_D10.txt";
+				file_m = "../supportData/ackley_M_D10.txt";
 			else if (dimension > 10 && dimension < 30)
-				file_m = "supportData/ackley_M_D30.txt";
+				file_m = "../supportData/ackley_M_D30.txt";
 			else if (dimension > 30 && dimension < 50)
-				file_m = "supportData/ackley_M_D50.txt";
+				file_m = "../supportData/ackley_M_D50.txt";
 			else
-				file_m = "supportData/ackley_M_D" + dim_name.str() + ".txt";
+				file_m = "../supportData/ackley_M_D" + dim_name.str() + ".txt";
 
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}
@@ -52,7 +52,7 @@ Ackley::Ackley(Configuration* config, int variantID):Problem(config, variantID){
 		if(vID == SHIFTED){
 			shift_vector = new double[dimension];
 			z = new double[dimension];
-			string file_data = "supportData/ackley_CEC08_func_data.txt";
+			string file_data = "../supportData/ackley_CEC08_func_data.txt";
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 			//27.00775710883052500000 -16.13168918554272900000 6.41055501250719570000
 		}
@@ -60,7 +60,7 @@ Ackley::Ackley(Configuration* config, int variantID):Problem(config, variantID){
 
 			shift_vector = new double[dimension];
 			z = new double[dimension];
-			string file_data = "supportData/input_data/shift_data_5.txt";
+			string file_data = "../supportData/input_data/shift_data_5.txt";
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 
 			rotation_matrix  = allocateMemory2D(dimension, dimension);
@@ -70,17 +70,17 @@ Ackley::Ackley(Configuration* config, int variantID):Problem(config, variantID){
 			string file_m;
 
 			if (dimension > 2 && dimension < 10)
-				file_m = "supportData/input_data/ackley_M_D10.txt";
+				file_m = "../supportData/input_data/ackley_M_D10.txt";
 			else if (dimension > 10 && dimension < 20)
-				file_m = "supportData/input_data/ackley_M_D20.txt";
+				file_m = "../supportData/input_data/ackley_M_D20.txt";
 			else if (dimension > 20 && dimension < 30)
-				file_m = "supportData/input_data/ackley_M_D30.txt";
+				file_m = "../supportData/input_data/ackley_M_D30.txt";
 			else if (dimension > 30 && dimension < 50)
-				file_m = "supportData/input_data/ackley_M_D50.txt";
+				file_m = "../supportData/input_data/ackley_M_D50.txt";
 			else if (dimension > 50 && dimension < 100)
-				file_m = "supportData/input_data/ackley_M_D100.txt";
+				file_m = "../supportData/input_data/ackley_M_D100.txt";
 			else
-				file_m = "supportData/input_data/ackley_M_D" + dim_name.str() + ".txt";
+				file_m = "../supportData/input_data/ackley_M_D" + dim_name.str() + ".txt";
 
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}

@@ -93,15 +93,15 @@ public:
 	double getMaxVelLimit();
 
 	//Initial position
-	void initUniform();
+	void initUniform(Configuration* config);
 	void initToModel();
-	void initializePosition(int initType, int popCS, long int initialPopSize);
+	void initializePosition(Configuration* config, long int initialPopSize);
 	void printPosition();
 	void printNeighborByID(int id);
 
 	//Velocity and position computation
-	void computeSubtractionPerturbationRotation(int DNPP, vector< vector<double> > &vect_PbestMinusPosition, int &numInformants,
-			int RmatrixType, bool pBestIntheInformants, int pertubType, double alpha_t, double l_value);
+	void computeSubtractionPerturbationRotation(Configuration* config, vector< vector<double> > &vect_PbestMinusPosition, int &numInformants,
+			bool pBestIntheInformants, double alpha_t, double l_value);
 	void getRectangularDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
 			vector< vector< double> > &vect_PbestMinusPosition, int modelOfInflu);
 	void getSphericalDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,

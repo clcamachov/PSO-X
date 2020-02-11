@@ -16,19 +16,19 @@ Elliptic::Elliptic(Configuration* config, int variantID):Problem(config, variant
 
 	if(vID == SHIFTED_ROTATED_HIGH_CONDITIONED){
 		if(config->getCompetitionID() == CEC05){
-			string file_data = "supportData/high_cond_elliptic_rot_data.txt";
+			string file_data = "../supportData/high_cond_elliptic_rot_data.txt";
 			stringstream dim_name;
 			dim_name << dimension;
-			string file_m; //= "supportData/elliptic_M_D" + dim_name.str() + ".txt";
+			string file_m; //= "../supportData/elliptic_M_D" + dim_name.str() + ".txt";
 
 			if (dimension > 2 && dimension < 10)
-				file_m = "supportData/elliptic_M_D10.txt";
+				file_m = "../supportData/elliptic_M_D10.txt";
 			else if (dimension > 10 && dimension < 30)
-				file_m = "supportData/elliptic_M_D30.txt";
+				file_m = "../supportData/elliptic_M_D30.txt";
 			else if (dimension > 30 && dimension < 50)
-				file_m = "supportData/elliptic_M_D50.txt";
+				file_m = "../supportData/elliptic_M_D50.txt";
 			else
-				file_m = "supportData/elliptic_M_D" + dim_name.str() + ".txt";
+				file_m = "../supportData/elliptic_M_D" + dim_name.str() + ".txt";
 
 			rotation_matrix  = allocateMemory2D(dimension, dimension);
 			shift_vector = new double[dimension];
@@ -40,23 +40,23 @@ Elliptic::Elliptic(Configuration* config, int variantID):Problem(config, variant
 		}
 
 		if(config->getCompetitionID() == MIXTURE || config->getCompetitionID() == CEC14){
-			string file_data = "supportData/input_data/shift_data_1.txt";
+			string file_data = "../supportData/input_data/shift_data_1.txt";
 			stringstream dim_name;
 			dim_name << dimension;
-			string file_m; //= "supportData/input_data/M_1_D" + dim_name.str() + ".txt";
+			string file_m; //= "../supportData/input_data/M_1_D" + dim_name.str() + ".txt";
 
 			if (dimension > 2 && dimension < 10)
-				file_m = "supportData/input_data/M_1_D10.txt";
+				file_m = "../supportData/input_data/M_1_D10.txt";
 			else if (dimension > 10 && dimension < 20)
-				file_m = "supportData/input_data/M_1_D20.txt";
+				file_m = "../supportData/input_data/M_1_D20.txt";
 			else if (dimension > 20 && dimension < 30)
-				file_m = "supportData/input_data/M_1_D30.txt";
+				file_m = "../supportData/input_data/M_1_D30.txt";
 			else if (dimension > 30 && dimension < 50)
-				file_m = "supportData/input_data/M_1_D50.txt";
+				file_m = "../supportData/input_data/M_1_D50.txt";
 			else if (dimension > 50 && dimension < 100)
-				file_m = "supportData/input_data/M_1_D100.txt";
+				file_m = "../supportData/input_data/M_1_D100.txt";
 			else
-				file_m = "supportData/input_data/M_1_D" + dim_name.str() + ".txt";
+				file_m = "../supportData/input_data/M_1_D" + dim_name.str() + ".txt";
 
 			rotation_matrix  = allocateMemory2D(dimension, dimension);
 			shift_vector = new double[dimension];

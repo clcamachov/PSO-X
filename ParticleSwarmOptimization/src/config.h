@@ -10,6 +10,9 @@
 
 #include <vector>
 #include <cmath>
+#include <limits>
+#include <string>
+#include <sstream> // for std::stringstream
 
 //CEC2005 problems
 #define	SHIFTED_SPHERE_CEC05									0
@@ -295,6 +298,9 @@ private:
 
 	//Other parameters
 	double startTime; // to calculate time elapsed
+	bool useLogs;
+	bool verbose;
+	std::string outputPath;
 
 	//Population
 	long int particles;
@@ -364,6 +370,9 @@ public:
 	void printParameters();
 	void printUsage();
 	void print();
+	bool logOutput();
+	bool verboseMode();
+	std::string getOutputPath();
 
 	//Problem
 	unsigned long getRNGSeed();

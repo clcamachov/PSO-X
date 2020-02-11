@@ -13,7 +13,6 @@
 #include <math.h>
 #include <cmath>
 #include <new>
-
 #include "utils.h"
 
 using namespace std;
@@ -72,7 +71,7 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier, lon
 	inertia = config->getOmega1();
 
 	//cout << "Particle " << id << " : [ ";
-	initializePosition(config->getParticleInitType(), config->getPopulationCS(), iteration);
+	initializePosition(config, iteration);
 
 	//printPosition();
 	init = true;
@@ -178,12 +177,20 @@ Particle::~Particle(){
 
 
 /* Initialize particle using uniformly random values */
-void Particle::initUniform(){
+void Particle::initUniform(Configuration* config){
+	if (config->verboseMode()) cout << "\tvector::(initial)::[ " ;
 	for(int i=0; i<size; i++){
-		current.x[i] = problem->getRandomX(); //random values within the bounds of the function
+		if(config->getCompetitionID() == CEC05 && config->getProblemID() == SHIFTED_ROTATED_GRIEWANK_CEC05)
+			current.x[i] = problem->getRandomX(0.0,600.0);
+		else if(config->getCompetitionID() == CEC05 && config->getProblemID() == ROTATED_HYBRIDCOMPOSITION4_NO_BOUNDS)
+			current.x[i] = problem->getRandomX(2.0,5.0);
+		else
+			current.x[i] = problem->getRandomX(); //random values within the bounds of the function
 		pbest.x[i]=current.x[i];
 		velocity[i]=0;
+		if (config->verboseMode()) cout << current.x[i] << " ";
 	}
+	if (config->verboseMode()) cout << "]" << endl;
 	computeEvaluation();
 }
 
@@ -195,32 +202,26 @@ void Particle::initToModel(){
 	computeEvaluation();
 }
 
-void Particle::initializePosition(int initType, int popCS, long int iteration){
-	switch (initType) {
+void Particle::initializePosition(Configuration* config, long int iteration){
+	switch (config->getParticleInitType()) {
 	case PARTICLE_INIT_RANDOM:
-		initUniform();
+		initUniform(config);
 		break;
 	case PARTICLE_INIT_MODEL:{ //Only available for dynamic PopCS and after the first iteration
-		initUniform();
-		if (popCS != POP_CONSTANT && iteration > 0)
+		initUniform(config);
+		if (config->getPopulationCS() != POP_CONSTANT && iteration > 0)
 			initToModel();
 	}
 	break;
 	default:
-		initUniform();
+		initUniform(config);
 		break;
 	}
 }
 
 void Particle::setVelocityLimits(Configuration* config){
-	if((config->getProblemID() == 6 || config->getProblemID() == 24) && (config->getCompetitionID() == 0)){
-		minVelLimit= (LDBL_MAX)/-2;
-		maxVelLimit= (LDBL_MAX)/2;
-	}
-	else {
-		minVelLimit=((config->getMaxInitRange()-config->getMinInitRange())/2.0)*-1;
-		maxVelLimit=((config->getMaxInitRange()-config->getMinInitRange())/2.0);
-	}
+	minVelLimit=((config->getMaxInitRange()-config->getMinInitRange())/2.0)*-1;
+	maxVelLimit=((config->getMaxInitRange()-config->getMinInitRange())/2.0);
 }
 
 double Particle::getMinVelLimit(){
@@ -247,8 +248,6 @@ double Particle::getPhi1(){
 double Particle::getPhi2(){
 	return phi_2;
 }
-
-
 void Particle::setRanking(int rank){
 	ranking = rank;
 }
@@ -282,10 +281,9 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	//to avoid including it twice.
 	if (!pBestIntheInformants)
 		numInformants = numInformants+1;
-//	cout << "\tvar::numInformants: " << numInformants << " ";
+	if (config->verboseMode()) cout << "\tvar::numInformants: " << numInformants << " ";
 	vector<vector< double> > vect_PbestMinusPosition;
 	vect_PbestMinusPosition.resize(numInformants, vector<double>(size));
-	//cout << "\tvec::vect_PbestMinusPosition.size(): " << vect_PbestMinusPosition.size() << " ";
 
 	/*** PERTURBATION 1 (distribution-based)	--->	It has to be computed per Informant and/or per Dimension depending on the strategy
 	 *** 						this component is applied directly in the DNNP members of DNPP  ***/
@@ -297,24 +295,52 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	/*** DISTRIBUTION VECTOR (DNNPs)***/
 	switch (config->getDistributionNPP()) {
 	case DIST_RECTANGULAR:{
-		computeSubtractionPerturbationRotation(config->getDistributionNPP(), vect_PbestMinusPosition, numInformants,
-				config->getRandomMatrix(), pBestIntheInformants, config->getPerturbation1Type(), alpha_t, l);
-		getRectangularDNPP(vect_distribution, numInformants, pBestIntheInformants, vect_PbestMinusPosition,
+		computeSubtractionPerturbationRotation(
+				config,
+				vect_PbestMinusPosition,
+				numInformants,
+				pBestIntheInformants,
+				alpha_t,
+				l);
+		getRectangularDNPP(
+				vect_distribution,
+				numInformants,
+				pBestIntheInformants,
+				vect_PbestMinusPosition,
 				config->getModelOfInfluence());
 		break;
 	}
 	case DIST_SPHERICAL:{
-		computeSubtractionPerturbationRotation(config->getDistributionNPP(), vect_PbestMinusPosition, numInformants,
-				config->getRandomMatrix(), pBestIntheInformants, config->getPerturbation1Type(), alpha_t, l);
-		getSphericalDNPP(vect_distribution, numInformants, pBestIntheInformants, vect_PbestMinusPosition,
+		computeSubtractionPerturbationRotation(
+				config,
+				vect_PbestMinusPosition,
+				numInformants,
+				pBestIntheInformants,
+				alpha_t,
+				l);
+		getSphericalDNPP(
+				vect_distribution,
+				numInformants,
+				pBestIntheInformants,
+				vect_PbestMinusPosition,
 				config->getModelOfInfluence());
 		break;
 	}
 	case DIST_ADD_STOCH:{
-		computeSubtractionPerturbationRotation(config->getDistributionNPP(), vect_PbestMinusPosition, numInformants,
-				config->getRandomMatrix(), pBestIntheInformants, config->getPerturbation1Type(), alpha_t, l);
-		getAdditiveStochasticDNPP(vect_distribution, numInformants, pBestIntheInformants, vect_PbestMinusPosition,
-				config->getRandNeighbor(), config->getOperator_q());
+		computeSubtractionPerturbationRotation(
+				config,
+				vect_PbestMinusPosition,
+				numInformants,
+				pBestIntheInformants,
+				alpha_t,
+				l);
+		getAdditiveStochasticDNPP(
+				vect_distribution,
+				numInformants,
+				pBestIntheInformants,
+				vect_PbestMinusPosition,
+				config->getRandNeighbor(),
+				config->getOperator_q());
 		break;
 	}
 	}
@@ -346,27 +372,40 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 
 	//Evaluate the objective function and update pbest if a new one has been found
 	computeEvaluation();
-//	cout << "\tParticle with ID:[" << this->id << "].status::MOVED" << endl;
-//	cout << "\t------------------------------------------" << endl;
+	if (config->verboseMode()) cout << "\tParticle with ID:[" << this->id << "].status::MOVED" << endl;
+	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
 
 }
 
-void Particle::computeSubtractionPerturbationRotation(int DNPP, vector<vector< double> > &vect_PbestMinusPosition, int &numInformants,
-		int RmatrixType, bool pBestIntheInformants, int pertubType, double alpha_t, double l_value){
+void Particle::computeSubtractionPerturbationRotation(
+		Configuration* config,
+		vector<vector< double> > &vect_PbestMinusPosition,
+		int &numInformants,
+		bool pBestIntheInformants,
+		double alpha_t,
+		double l_value) {
 
 	double l[size]; //particle's Gbest
 	bool increase_numInformants = false;
+	int pertubType = config->getPerturbation1Type();
 
-//	(pBestIntheInformants) ? cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: TRUE" << " \n\tvar::DNPP: " << DNPP << endl : cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: FALSE" << " \n\tvar::DNPP: " << DNPP << endl;
+	if (config->verboseMode()){
+		(pBestIntheInformants) ?
+				cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: TRUE"
+				<< " \n\tvar::DNPP: " << config->getDistributionNPP() << endl :
+				cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: FALSE"
+				<< " \n\tvar::DNPP: " << config->getDistributionNPP() << endl;
+	}
 
 	//1.- Check if the particle is pBest == gBest
 	if (this->id == this->gBestID && pBestIntheInformants){
-//		cout << "\t\t ... using reinitialization to model (new position is somewhere around gBest)--" << endl;
+		if (config->verboseMode()) cout << "\t\tnotice::using reinitialization to model for particle "
+				<< this->id << " -The new position (l[]) is somewhere around gBest)-" << endl;
 		for (int i=0; i<size; i++)
 			l[i] = problem->getRandomX() + problem->getRandom01()*(gbest.x[i]-current.x[i]);
 	}
 
-	if (DNPP == DIST_ADD_STOCH) {
+	if (config->getDistributionNPP() == DIST_ADD_STOCH) {
 		//2.- Get the p^k of all Informants and then add pBest as the end of the Array
 		if (!pBestIntheInformants){
 			for (int j=0; j<numInformants-1; j++){ //Copy the informants in a temporary structure
@@ -424,17 +463,10 @@ void Particle::computeSubtractionPerturbationRotation(int DNPP, vector<vector< d
 		if (!pBestIntheInformants){
 			for (int j=0; j<numInformants-1; j++){ //Copy the informants in a temporary structure
 				setPerturbationMagnitude(pertubType, current.x, neighbours[InformantsPos[j]]->pbest.x, alpha_t, l_value); //informant-wise
-				//cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << "\n";
-				//cout << "\tvect::PbestMinusPosition:  [ ";
 				for (int i=0; i<size; i++){
-					//cout << "\n\tPrint(paramArray)\n\t\t j:" << j << "\n\t\t i:" << i << "\n\t\t pertubType:" << pertubType <<
-					//		"\n\t\t InformantsPos[j]:" << InformantsPos[j] << "\n\t\t neighbours.at(InformantsPos[j])->pbest.x[i]:" <<
-					//		neighbours.at(InformantsPos[j])->pbest.x[i] << "\n\t\t current.x[i]:" <<  current.x[i] <<  endl;
 					vect_PbestMinusPosition.at(j).at(i) = applyPerturbation(pertubType, neighbours.at(InformantsPos[j])->pbest.x[i])-current.x[i]; //vector to be rotated
-					//cout << vect_PbestMinusPosition.at(j).at(i) << " ";
 					setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
 				}
-				//cout << "]" << endl;
 			}
 			//Add pBest at the end of the Array
 			setPerturbationMagnitude(pertubType, current.x, pbest.x, alpha_t, l_value); //informant-wise
@@ -486,11 +518,11 @@ void Particle::computeSubtractionPerturbationRotation(int DNPP, vector<vector< d
 			for (unsigned int j=0; j<size; j++)
 				rndMatrix[i][j] = new double[size];
 		}
-		computeRndMatrix(rndMatrix, RmatrixType); //we need to compute this for each informant
+		computeRndMatrix(rndMatrix, config->getRandomMatrix()); //we need to compute this for each informant
 		for (int j=0; j<numInformants; j++){ //the rest of informants
-			multiplyVectorByRndMatrix(vect_PbestMinusPosition, j, rndMatrix, RmatrixType);
+			multiplyVectorByRndMatrix(vect_PbestMinusPosition, j, rndMatrix, config->getRandomMatrix());
 			if (j<numInformants) //avoid computing a new random matrix in the last iteration
-				computeRndMatrix(rndMatrix, RmatrixType); //compute a random matrix for the next informant
+				computeRndMatrix(rndMatrix, config->getRandomMatrix()); //compute a random matrix for the next informant
 		}
 		//Deallocate memory used
 		for(int i=0; i<numMatrices; i++){
@@ -499,7 +531,6 @@ void Particle::computeSubtractionPerturbationRotation(int DNPP, vector<vector< d
 			delete [] rndMatrix[i];
 		}
 	}
-	//return vect_PbestMinusPosition;
 }
 
 //This function returns a random position in theInformants different from the pBest of the particle
@@ -562,7 +593,7 @@ void Particle::getAdditiveStochasticDNPP(double vect_distribution[], int numInfo
 	else
 		p2Index = 0;
 
-	//	cout << "\tSimply dynamic PSO, p1 : [" << p1Index << "]" << "\t p2 : [" << p2Index << "]" <<endl;
+	//cout << "\t\tnotice:simply dynamic PSO, p1 : [" << p1Index << "]" << "\t p2 : [" << p2Index << "]" <<endl;
 
 	switch (operatorQ) {
 	case Q_STANDARD:

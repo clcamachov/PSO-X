@@ -16,7 +16,7 @@ Schwefel213::Schwefel213(Configuration* config, int variantID):Problem(config, v
 	double m_o[dimension];
 
 	double ** data_matrix = allocateMemory2D(dimension,201);
-	string file_data = "supportData/schwefel_213_data.txt";
+	string file_data = "../supportData/schwefel_213_data.txt";
 	Utils::loadMatrixFromFile(file_data, 201, dimension, data_matrix);
 
 	m_a = allocateMemory2D(dimension,dimension);

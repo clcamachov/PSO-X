@@ -19,11 +19,11 @@ Rosenbrock::Rosenbrock(Configuration* config, int variantID):Problem(config, var
 		shift_vector = new double[dimension];
 		z = new double[dimension];
 		if(config->getCompetitionID() == CEC05){
-			string file_data = "supportData/rosenbrock_CEC05_func_data.txt";
+			string file_data = "../supportData/rosenbrock_CEC05_func_data.txt";
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 
 		}else{
-			string file_data = "supportData/rosenbrock_CEC08_func_data.txt";
+			string file_data = "../supportData/rosenbrock_CEC08_func_data.txt";
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 		}
 
@@ -36,27 +36,27 @@ Rosenbrock::Rosenbrock(Configuration* config, int variantID):Problem(config, var
 
 			shift_vector = new double[dimension];
 			z = new double[dimension];
-			string file_data = "supportData/input_data/shift_data_4.txt";
+			string file_data = "../supportData/input_data/shift_data_4.txt";
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 
 			rotation_matrix  = allocateMemory2D(dimension, dimension);
 			m_r = new double[dimension];
 			stringstream dim_name;
 			dim_name << dimension;
-			string file_m; // = "supportData/input_data/M_4_D" + dim_name.str() + ".txt";
+			string file_m; // = "../supportData/input_data/M_4_D" + dim_name.str() + ".txt";
 
 			if (dimension > 2 && dimension < 10)
-				file_m = "supportData/input_data/M_4_D10.txt";
+				file_m = "../supportData/input_data/M_4_D10.txt";
 			else if (dimension > 10 && dimension < 20)
-				file_m = "supportData/input_data/M_4_D20.txt";
+				file_m = "../supportData/input_data/M_4_D20.txt";
 			else if (dimension > 20 && dimension < 30)
-				file_m = "supportData/input_data/M_4_D30.txt";
+				file_m = "../supportData/input_data/M_4_D30.txt";
 			else if (dimension > 30 && dimension < 50)
-				file_m = "supportData/input_data/M_4_D50.txt";
+				file_m = "../supportData/input_data/M_4_D50.txt";
 			else if (dimension > 50 && dimension < 100)
-				file_m = "supportData/input_data/M_4_D100.txt";
+				file_m = "../supportData/input_data/M_4_D100.txt";
 			else
-				file_m = "supportData/input_data/M_4_D" + dim_name.str() + ".txt";
+				file_m = "../supportData/input_data/M_4_D" + dim_name.str() + ".txt";
 
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}

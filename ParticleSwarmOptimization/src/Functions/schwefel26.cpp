@@ -20,7 +20,7 @@ Schwefel26::Schwefel26(Configuration* config, int variantID):Problem(config, var
 	z = new double[dimension];
 
 	shift_vector = new double[dimension]; 
-	string file_data = "supportData/schwefel_206_data.txt";
+	string file_data = "../supportData/schwefel_206_data.txt";
 	Utils::loadMatrixFromFile(file_data, dimension+1, dimension, data_matrix);
 
 

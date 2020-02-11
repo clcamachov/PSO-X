@@ -43,19 +43,19 @@ HC_2::HC_2(Configuration* config, int variantID):Problem(config, variantID){
 
 	shift_vector2D = allocateMemory2D(dimension, NUM_OF_FUNC);
 
-	string file_data = "supportData/hybrid_func2_data.txt";
+	string file_data = "../supportData/hybrid_func2_data.txt";
 	stringstream dim_name;
 	dim_name << dimension;
-	string file_m; // = "supportData/hybrid_func2_M_D" + dim_name.str() + ".txt";
+	string file_m; // = "../supportData/hybrid_func2_M_D" + dim_name.str() + ".txt";
 
 	if (dimension > 2 && dimension < 10)
-		file_m = "supportData/hybrid_func2_M_D10.txt";
+		file_m = "../supportData/hybrid_func2_M_D10.txt";
 	else if (dimension > 10 && dimension < 30)
-		file_m = "supportData/hybrid_func2_M_D30.txt";
+		file_m = "../supportData/hybrid_func2_M_D30.txt";
 	else if (dimension > 30 && dimension < 50)
-		file_m = "supportData/hybrid_func2_M_D50.txt";
+		file_m = "../supportData/hybrid_func2_M_D50.txt";
 	else
-		file_m = "supportData/hybrid_func2_M_D" + dim_name.str() + ".txt";
+		file_m = "../supportData/hybrid_func2_M_D" + dim_name.str() + ".txt";
 
 	Utils::loadMatrixFromFile(file_data, NUM_OF_FUNC, dimension, shift_vector2D);
 	for (int i = 0 ; i < dimension ; i ++) {

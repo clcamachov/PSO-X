@@ -16,7 +16,7 @@ Schaffer::Schaffer(Configuration* config, int variantID):Problem(config, variant
 	if(vID == SHIFTED){
 		shift_vector = new double[dimension];
 		z = new double[dimension];
-		string file_data = "supportData/schaffer_CEC08_func_data.txt";
+		string file_data = "../supportData/schaffer_CEC08_func_data.txt";
 		Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 
 	}

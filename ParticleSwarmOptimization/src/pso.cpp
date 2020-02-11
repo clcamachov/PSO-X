@@ -23,6 +23,8 @@
 #include <sys/types.h>
 #include <string>
 #include <sstream>
+#include <ctime>
+#include <cstddef>
 
 #include "config.h"
 #include "problem.h"
@@ -251,6 +253,8 @@ Problem* initializeProblem() {
 		/////////////////////////// COMPOSITION FUNCTIONS
 		case COMPOSITION_F1:{
 			problem = new HC_1(config, BASIC);
+			config->setMinInitRange(-5);	//lower bound of the function
+			config->setMaxInitRange(5);		//upper bound of the function
 		}break;
 		case COMPOSITION_F2:{
 			problem = new HC_1(config, ROTATED);
@@ -400,8 +404,8 @@ Problem* initializeProblem() {
 		}break;
 		case SHIFTED_ROTATED_GRIEWANK_CEC05:{
 			problem = new Griewank(config, ROTATED_WITHOUT_BOUNDS);
-			config->setMinInitRange(LDBL_MAX*-1.0);	//lower bound of the function
-			config->setMaxInitRange(LDBL_MAX);	//upper bound of the function
+			config->setMinInitRange(numeric_limits<double>::max()*-1.0);	//lower bound of the function
+			config->setMaxInitRange(numeric_limits<double>::max());	//upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_ACKLEY_GOOB_CEC05:{
 			problem = new Ackley(config, SHIFTED_ROTATED_GLOBAL_OPTIMUM_ON_BOUNDS);
@@ -476,8 +480,8 @@ Problem* initializeProblem() {
 		}break;
 		case ROTATED_HYBRIDCOMPOSITION4_NO_BOUNDS:{
 			problem = new HC_4(config, ROTATED_WITHOUT_BOUNDS);
-			config->setMinInitRange(LDBL_MAX*-1.0);	//lower bound of the function
-			config->setMaxInitRange(LDBL_MAX);	//upper bound of the function
+			config->setMinInitRange(DBL_MAX*-1.0);	//lower bound of the function
+			config->setMaxInitRange(DBL_MAX);	//upper bound of the function
 		}break;
 		}
 	}
@@ -578,21 +582,51 @@ int dirExists(const char *path) {
 	}
 }
 
-void openLogFile(fstream &outfile, time_t start, time_t end){
-	stringstream comp, prob, dim, seed, rand;
+void openLogFile(Configuration* config, fstream &outfile){
+	//Get date and time to append to the folder
+	time_t start;
+	time(&start);
+	struct tm * timeinfo;
+	char buffer[80];
+	timeinfo = localtime(&start);
+	strftime(buffer,sizeof(buffer),"%d-%m-%Y",timeinfo);
+	string date(buffer);
+	strftime(buffer,sizeof(buffer),"%H:%M:%S",timeinfo);
+	string time(buffer);
+
+	//Compose file name
+	stringstream comp, prob, dim, seed, unique;
 	comp << config->getCompetitionID() ;
 	prob << config->getProblemID();
 	dim << config->getProblemDimension();
 	seed << config->getRNGSeed();
-	rand << setw(8) << fixed << problem->getRandomX((double)start, (double)end);
-	string path = "../OUTPUT-ParticleSwarmOptimization/";		//path to the file
-	string log_file = path + "f" + prob.str() + "-" + dim.str() + "-" + comp.str() + "_" + seed.str() + "-" + rand.str() + ".dat";	//name of the file
-	const char* cstr = log_file.c_str();
+	unique << (int)ceil(problem->getRandomX(1,INT_MAX));
+
+
+	//Remove last / if sent in the path
+	size_t found = config->getOutputPath().find_last_of("/\\n");
+	string thePath = config->getOutputPath().substr(0,found);
+	if (config->getOutputPath().substr(found) != "/")
+		thePath = config->getOutputPath();
+//	cout << " path0: " << config->getOutputPath().substr(0,found) << endl;
+//	cout << " path1: " << config->getOutputPath().substr(found+1) << endl;
+	string path = thePath + "/OUTPUT_PSO-X_" + date + "/";		//path to the file
+	//string path = thePath + "/OUTPUT-ParticleSwarmOptimization" + "/";		//path to the file
+	string log_file = path + "f" + prob.str() + "-d" + dim.str() + "-c" + comp.str() + "_" + seed.str() + "_" + time  + "_" + unique.str() + ".dat";	//name of the file
 	const char* pstr = path.c_str();
+	const char* cstr = log_file.c_str();
+//	cout << " originalPath: " << config->getOutputPath() << endl;
+//	cout << " thePath: " << thePath << endl;
+//	cout << " pathUsed: " << pstr << endl;
+//	cout << " file: " << cstr << endl;
+//	cout << " file: " << cstr << endl;
+//	exit(0);
 
 	if (dirExists(pstr) != 1) //1 exits, 0 otherwise
-		if (mkdir(pstr, 0777) == -1)
+		if (mkdir(pstr, 0777) == -1){
 			cerr << "Error :  " << strerror(errno) << endl;
+			exit(-1);
+		}
 
 	outfile.open(cstr, ios::in|ios::out|ios::app);
 	outfile.close();
@@ -636,10 +670,9 @@ void freeMemory(){
 }
 
 int main(int argc, char *argv[] ){
-	time_t start, end;
 	double stime;
 	static struct timeval tp;
-	time(&start);
+
 	//Get the configuration parameters
 	config = new Configuration();
 	if(!config->getConfig(argc, argv)){
@@ -658,15 +691,17 @@ int main(int argc, char *argv[] ){
 	initializeProblem();
 	//Create a swarm a particles
 	swarm = new Swarm(problem, config);
-	time(&end);
+
 	//Create/open log file
 	fstream outfile;
-	openLogFile(outfile, start, end);
+	if (config->logOutput())
+		openLogFile(config, outfile);
 
-//	config->printParameters();
-//	problem->printProblem();
-//	cout << "\n";
-
+	if (config->verboseMode()){
+		config->printParameters();
+		problem->printProblem();
+		cout << "\n";
+	}
 	while(!terminationCondition()){
 		iterations++;
 
@@ -684,14 +719,24 @@ int main(int argc, char *argv[] ){
 		//Update dynamic population size
 		swarm->resizeSwarm(problem, config, iterations);
 		//problem->printProgress();
+
 		outfile << "iteration: " << iterations << " func_evaluations: " << evaluations  << " best: " << scientific << swarm->getGlobalBest().eval << endl;
 	}
-
 	cout << "Best " << scientific << swarm->getGlobalBest().eval << endl;
-	//cout << scientific << swarm->getGlobalBest().eval << endl;
 
-	//cout << "Optimum:\t" << scientific << problem->getProblemOptimum() << endl;
+
+	if (config->verboseMode()){
+		cout << "\n\n**************************************************\n"
+				<<  "            Execution ended correctly"
+				<< "\n**************************************************" << endl;
+		cout << "Best solution cost: " << fixed << swarm->getGlobalBest().eval << endl;
+		cout << "Best solution components: "; swarm->printGbest(config->getProblemDimension());
+
+	}
+
 	//close the file
-	closeLogFile(outfile);
+	if (config->logOutput())
+		closeLogFile(outfile);
+
 	freeMemory();   // Free memory.
 }

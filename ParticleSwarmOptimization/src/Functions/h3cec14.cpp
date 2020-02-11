@@ -23,23 +23,23 @@ Hybrid3CEC14::Hybrid3CEC14(Configuration* config, int variantID):Problem(config,
 	problem4 = new SchafferF6(config, BASIC);
 
 	if(vID == SHIFTED_ROTATED){
-		string file_data = "supportData/input_data/shift_data_19.txt";
+		string file_data = "../supportData/input_data/shift_data_19.txt";
 		stringstream dim_name;
 		dim_name << dimension;
-		string file_m; // = "supportData/input_data/M_19_D" + dim_name.str() + ".txt";
+		string file_m; // = "../supportData/input_data/M_19_D" + dim_name.str() + ".txt";
 
 		if (dimension > 2 && dimension < 10)
-			file_m = "supportData/input_data/M_19_D10.txt";
+			file_m = "../supportData/input_data/M_19_D10.txt";
 		else if (dimension > 10 && dimension < 20)
-			file_m = "supportData/input_data/M_19_D20.txt";
+			file_m = "../supportData/input_data/M_19_D20.txt";
 		else if (dimension > 20 && dimension < 30)
-			file_m = "supportData/input_data/M_19_D30.txt";
+			file_m = "../supportData/input_data/M_19_D30.txt";
 		else if (dimension > 30 && dimension < 50)
-			file_m = "supportData/input_data/M_19_D50.txt";
+			file_m = "../supportData/input_data/M_19_D50.txt";
 		else if (dimension > 50 && dimension < 100)
-			file_m = "supportData/input_data/M_19_D100.txt";
+			file_m = "../supportData/input_data/M_19_D100.txt";
 		else
-			file_m = "supportData/input_data/M_19_D" + dim_name.str() + ".txt";
+			file_m = "../supportData/input_data/M_19_D" + dim_name.str() + ".txt";
 
 		rotation_matrix  = allocateMemory2D(dimension, dimension);
 		shift_vector = new double[dimension];

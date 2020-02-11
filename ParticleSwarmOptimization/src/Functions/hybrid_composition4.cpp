@@ -41,34 +41,34 @@ double HC_4::biases[NUM_OF_FUNC] = {
 HC_4::HC_4(Configuration* config, int variantID):Problem(config,variantID){
 
 
+
 	C = 2000.0;
 	num_func = NUM_OF_FUNC;
 
 	zM = allocateMemory2D(dimension,NUM_OF_FUNC);
 	z2d = allocateMemory2D(dimension,NUM_OF_FUNC);
 	rotation_matrix3D = allocateMemory3D(dimension,NUM_OF_FUNC,dimension);
-
 	shift_vector2D = allocateMemory2D(dimension,NUM_OF_FUNC);
 
-
-	string file_data = "supportData/hybrid_func4_data.txt";
+	string file_data = "../supportData/hybrid_func4_data.txt";
 
 	stringstream dim_name;
 	dim_name << dimension;
-	string file_m; // = "supportData/hybrid_func4_M_D" + dim_name.str() + ".txt";
+	string file_m; // = "../supportData/hybrid_func4_M_D" + dim_name.str() + ".txt";
 
 	if (dimension > 2 && dimension < 10)
-		file_m = "supportData/hybrid_func4_M_D10.txt";
+		file_m = "../supportData/hybrid_func4_M_D10.txt";
 	else if (dimension > 10 && dimension < 30)
-		file_m = "supportData/hybrid_func4_M_D30.txt";
+		file_m = "../supportData/hybrid_func4_M_D30.txt";
 	else if (dimension > 30 && dimension < 50)
-		file_m = "supportData/hybrid_func4_M_D50.txt";
+		file_m = "../supportData/hybrid_func4_M_D50.txt";
 	else
-		file_m = "supportData/hybrid_func4_M_D" + dim_name.str() + ".txt";
+		file_m = "../supportData/hybrid_func4_M_D" + dim_name.str() + ".txt";
 
 	Utils::loadMatrixFromFile(file_data, NUM_OF_FUNC, dimension, shift_vector2D);
 
 	Utils::loadMatrixFromFile(file_m, NUM_OF_FUNC, dimension, dimension, rotation_matrix3D);
+
 
 	w = new double[NUM_OF_FUNC];
 

@@ -18,11 +18,11 @@ Sphere::Sphere(Configuration* config, int variantID):Problem(config, variantID){
 		shift_vector = new double[dimension];
 		string file_data;
 		if(config->getCompetitionID() == CEC05){
-			file_data = "supportData/sphere_CEC05_func_data.txt";
+			file_data = "../supportData/sphere_CEC05_func_data.txt";
 
 		}
 		else{
-			file_data = "supportData/sphere_CEC08_func_data.txt";
+			file_data = "../supportData/sphere_CEC08_func_data.txt";
 		}
 
 		Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);

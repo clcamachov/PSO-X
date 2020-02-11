@@ -53,7 +53,9 @@ void Problem::printProblem(){
 			<< "  bestSoFarSolution:  " << getBestSoFarSolution() << "\n"
 			<< "  hasBounds:          " << hasBoundConstraint() << "\n"
 			<< "  vID:                " << vID << "\n"
-			<< "  Random# in bounds:  " << getRandomX() << "\n";
+			<< "  lowerBound:         " << config->getMinInitBound() << "\n"
+			<< "  upperBound:         " << config->getMaxInitBound() << "\n"
+			<< "  random# in bounds:  " << getRandomX() << "\n";
 }
 
 double* Problem::getShift_vector(){

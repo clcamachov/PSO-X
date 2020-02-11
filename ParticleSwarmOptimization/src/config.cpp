@@ -210,10 +210,23 @@ bool Configuration::getConfig(int argc, char *argv[]){
 				randNeighbor = true;
 			i++;
 			//cout << "\n operator_q will be used with randNeighbor\n";
+		} else if (strcmp(argv[i], "--noLogs") == 0) {
+			useLogs = false;
+			//cout << "\n no logs - suppress logs \n";
+		} else if (strcmp(argv[i], "--quiet") == 0) {
+			verbose = false;
+			//cout << "\n no logs - suppress logs \n";
+		} else if (strcmp(argv[i], "--verbose") == 0) {
+			verbose = true;
+			//cout << "\n no logs - suppress logs \n";
 		} else if (strcmp(argv[i], "--vRule") == 0) {
 			vRule = atol(argv[i+1]);
 			i++;
 			//cout << "\n velocity rule has been received \n";
+		} else if (strcmp(argv[i], "--output-path") == 0) {
+			outputPath = argv[i+1];
+			i++;
+			//cout << "\n operator_q has been received \n";
 		} else if (strcmp(argv[i], "--iw_par_eta") == 0) {
 			iw_par_eta = atof(argv[i+1]);
 			i++;
@@ -239,6 +252,25 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			return(false);
 		}
 	}
+
+	//Check problems and competitions range
+	if (competitionID == CEC05 && problemID > 24){
+		cerr << "\nERROR: the range of problems for CEC05 is from 0 to 24.\n";
+		return(false);
+	}
+	if (competitionID == CEC14 && problemID > 18){
+		cerr << "\nERROR: the range of problems for CEC14 is from 0 to 18.\n";
+		return(false);
+	}
+	if (competitionID == SOFT_COMPUTING && problemID > 18){
+		cerr << "\nERROR: the range of problems for SOFT COMPUTING is from 0 to 18.\n";
+		return(false);
+	}
+	if (competitionID == MIXTURE && problemID > 49){
+		cerr << "\nERROR: the range of problems for MIXTURE is from 0 to 49.\n";
+		return(false);
+	}
+
 
 	if (initialPopSize > finalPopSize)
 		cerr << "\nError: Wrong initial (or) final population size..." << endl;
@@ -292,7 +324,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	}
 
 	//Termination criterion 10000 * dimensions
-	maxFES = 1000 * problemDimension;
+	maxFES = 10000 * problemDimension;
 	if (max_iterations == -1)
 		max_iterations = maxFES;
 
@@ -381,8 +413,8 @@ void Configuration::setDefaultParameters(){
 	competitionID = CEC05;					//CEC05, CEC14, SOFT_COMPUTING, MIXTURE
 	problemID = 18;							//25, 19, 19 and 50, respectively
 	problemDimension = 2; 					//dimensions
-	//minInitRange = -100;					//lower bound of the function
-	//maxInitRange = 100;					//upper bound of the function
+	minInitRange = -100;					//lower bound of the function
+	maxInitRange = 100;						//upper bound of the function
 
 	/** Population **/
 	particles = 10;							//particles (swarm size)
@@ -438,6 +470,9 @@ void Configuration::setDefaultParameters(){
 	/** Velocity rules **/
 	vRule = VEL_STANDARD;					//use to select a specific velocity update formula
 
+	/** Logs **/
+	useLogs = true;						//create a folder an log the execution of the algorithm
+	verbose = false;
 	//When the maxInitRange and minInitRange are different from 100
 	//the range is updated after instantiating the problem.
 	//Also for velocity clamping the bound depends on the function bounds
@@ -646,6 +681,15 @@ void Configuration::printParameters(){
 	}
 	cout << endl;
 }
+bool Configuration::logOutput(){
+	return useLogs;
+}
+bool Configuration::verboseMode(){
+	return verbose;
+}
+std::string Configuration::getOutputPath(){
+	return outputPath;
+}
 
 //Problem
 unsigned int Configuration::getCompetitionID(){
@@ -666,30 +710,22 @@ unsigned int Configuration::getMaxFES(){
 unsigned int Configuration::getMaxIterations(){
 	return max_iterations;
 }
-double Configuration::getMinInitRange(){
-	if((getProblemID() == 6 || getProblemID() == 24) && (getCompetitionID() == 0))
-		return LDBL_MAX*-1.0;
-	return minInitRange;
-}
-double Configuration::getMaxInitRange(){
-	if((getProblemID() == 6 || getProblemID() == 24) && (getCompetitionID() == 0))
-		return LDBL_MAX;
-	return maxInitRange;
-}
 void Configuration::setMinInitRange(double lowerlimit) {
 	minInitRange = lowerlimit;
+}
+double Configuration::getMinInitRange(){
+	return minInitRange;
+}
+double Configuration::getMinInitBound(){
+	return minInitRange;
 }
 void Configuration::setMaxInitRange(double upperlimit){
 	maxInitRange = upperlimit;
 }
-double Configuration::getMinInitBound(){
-	if((getProblemID() == 6 || getProblemID() == 24) && (getCompetitionID() == 0))
-		return LDBL_MAX*-1.0;
-	return minInitRange;
+double Configuration::getMaxInitRange(){
+	return maxInitRange;
 }
 double Configuration::getMaxInitBound(){
-	if((getProblemID() == 6 || getProblemID() == 24) && (getCompetitionID() == 0))
-		return LDBL_MAX;
 	return maxInitRange;
 }
 

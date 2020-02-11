@@ -22,23 +22,23 @@ Hybrid1CEC14::Hybrid1CEC14(Configuration* config, int variantID):Problem(config,
 	problem3 = new Elliptic(config, BASIC);
 
 	if(vID == SHIFTED_ROTATED){
-		string file_data = "supportData/input_data/shift_data_17.txt";
+		string file_data = "../supportData/input_data/shift_data_17.txt";
 		stringstream dim_name;
 		dim_name << dimension;
-		string file_m; // = "supportData/input_data/M_17_D" + dim_name.str() + ".txt";
+		string file_m; // = "../supportData/input_data/M_17_D" + dim_name.str() + ".txt";
 
 		if (dimension > 2 && dimension < 10)
-			file_m = "supportData/input_data/M_17_D10.txt";
+			file_m = "../supportData/input_data/M_17_D10.txt";
 		else if (dimension > 10 && dimension < 20)
-			file_m = "supportData/input_data/M_17_D20.txt";
+			file_m = "../supportData/input_data/M_17_D20.txt";
 		else if (dimension > 20 && dimension < 30)
-			file_m = "supportData/input_data/M_17_D30.txt";
+			file_m = "../supportData/input_data/M_17_D30.txt";
 		else if (dimension > 30 && dimension < 50)
-			file_m = "supportData/input_data/M_17_D50.txt";
+			file_m = "../supportData/input_data/M_17_D50.txt";
 		else if (dimension > 50 && dimension < 100)
-			file_m = "supportData/input_data/M_17_D100.txt";
+			file_m = "../supportData/input_data/M_17_D100.txt";
 		else
-			file_m = "supportData/input_data/M_17_D" + dim_name.str() + ".txt";
+			file_m = "../supportData/input_data/M_17_D" + dim_name.str() + ".txt";
 
 
 		rotation_matrix  = allocateMemory2D(dimension, dimension);

@@ -15,10 +15,10 @@ Schwefel12::Schwefel12(Configuration* config, int variantID):Problem(config, var
 		shift_vector = new double[dimension];
 		z = new double[dimension];
 		if(config->getCompetitionID() == CEC05){
-			string file_data = "supportData/schwefel_102_CEC05_func_data.txt";
+			string file_data = "../supportData/schwefel_102_CEC05_func_data.txt";
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 		}else{
-			string file_data = "supportData/schwefel_102_CEC08_func_data.txt";
+			string file_data = "../supportData/schwefel_102_CEC08_func_data.txt";
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 		}
 	}	
