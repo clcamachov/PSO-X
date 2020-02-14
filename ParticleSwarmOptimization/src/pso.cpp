@@ -608,19 +608,19 @@ void openLogFile(Configuration* config, fstream &outfile){
 	string thePath = config->getOutputPath().substr(0,found);
 	if (config->getOutputPath().substr(found) != "/")
 		thePath = config->getOutputPath();
-//	cout << " path0: " << config->getOutputPath().substr(0,found) << endl;
-//	cout << " path1: " << config->getOutputPath().substr(found+1) << endl;
+	//	cout << " path0: " << config->getOutputPath().substr(0,found) << endl;
+	//	cout << " path1: " << config->getOutputPath().substr(found+1) << endl;
 	string path = thePath + "/OUTPUT_PSO-X_" + date + "/";		//path to the file
 	//string path = thePath + "/OUTPUT-ParticleSwarmOptimization" + "/";		//path to the file
 	string log_file = path + "f" + prob.str() + "-d" + dim.str() + "-c" + comp.str() + "_" + seed.str() + "_" + time  + "_" + unique.str() + ".dat";	//name of the file
 	const char* pstr = path.c_str();
 	const char* cstr = log_file.c_str();
-//	cout << " originalPath: " << config->getOutputPath() << endl;
-//	cout << " thePath: " << thePath << endl;
-//	cout << " pathUsed: " << pstr << endl;
-//	cout << " file: " << cstr << endl;
-//	cout << " file: " << cstr << endl;
-//	exit(0);
+	//	cout << " originalPath: " << config->getOutputPath() << endl;
+	//	cout << " thePath: " << thePath << endl;
+	//	cout << " pathUsed: " << pstr << endl;
+	//	cout << " file: " << cstr << endl;
+	//	cout << " file: " << cstr << endl;
+	//	exit(0);
 
 	if (dirExists(pstr) != 1) //1 exits, 0 otherwise
 		if (mkdir(pstr, 0777) == -1){
@@ -670,20 +670,20 @@ void freeMemory(){
 }
 
 int main(int argc, char *argv[] ){
-	double stime;
-	static struct timeval tp;
+	//Start timer
+	double time_taken;
+	static struct timeval start, end;
+	gettimeofday( &start, NULL );
+	//ios_base::sync_with_stdio(false);
+	//stime =(double) tp.tv_sec + (double) tp.tv_usec/1000000.0;
+	//config->setStartTime(stime);
+	//cout.precision(20); //use to print more decimals, scientific's default is 6
 
 	//Get the configuration parameters
 	config = new Configuration();
 	if(!config->getConfig(argc, argv)){
 		exit(-1);
 	}
-
-	//Start timer
-	gettimeofday( &tp, NULL );
-	stime =(double) tp.tv_sec + (double) tp.tv_usec/1000000.0;
-	config->setStartTime(stime);
-	//cout.precision(20); //use to print more decimals, scientific's default is 6
 
 	//Random number generator
 	RNG::initializePermutation(config->getSwarmSize());
@@ -722,8 +722,15 @@ int main(int argc, char *argv[] ){
 
 		outfile << "iteration: " << iterations << " func_evaluations: " << evaluations  << " best: " << scientific << swarm->getGlobalBest().eval << endl;
 	}
+	cout.precision(16);
 	cout << "Best " << scientific << swarm->getGlobalBest().eval << endl;
 
+	//Stop timer
+	gettimeofday(&end, NULL);
+	// Calculating total time taken by the program.
+	time_taken = (end.tv_sec - start.tv_sec) * 1e6;
+	time_taken = (time_taken + (end.tv_usec - start.tv_usec)) * 1e-6;
+	outfile << "Total time: " << fixed << time_taken << setprecision(6) << " sec" << endl;
 
 	if (config->verboseMode()){
 		cout << "\n\n**************************************************\n"
@@ -731,7 +738,7 @@ int main(int argc, char *argv[] ){
 				<< "\n**************************************************" << endl;
 		cout << "Best solution cost: " << fixed << swarm->getGlobalBest().eval << endl;
 		cout << "Best solution components: "; swarm->printGbest(config->getProblemDimension());
-
+		cout << "Total time: " << fixed << time_taken << setprecision(6) << " sec" << endl;
 	}
 
 	//close the file

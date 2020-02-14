@@ -78,6 +78,7 @@ public:
 	bool isHierarchical();
 	void getParticleParentsIDs(int particleID, int *ParentsArray1D);
 	void printAllParentNodes();
+	int getParticleNumParents(int particleID);
 
 	//Perturbation
 	void updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration);

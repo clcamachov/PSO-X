@@ -50,7 +50,7 @@ int success = 15, failure = 5;				//success and failure thresholds for the addit
 int sc = 0, fc = 0;							//success and failure counters
 double alpha_t = 1.0;						//side length of the rectangle for the success-rate perturbation
 double delta = 1.0;							//side length of the rectangle for the uniform random perturbation
-double l = 0.01;							//scaling factor for the perturbation
+//double l = 0.01;							//scaling factor for the perturbation
 
 bool sortcol(const vector<int>& v1, const vector<int>& v2) {
 	return v1[1] < v2[1];
@@ -215,7 +215,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 				computeOmega3(config),
 				sizeInformants,
 				lastLevelComplete,
-				alpha_t, l, delta);
+				alpha_t, config->getPert1_par_l(), delta);
 	}
 	long double prev_Gbest_eval = global_best.eval; //best solution at iteration t-1
 
@@ -1105,6 +1105,28 @@ void Swarm::getParticleParentsIDs(int particleID, int *ParentsArray1D){
 	//return ParentsArray1D;
 }
 
+int Swarm::getParticleNumParents(int particleID){
+	int partents_counter=0;
+
+	//Find particle index in the swarm by its ID
+	long int index;
+	for(unsigned int i=0; i<swarm.size(); i++){
+		if (particleID == swarm.at(i)->getID()){
+			index = i;
+			break;
+		}
+	}
+
+	int aParent = swarm.at(index)->getParent();
+	while (aParent != -1){
+		partents_counter++;
+		aParent = swarm.at(aParent)->getParent();
+	}
+	//cout << endl ;
+	return partents_counter;
+}
+
+
 void Swarm::updateTree(int branching){
 	//Traverse the tree and update the position of the particles
 	//reset indexes to traverse the entire tree
@@ -1325,29 +1347,45 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		}
 		//IW_L_INC - 1 - Linear increasing
 		else if (config->getOmega1CS() == IW_L_INC) {
-			//from Frankenstein's PSO
-			if(iteration <= config->getIWSchedule()){
-				config->setOmega1(
-						((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
-						(config->getFinalIW() - config->getInitialIW()) + config->getInitialIW()
-				);
-				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+			if (config->getIWSchedule() > 0 ){
+				//from Frankenstein's PSO
+				if(iteration <= config->getIWSchedule()){
+					config->setOmega1(config->getInitialIW() +
+							(((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
+									(config->getFinalIW() - config->getInitialIW()))
+					);
+					//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+				}
+				else
+					config->setOmega1(config->getFinalIW());
 			}
-			else
-				config->setOmega1(config->getFinalIW());
+			else{
+				config->setOmega1( config->getFinalIW() +
+						(((double)(iteration)/config->getMaxIterations())*
+								(config->getInitialIW()-config->getFinalIW()))
+				);
+			}
 		}
 		//IW_L_DEC - 2 - Linear decreasing
 		else if (config->getOmega1CS() == IW_L_DEC) {
-			//from Frankenstein's PSO
-			if(iteration <= config->getIWSchedule()){
-				config->setOmega1(
-						((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
-						(config->getInitialIW() - config->getFinalIW()) + config->getFinalIW()
-				);
-				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+			if (config->getIWSchedule() > 0 ){
+				//from Frankenstein's PSO
+				if(iteration <= config->getIWSchedule()){
+					config->setOmega1( config->getFinalIW() +
+							(((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
+									(config->getInitialIW() - config->getFinalIW()))
+					);
+					//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+				}
+				else
+					config->setOmega1(config->getFinalIW());
 			}
-			else
-				config->setOmega1(config->getFinalIW());
+			else {
+				config->setOmega1( config->getInitialIW() +
+						(((double)(iteration)/config->getMaxIterations())*
+								(config->getFinalIW()-config->getInitialIW()))
+				);
+			}
 		}
 		//IW_RANDOM - 3 - Random
 		else if (config->getOmega1CS() == IW_RANDOM) {
@@ -1357,8 +1395,8 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		//IW_NONL_DEC - 4 - Nonlinear decreasing
 		else if (config->getOmega1CS() == IW_NONL_DEC) {
 			config->setOmega1(
-					config->getFinalIW() - (config->getFinalIW()-config->getInitialIW())*
-					pow((double)(iteration)/config->getMaxIterations(),alpha)
+					config->getFinalIW() + ((config->getInitialIW()-config->getFinalIW())*
+							pow((double)(iteration)/config->getMaxIterations(),alpha))
 			);
 			//cout << iteration << endl;
 			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
@@ -1547,7 +1585,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			//cout << inertia << endl;
 			//return inertia;
 		}
-		if (config->verboseMode()) cout << "\tvar::Omega1: " << config->getOmega1() << " ";
+		if (config->verboseMode()) cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 	}
 	else {
 		//These are the strategies that need to compute a independent inertia value for each particle
@@ -1556,6 +1594,41 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			double temp_Omega = 0;
 
 			switch (config->getOmega1CS()) {
+			//IW_L_INC - 1 - Linear increasing
+			case IW_L_INC:{
+				if (config->getTopology() == TOP_HIERARCHICAL){
+					//From Hierarchical PSO
+					double k=((double)getParticleNumParents(id));
+					config->setOmega1( config->getFinalIW() +
+							( ((config->getInitialIW()-config->getFinalIW()) * k) / (lastLevelComplete+1))
+					);
+					if (config->verboseMode()) cout << "\tvar:w_max: " << config->getInitialIW() << "\n";
+					if (config->verboseMode()) cout << "\tvar:w_min: " << config->getFinalIW() << "\n";
+					if (config->verboseMode()) cout << "\tvar::(k)partents_counter: " << k << "\n";
+					if (config->verboseMode()) cout << "\tvar::(h)lastLevelComplete: " << lastLevelComplete << "\n";
+					temp_Omega = config->getOmega1();
+				}
+				else
+					temp_Omega = config->getOmega1();
+			}
+			break;
+			//IW_L_DEC - 2 - Linear decreasing
+			case IW_L_DEC: {
+				if (config->getTopology() == TOP_HIERARCHICAL){
+					//From Hierarchical PSO
+					double k=((double)getParticleNumParents(id));
+					config->setOmega1( config->getInitialIW() +
+							( ((config->getFinalIW()-config->getInitialIW()) * k)/(lastLevelComplete+1))
+					);
+					if (config->verboseMode()) cout << "\tvar:w_max: " << config->getInitialIW() << "\n";
+					if (config->verboseMode()) cout << "\tvar:w_min: " << config->getFinalIW() << "\n";
+					if (config->verboseMode()) cout << "\tvar::(k)partents_counter: " << k << "\n";
+					if (config->verboseMode()) cout << "\tvar::(h)lastLevelComplete: " << lastLevelComplete << "\n";
+				}
+				else
+					temp_Omega = config->getOmega1();
+			}
+			break;
 			//IW_SELF_REGULATING - 11 - Self-regulating
 			case IW_SELF_REGULATING:{
 				double eta = config->get_iw_par_eta();
@@ -1626,7 +1699,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				temp_Omega = config->getOmega1();
 				break;
 			}
-			if (config->verboseMode()) cout << "\tvar::Omega1: " << config->getOmega1() << " ";
+			if (config->verboseMode()) cout << "\tvar::Omega1: " << config->getOmega1() << " \n";
 			return temp_Omega;
 		}
 		else{

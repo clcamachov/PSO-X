@@ -84,10 +84,6 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			p_intitType = atoi(argv[i+1]);
 			i++;
 			//cout << "\n finalPopSize has been received \n";
-		} else if (strcmp(argv[i], "--inertia") == 0){
-			inertia = atof(argv[i+1]);
-			i++;
-			//cout << "\n inertia has been received \n";
 		} else if (strcmp(argv[i], "--phi1") == 0) {
 			phi_1 = atof(argv[i+1]);
 			i++;
@@ -163,6 +159,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			omega1CS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n inertia control strategy has been received \n";
+		} else if (strcmp(argv[i], "--inertia") == 0){
+			inertia = atof(argv[i+1]);
+			i++;
+			//cout << "\n inertia has been received \n";
 		} else if (strcmp(argv[i], "--initialIW") == 0) {
 			initialIW = atof(argv[i+1]);
 			i++;
@@ -271,6 +271,8 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		return(false);
 	}
 
+	if (particles == -1)
+		particles = problemDimension;
 
 	if (initialPopSize > finalPopSize)
 		cerr << "\nError: Wrong initial (or) final population size..." << endl;
@@ -290,7 +292,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	if (populationCS == POP_CONSTANT)
 		tSchedule = particles*tSchedule;
 	else {
-		tSchedule = (int)floor((double)finalPopSize*tSchedule);
+		tSchedule = finalPopSize*tSchedule;
 		esteps = finalPopSize-3;
 	}
 
@@ -306,11 +308,12 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	}
 
 	//The inertia weight schedule
-	if (iwSchedule > 4)
-		iwSchedule = 4;
-	if (iwSchedule < 1)
-		iwSchedule = 1;
-	iwSchedule = iwSchedule*pow(particles,2);
+
+	if (iwSchedule > 10)
+		iwSchedule = 10;
+	if (iwSchedule <= 0)
+		iwSchedule = 0;
+	populationCS == POP_CONSTANT ? iwSchedule = iwSchedule*pow(particles,2) : iwSchedule = iwSchedule*pow(finalPopSize,2);
 
 	//Check DNPPs
 	if (distributionNPP == DIST_ADD_STOCH){
@@ -331,18 +334,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	return(true);
 }
 
-void Configuration::setStartTime(double stime){
-	startTime = stime;
-}
-
-double Configuration::getStartTime(){
-	return startTime;
-}
-
 //TODO: Update with all the parameters
 void Configuration::printUsage(){
 	cout << "" << endl;
-	cout << "PSO-something: A flexible and configurable particle swarm optimization framework" << endl;
+	cout << "PSO2020: A flexible and configurable particle swarm optimization framework" << endl;
 	cout << "" << endl;
 	cout << "General parameters:" << endl;
 	cout << "\t--competition <competitionID>" << endl;
@@ -447,7 +442,7 @@ void Configuration::setDefaultParameters(){
 	inertia = 1.0;							//inertia weight
 	initialIW =  0.9;						//initial inertia value
 	finalIW = 0.4;							//final inertia value
-	iwSchedule = 2*pow(particles,2);		//inertia weight schedule
+	iwSchedule = 0;							//inertia weight schedule
 	useVelClamping = true;					//clamp velocity (step size)
 	omega2CS = O2_EQUAL_TO_O1;				//omega2 control strategy (see GVU formula)
 	omega3CS = O3_EQUAL_TO_O1;				//omega3 control strategy (see GVU formula)
@@ -461,6 +456,7 @@ void Configuration::setDefaultParameters(){
 	perturbation1 = PERT1_NONE;				//distribution-based perturbation
 	perturbation2 = PERT2_NONE;				//additive perturbation
 	randomMatrix = MATRIX_DIAGONAL;			//random matrix
+	pert1_par_l = (0.91*0.51)/(pow(particles,0.21)*pow(problemDimension,0.58));  //scaling factor for PERT1_NORMAL_DISTANCE a1=0.91, a2=0.21, a3=0.51, a4=0.58
 
 	/** NPPDistribution **/
 	distributionNPP = DIST_RECTANGULAR;		//distribution of next possible positions
@@ -473,6 +469,7 @@ void Configuration::setDefaultParameters(){
 	/** Logs **/
 	useLogs = true;						//create a folder an log the execution of the algorithm
 	verbose = false;
+	outputPath = "../";
 	//When the maxInitRange and minInitRange are different from 100
 	//the range is updated after instantiating the problem.
 	//Also for velocity clamping the bound depends on the function bounds
@@ -493,11 +490,11 @@ void Configuration::printParameters(){
 	case MIXTURE:   		cout	<< "  competition:       MIXTURE\n"; break;
 	}
 	cout    << "  problem:           " << getProblemID() << "\n"
-			<< "  dimensions:        " << getProblemDimension() << "\n";
-	//		<< "  minInitRange:      " << getMinInitBound() << "\n"
-	//		<< "  maxInitRange:      " << getMaxInitBound() << "\n"
-	//		<< "  seed:              " << getRNGSeed() << "\n"
-	cout	<< "  evaluations:       " << getMaxFES() << "\n"
+			<< "  dimensions:        " << getProblemDimension() << "\n"
+			<< "  minInitRange:      " << getMinInitBound() << "\n"
+			<< "  maxInitRange:      " << getMaxInitBound() << "\n"
+			<< "  seed:              " << getRNGSeed() << "\n"
+			<< "  evaluations:       " << getMaxFES() << "\n"
 			<< "  iterations:        " << getMaxIterations() << "\n"
 			<< "  particles:         " << getSwarmSize() << "\n";
 	//<< "  populationCS      " << getModelOfInfluence() << "\n"
@@ -515,7 +512,7 @@ void Configuration::printParameters(){
 	}
 	//<< "  modelOfInfluence  " << getModelOfInfluence() << "\n"
 	switch (getModelOfInfluence()){
-	case MOI_BEST_OF_N: 	cout	<< "  modelOfInfluence:  BEST_OF_N\n"; break;
+	case MOI_BEST_OF_N: 	cout	<< "  modelOfInfluence:  BEST_OF_NEIGHBORHOOD\n"; break;
 	case MOI_FI: 			cout	<< "  modelOfInfluence:  FI\n"; break;
 	case MOI_RANKED_FI:		cout	<< "  modelOfInfluence:  RANKED_FI\n"; break;
 	}
@@ -526,8 +523,14 @@ void Configuration::printParameters(){
 	case TOP_WHEEL:				cout	<< "  topology:          TOP_WHEEL\n"; break;
 	case TOP_RANDOM:			cout	<< "  topology:          TOP_RANDOM\n"; break;
 	case TOP_VONNEUMANN:		cout	<< "  topology:          TOP_VONNEUMANN\n"; break;
-	case TOP_TIMEVARYING:		cout	<< "  topology:          TOP_TIMEVARYING\n"
-			<< "  tSchedule          " << getTopologySchedule() << "\n"; break;
+	case TOP_TIMEVARYING:		cout	<< "  topology:          TOP_TIMEVARYING\n";
+	if (getTopologySchedule() <= 3)
+		cout << "  tSchedule          " << getIWSchedule() << " (fast)\n";
+	else if (getTopologySchedule() > 3 && getTopologySchedule() <= 6)
+		cout << "  tSchedule          " << getIWSchedule() << " (medium speed)\n";
+	else
+		cout << "  tSchedule          " << getTopologySchedule() << " (slow)\n";
+	break;
 	case TOP_HIERARCHICAL:		cout	<< "  topology:          TOP_HIERARCHICAL\n"
 			<< "  branching          " << getBranchingDegree() << "\n"; break;
 	}
@@ -542,31 +545,47 @@ void Configuration::printParameters(){
 		cout	<< "  omega1CS:          CONSTANT\n"
 		<< "  inertia:           " << getOmega1() << "\n"; break;
 	case IW_L_INC:
-		cout	<< "  omega1CS:          L_INC\n"
+		cout	<< "  omega1CS:          LINEAR_INCREASING\n"
 		<< "  initialIW          " << getInitialIW() << "\n"
-		<< "  finalIW            " << getFinalIW() << "\n"
-		<< "  iwSchedule         " << getIWSchedule() << "\n"; break;
+		<< "  finalIW            " << getFinalIW() << "\n";
+		if (getIWSchedule() != 0){
+			if (getIWSchedule() <= 3)
+				cout << "  iwSchedule         " << getIWSchedule() << " (fast)\n";
+			else if (getIWSchedule() > 3 && getIWSchedule() <= 6)
+				cout << "  iwSchedule         " << getIWSchedule() << " (medium speed)\n";
+			else
+				cout << "  iwSchedule         " << getIWSchedule() << " (slow)\n";
+		}
+		break;
 	case IW_L_DEC:
-		cout	<< "  omega1CS:          L_DEC\n"
+		cout	<< "  omega1CS:          LINEAR_DECREASING\n"
 		<< "  initialIW          " << getInitialIW() << "\n"
-		<< "  finalIW            " << getFinalIW() << "\n"
-		<< "  iwSchedule         " << getIWSchedule() << "\n"; break;
+		<< "  finalIW            " << getFinalIW() << "\n";
+		if (getIWSchedule() != 0){
+			if (getIWSchedule() <= 3)
+				cout << "  iwSchedule         " << getIWSchedule() << " (fast)\n";
+			else if (getIWSchedule() > 3 && getIWSchedule() <= 6)
+				cout << "  iwSchedule         " << getIWSchedule() << " (medium speed)\n";
+			else
+				cout << "  iwSchedule         " << getIWSchedule() << " (slow)\n";
+		}
+		break;
 	case IW_RANDOM:
 		cout	<< "  omega1CS:          RANDOM\n"; break;
 	case IW_NONL_DEC:
-		cout	<< "  omega1CS:          NONL_DEC\n"
+		cout	<< "  omega1CS:          NON_LINEAR_DECREASING\n"
 		<< "  initialIW          " << getInitialIW() << "\n"
 		<< "  finalIW            " << getFinalIW() << "\n"; break;
 	case IW_NONL_DEC_IMP:
-		cout	<< "  omega1CS:          NONL_DEC_IMP\n"; break;
+		cout	<< "  omega1CS:          NON_LINEAR_DECREASING_IMPROVED\n"; break;
 	case IW_NONL_DEC_TIME:
-		cout	<< "  omega1CS:          NONL_DEC_TIME\n"; break;
+		cout	<< "  omega1CS:          NON_LINEAR_DECREASING_TIME\n"; break;
 	case IW_CHAOTIC_DEC:
-		cout	<< "  omega1CS:          CHAOTIC_DEC\n"
+		cout	<< "  omega1CS:          CHAOTIC_DECREASING\n"
 		<< "  initialIW          " << getInitialIW() << "\n"
 		<< "  finalIW            " << getFinalIW() << "\n"; break;
 	case IW_EXP_DEC:
-		cout	<< "  omega1CS:          EXP_DEC\n"
+		cout	<< "  omega1CS:          EXPONENTIAL_DECREASING\n"
 		<< "  initialIW          " << getInitialIW() << "\n"
 		<< "  finalIW            " << getFinalIW() << "\n"; break;
 	case IW_OSCILLATING:
@@ -574,7 +593,7 @@ void Configuration::printParameters(){
 		<< "  initialIW          " << getInitialIW() << "\n"
 		<< "  finalIW            " << getFinalIW() << "\n"; break;
 	case IW_LOG_DEC:
-		cout	<< "  omega1CS:          LOG_DEC\n"
+		cout	<< "  omega1CS:          LOGARITHMIC_DECREASING\n"
 		<< "  initialIW          " << getInitialIW() << "\n"
 		<< "  finalIW            " << getFinalIW() << "\n"; break;
 	case IW_SELF_REGULATING:
@@ -588,7 +607,7 @@ void Configuration::printParameters(){
 		<< "  iw_par_deltaOmega  " << get_iw_par_deltaOmega() << "\n"
 		<< "  finalIW            " << getFinalIW() << "\n"; break;
 	case IW_DOUBLE_EXP:
-		cout	<< "  omega1CS:         (adaptive) DOUBLE_EXP\n"
+		cout	<< "  omega1CS:         (adaptive) DOUBLE_EXPONENTIAL\n"
 		<< "  initialIW          " << getInitialIW() << "\n"
 		<< "  finalIW            " << getFinalIW() << "\n"; break;
 	case IW_RANKS_BASED:
@@ -606,17 +625,17 @@ void Configuration::printParameters(){
 	}
 	//<< "  omega2CS          " << getomega2CS() << "\n"
 	switch (getOmega2CS()){
-	case O2_EQUAL_TO_O1: 	cout	<< "  omega2:            EQUALS_IW\n"; break;
-	case O2_ZERO: 		cout	<< "  omega2:            ZERO\n"; break;
-	case O2_ONE: 		cout	<< "  omega2:            ONE\n"; break;
-	case O2_RANDOM: 	cout	<< "  omega2:            RANDOM\n"; break;
+	case O2_EQUAL_TO_O1: 	cout	<< "  omega2:            EQUAL_TO_omega1\n"; break;
+	case O2_ZERO: 			cout	<< "  omega2:            ZERO (this disables the use of any DNNP)\n"; break;
+	case O2_ONE: 			cout	<< "  omega2:            ONE\n"; break;
+	case O2_RANDOM: 		cout	<< "  omega2:            RANDOM\n"; break;
 	}
 	//<< "  omega3CS          " << getomega3CS() << "\n"
 	switch (getOmega3CS()){
-	case O3_EQUAL_TO_O1: 	cout	<< "  omega3:            EQUALS_IW\n"; break;
-	case O3_ZERO:		cout	<< "  omega3:            ZERO\n"; break;
-	case O3_ONE:		cout	<< "  omega3:            ONE\n"; break;
-	case O3_RANDOM:		cout	<< "  omega3:            RANDOM\n"; break;
+	case O3_EQUAL_TO_O1: 	cout	<< "  omega3:            EQUAL_TO_omega1\n"; break;
+	case O3_ZERO:			cout	<< "  omega3:            ZERO (this disables additive perturbation)\n"; break;
+	case O3_ONE:			cout	<< "  omega3:            ONE\n"; break;
+	case O3_RANDOM:			cout	<< "  omega3:            RANDOM\n"; break;
 	}
 	//<< "  accelCoeffCS:     " << getAccelCoeffCS() << "\n"
 	switch (getAccelCoeffCS()){
@@ -634,9 +653,11 @@ void Configuration::printParameters(){
 	//<< "  perturbation1     " << getPerturbation1() << "\n"
 	switch (getPerturbation1Type()){
 	case PERT1_NONE: 			cout	<< "  perturbation1:     NONE\n"; break;
-	case PERT1_NORMAL_DISTANCE:	cout	<< "  perturbation1:     NORMAL_DISTANCE\n"; break;
+	case PERT1_NORMAL_DISTANCE:	cout	<< "  perturbation1:     NORMAL_DISTANCE\n"
+			<< "  pert1_par_l        :     " << getPert1_par_l() << "\n"; break;
 	case PERT1_NORMAL_SUCCESS: 	cout	<< "  perturbation1:     NORMAL_SUCCESS\n"; break;
-	case PERT1_CAUCHY_DISTANCE:	cout	<< "  perturbation1:     CAUCHY_DISTANCE\n"; break;
+	case PERT1_CAUCHY_DISTANCE:	cout	<< "  perturbation1:     CAUCHY_DISTANCE\n"
+			<< "  pert1_par_l        :     " << getPert1_par_l() << "\n"; break;
 	case PERT1_CAUCHY_SUCCESS: 	cout	<< "  perturbation1:     CAUCHY_SUCCESS\n"; break;
 	}
 	//<< "  perturbation2     " << getPerturbation2() << "\n"
@@ -658,8 +679,7 @@ void Configuration::printParameters(){
 	switch (getDistributionNPP()){
 	case DIST_RECTANGULAR: 		cout	<< "  DistributionNPP:   RECTANGULAR\n"; break;
 	case DIST_SPHERICAL: 		cout	<< "  DistributionNPP:   SPHERICAL\n"; break;
-	case DIST_ADD_STOCH:		cout	<< "  DistributionNPP:   ADD_STOCH\n"; break;
-	}
+	case DIST_ADD_STOCH:		cout	<< "  DistributionNPP:   ADD_STOCH\n";
 	//<< "  operator_q        " << getOperator_q() << "\n"
 	switch (getOperator_q()){
 	case Q_STANDARD: 		cout	<< "  operator_q:        STANDARD\n"; break;
@@ -667,18 +687,20 @@ void Configuration::printParameters(){
 	case Q_DISCRETE_2: 		cout	<< "  operator_q:        DISCRETE_2\n"; break;
 	case Q_CAUCHY_NORMAL:	cout	<< "  operator_q:        CAUCHY_NORMAL\n"; break;
 	}
-	//<< "  vRule             " <<  << "\n"
-	switch (getVelocityRule()){
-	case VEL_BASIC:					cout	<< "  vRule:             BASIC\n"; break;
-	case VEL_STANDARD:				cout	<< "  vRule:             STANDARD\n"; break;
-	case VEL_LINEAR:				cout	<< "  vRule:             LINEAR\n"; break;
-	case VEL_CONSTRICTED:			cout	<< "  vRule:             CONSTRICTED\n"; break;
-	case VEL_GUARAN_CONVERG:		cout	<< "  vRule:             GUARAN_CONVERG\n"; break;
-	case VEL_FULLY_INFORMED:		cout	<< "  vRule:             FULLY_INFORMED\n"; break;
-	case VEL_LOC_CON_TRANS_INV:		cout	<< "  vRule:             LOC_CON_TRANS_INV\n"; break;
-	case VEL_STANDARD2011:			cout	<< "  vRule:             STANDARD2011\n";break;
-	case VEL_ROTATION_INV:			cout	<< "  vRule:             ROTATION_INV\n"; break;
+	break;
 	}
+	//<< "  vRule             " <<  << "\n"
+	//	switch (getVelocityRule()){
+	//	case VEL_BASIC:					cout	<< "  vRule:             BASIC\n"; break;
+	//	case VEL_STANDARD:				cout	<< "  vRule:             STANDARD\n"; break;
+	//	case VEL_LINEAR:				cout	<< "  vRule:             LINEAR\n"; break;
+	//	case VEL_CONSTRICTED:			cout	<< "  vRule:             CONSTRICTED\n"; break;
+	//	case VEL_GUARAN_CONVERG:		cout	<< "  vRule:             GUARAN_CONVERG\n"; break;
+	//	case VEL_FULLY_INFORMED:		cout	<< "  vRule:             FULLY_INFORMED\n"; break;
+	//	case VEL_LOC_CON_TRANS_INV:		cout	<< "  vRule:             LOC_CON_TRANS_INV\n"; break;
+	//	case VEL_STANDARD2011:			cout	<< "  vRule:             STANDARD2011\n";break;
+	//	case VEL_ROTATION_INV:			cout	<< "  vRule:             ROTATION_INV\n"; break;
+	//	}
 	cout << endl;
 }
 bool Configuration::logOutput(){
@@ -811,6 +833,12 @@ short Configuration::getPerturbation2Type(){
 short Configuration::getRandomMatrix(){
 	return randomMatrix;
 }
+double Configuration::getPert1_par_l(){
+	return pert1_par_l;
+}
+void Configuration::setPert1_par_l(double par_l){
+	pert1_par_l = par_l;
+}
 short Configuration::getDistributionNPP(){
 	return distributionNPP;
 }
@@ -871,3 +899,12 @@ void Configuration::setVelocityRule(int rule){
 int Configuration::getVelocityRule(){
 	return vRule;
 }
+
+void Configuration::setStartTime(double stime){
+	startTime = stime;
+}
+
+double Configuration::getStartTime(){
+	return startTime;
+}
+

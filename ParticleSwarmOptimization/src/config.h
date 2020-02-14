@@ -348,6 +348,8 @@ private:
 	short perturbation1; //distribution-based
 	short perturbation2; //additive
 	short randomMatrix;
+	double pert1_par_l; //scaling factor for PERT1_NORMAL_DISTANCE
+
 
 	//NPPDistribution
 	short distributionNPP;
@@ -401,7 +403,6 @@ public:
 	int getParticlesToAdd();
 	void setParticlesToAdd(int new_pool_size);
 	int getParticleInitType();
-	//void setParticleInitType(int new_pool_size);
 
 	//Velocity
 	void setVelocityRule(int rule);
@@ -444,7 +445,8 @@ public:
 	short getPerturbation1Type();
 	short getPerturbation2Type();
 	short getRandomMatrix();
-
+	double getPert1_par_l();
+	void setPert1_par_l(double l_val);
 
 	//Distribution
 	short getDistributionNPP();
