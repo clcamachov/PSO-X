@@ -161,6 +161,66 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 	init=true;
 }
 
+double Swarm::computeAngleOfRRM(Configuration* config, long int iteration){
+	double angle = 0;
+	if (config->getRandomMatrix() == MATRIX_RRM_EXP_MAP || config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ONE
+			|| config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ALL){
+
+		switch (config->getAngleCS()) {
+		case ANGLE_CONSTANT: //use the same rotation angle
+			angle = config->getRotationAgle();
+			break;
+		case ANGLE_NORMAL: //map the angle from a Normal distribution with µ=0 and s.d. = angleSD
+			angle = RNG::randGauss(config->getAngleSD());
+			break;
+		case ANGLE_ADAPTIVE:{ //map the angle from a Normal distribution with µ=0 using an adaptive s.d.
+			double alpha = config->get_angle_par_alpha();
+			double beta = config->get_angle_par_beta();
+			//Since the strategy is based on success, we will use simpSwarm.
+			if (iteration == 1) { //define simpSwarm if it does not exist
+				if (config->getOmega1CS() != IW_RANKS_BASED && config->getOmega1CS() != IW_SUCCESS_BASED &&
+						config->getOmega1CS() != IW_CONVERGE_BASED){
+					simpSwarm.clear();
+					simpSwarm.resize(swarm.size());
+					for (unsigned int i=0;i<swarm.size();i++){
+						simpSwarm.at(i).id = swarm.at(i)->getID();
+						simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
+					}
+				}
+				angle = beta;
+			}
+			else {
+				int S_i = 0; //Number of solutions that improved after the last iteration
+				for (unsigned int i=0; i<swarm.size(); i++){
+					for (unsigned int j=0; j<simpSwarm.size(); j++){
+						if (swarm.at(i)->getID() == simpSwarm.at(j).id){
+							//evaluate if the solution improved
+							if (swarm.at(i)->getCurrentEvaluation() < simpSwarm.at(j).eval){
+								S_i++;
+								break;
+							}
+							else
+								break;
+						}
+					}
+				}
+				if (config->verboseMode())
+						cout << "\tvar::solutions_improved: " << S_i << endl;
+				angle = ((alpha * (((double)S_i/swarm.size())))/sqrt((double)config->getProblemDimension()))+beta;
+			}
+		}
+		break;
+		}
+	}
+
+	if (config->verboseMode())
+		cout << "\tvar::rotation_angle: " << angle << endl;
+	config->setRotationAgle(angle);
+
+	return angle;
+}
+
+
 /*Move the swarm to new solutions */
 void Swarm::moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound) {
 	//Update gBest of each particle
@@ -177,6 +237,9 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 
 	//Compute the acceleration coefficients of the entire swarm
 	computeAccelerationCoefficients(config, iteration);
+
+	//Compute angle of random rotation matrix
+	computeAngleOfRRM(config, iteration);
 
 	//Move particles
 	if (config->verboseMode())
@@ -228,6 +291,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		}
 	}
 	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval, iteration);
+	clearResizeSimpSwarm(config, iteration);
 	//cout << "\n <<So far so good>>" << endl;
 }
 
@@ -1333,6 +1397,24 @@ void Swarm::printTree(int branching, long swarm_size) {
 	}
 }
 
+void Swarm::clearResizeSimpSwarm(Configuration* config, long int iteration){
+	if ((iteration > 1 &&
+			((config->getOmega1CS() == IW_SUCCESS_BASED || config->getOmega1CS() == IW_CONVERGE_BASED) ||
+					(config->getAngleCS() == ANGLE_ADAPTIVE &&
+							(config->getRandomMatrix() == MATRIX_RRM_EXP_MAP || config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ONE || config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ALL)
+					)
+			)
+	) || (iteration == 1 && (config->getOmega1CS() == IW_CONVERGE_BASED || config->getOmega1CS() == IW_SUCCESS_BASED)) ){
+		//Copy particle's id and evaluation in simpSwarm for the next iteration
+		simpSwarm.clear();
+		simpSwarm.resize(swarm.size());
+		for (unsigned int i=0;i<swarm.size();i++){
+			simpSwarm.at(i).id = swarm.at(i)->getID();
+			simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
+		}
+	}
+}
+
 // This function computes the inertia weight (omega1 in the GVU formula) according to the selected strategy
 double Swarm::computeOmega1(Configuration* config, long int iteration, long int id, bool newIteration){
 	//If all particle use the same inertia value, it is more efficient
@@ -1513,12 +1595,13 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			//if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
 			if (iteration == 1){
 				//simpSwarm contains a simplified copy of the swarm at t-1
-				simpSwarm.clear();
-				simpSwarm.resize(swarm.size());
-				for (unsigned int i=0;i<swarm.size();i++){
-					simpSwarm.at(i).id = swarm.at(i)->getID();
-					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				}
+				//				simpSwarm.clear();
+				//				simpSwarm.resize(swarm.size());
+				//				for (unsigned int i=0;i<swarm.size();i++){
+				//					simpSwarm.at(i).id = swarm.at(i)->getID();
+				//					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
+				//				}
+				clearResizeSimpSwarm(config, iteration);
 				config->setOmega1(config->getFinalIW()); //set inertia weight to its maximum value for the first iteration
 			}
 			if (iteration > 1){
@@ -1540,13 +1623,13 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
 						((double)S_i/swarm.size()))
 				);
-				//Copy particle's id and evaluation in simpSwarm for the next iteration
-				simpSwarm.clear();
-				simpSwarm.resize(swarm.size());
-				for (unsigned int i=0;i<swarm.size();i++){
-					simpSwarm.at(i).id = swarm.at(i)->getID();
-					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				}
+				//				//Copy particle's id and evaluation in simpSwarm for the next iteration
+				//				simpSwarm.clear();
+				//				simpSwarm.resize(swarm.size());
+				//				for (unsigned int i=0;i<swarm.size();i++){
+				//					simpSwarm.at(i).id = swarm.at(i)->getID();
+				//					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
+				//				}
 				//cout << iteration << endl;
 				//cout << "P[" << id << "]" << "rank: "<< ranking << " eval:" << current.eval << endl;
 			}
@@ -1559,25 +1642,26 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				double alpha_2 = config->get_iw_par_alpha_2();
 				double beta_2 = config->get_iw_par_beta_2();
 				//simpSwarm contains a simplified copy of the swarm at t-1
-				simpSwarm.clear();
-				simpSwarm.resize(swarm.size());
-				//Copy particle's id and evaluation in simpSwarm
-				for (unsigned int i=0;i<swarm.size();i++){
-					simpSwarm.at(i).id = swarm.at(i)->getID();
-					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				}
+				//				simpSwarm.clear();
+				//				simpSwarm.resize(swarm.size());
+				//				//Copy particle's id and evaluation in simpSwarm
+				//				for (unsigned int i=0;i<swarm.size();i++){
+				//					simpSwarm.at(i).id = swarm.at(i)->getID();
+				//					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
+				//				}
+				clearResizeSimpSwarm(config, iteration);
 				if (config->getPopulationCS() == POP_CONSTANT)
 					config->setOmega1(1 - abs(alpha_2/(1+beta_2)));
 			}
-			else{
-				simpSwarm.clear();
-				simpSwarm.resize(swarm.size());
-				//Copy particle's id and evaluation in simpSwarm for the next iteration
-				for (unsigned int i=0;i<swarm.size();i++){
-					simpSwarm.at(i).id = swarm.at(i)->getID();
-					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				}
-			}
+			//			else{
+			//				simpSwarm.clear();
+			//				simpSwarm.resize(swarm.size());
+			//				//Copy particle's id and evaluation in simpSwarm for the next iteration
+			//				for (unsigned int i=0;i<swarm.size();i++){
+			//					simpSwarm.at(i).id = swarm.at(i)->getID();
+			//					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
+			//				}
+			//			}
 		}
 		//Keep inertia constant during the execution
 		else {

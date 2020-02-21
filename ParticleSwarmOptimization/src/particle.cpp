@@ -191,7 +191,7 @@ void Particle::initUniform(Configuration* config){
 		if (config->verboseMode()) cout << current.x[i] << " ";
 	}
 	if (config->verboseMode()) cout << "]" << endl;
-	computeEvaluation();
+	evaluateSolution();
 }
 
 /* Initialize particle using a model (as in Incremental PSO) */
@@ -199,7 +199,7 @@ void Particle::initToModel(){
 	for (int i=0; i<size; i++){
 		current.x[i] = current.x[i] + problem->getRandom01()*(gbest.x[i]-current.x[i]);
 	}
-	computeEvaluation();
+	evaluateSolution();
 }
 
 void Particle::initializePosition(Configuration* config, long int iteration){
@@ -371,7 +371,7 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	}
 
 	//Evaluate the objective function and update pbest if a new one has been found
-	computeEvaluation();
+	evaluateSolution();
 	if (config->verboseMode()) cout << "\tParticle with ID:[" << this->id << "].status::MOVED" << endl;
 	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
 
@@ -518,11 +518,11 @@ void Particle::computeSubtractionPerturbationRotation(
 			for (unsigned int j=0; j<size; j++)
 				rndMatrix[i][j] = new double[size];
 		}
-		computeRndMatrix(rndMatrix, config->getRandomMatrix()); //we need to compute this for each informant
+		computeRndMatrix(rndMatrix, config->getRandomMatrix(), config->getRotationAgle()); //we need to compute this for each informant
 		for (int j=0; j<numInformants; j++){ //the rest of informants
 			multiplyVectorByRndMatrix(vect_PbestMinusPosition, j, rndMatrix, config->getRandomMatrix());
 			if (j<numInformants) //avoid computing a new random matrix in the last iteration
-				computeRndMatrix(rndMatrix, config->getRandomMatrix()); //compute a random matrix for the next informant
+				computeRndMatrix(rndMatrix, config->getRandomMatrix(), config->getRotationAgle()); //compute a random matrix for the next informant
 		}
 		//Deallocate memory used
 		for(int i=0; i<numMatrices; i++){
@@ -944,7 +944,7 @@ void Particle::multiplyVectorByRndMatrix(vector<vector< double> > &vect_PbestMin
 }
 
 //Compute the random matrix to employ
-void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType){
+void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType, double angle){
 	switch(RmatrixType){
 	case MATRIX_DIAGONAL: //Random diagonal matrix
 		for (int i=0; i<size; i++)
@@ -982,7 +982,7 @@ void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType){
 	break;
 	case MATRIX_RRM_EUCLIDEAN_ONE:{ //Random rotation matrix using Euclidean rotation (ONLY ONE PLANE)
 		//1.- Get the rotation angle
-		double angle = (problem->getRandomX(0.001,7)*PI)/180; //rotation between 0 and 10 degrees
+		//double angle = (problem->getRandomX(0.001,7)*PI)/180; //rotation between 0 and 10 degrees
 		//cout << " angle:  " << angle << endl;
 		//2.- Randomly select two different planes to rotate
 		int plane1 = (int)floor(RNG::randVal(0.0,(double)size-1));
@@ -1043,7 +1043,7 @@ void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType){
 		for (int g=0; g<size-1; g++) {
 			for (int h=g+1; h<size; h++) {
 				//1.- Randomly choose an angle between 0 and 7
-				double angle = (problem->getRandomX(0.001,7)*PI)/180; //rotation between 0 and 10 degrees
+				//double angle = (problem->getRandomX(0.001,7)*PI)/180; //rotation between 0 and 10 degrees
 				//2.- Generate the Euclidean RRM
 				for (int i=0; i<size; i++){
 					for (int j=0; j<size; j++){
@@ -1098,7 +1098,7 @@ void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType){
 	}
 }
 
-void Particle::computeEvaluation() {
+void Particle::evaluateSolution() {
 	//cout << "Evaluation: ";
 	current.eval = problem->getFunctionValue(current.x);
 	//cout << current.eval << endl;
@@ -1114,7 +1114,7 @@ void Particle::computeEvaluation() {
    INPUT: * coefficient vector x
  * corresponding solution value eval = f(x)
  */
-void Particle::updateGlobalBest(double* x, double eval){
+void Particle::updateGbestParticle(double* x, double eval){
 	for(int j=0;j <size;j++){
 		gbest.x[j]= x[j];
 	}
@@ -1195,7 +1195,7 @@ int Particle::getBestOfNeibourhood(){
 	}
 	//If the particles is its own neighbor check personal best
 	if(pbest.eval < gbest.eval && pBestIsNeighbor == true){
-		updateGlobalBest(pbest.x, pbest.eval);
+		updateGbestParticle(pbest.x, pbest.eval);
 		gBestID = id;
 		//aux_eval = LDBL_MAX;
 		aux_eval = pbest.eval;
@@ -1208,7 +1208,7 @@ int Particle::getBestOfNeibourhood(){
 	}
 	//New best particle in the neighborhood
 	if(best!=-1){
-		updateGlobalBest(this->neighbours[best]->getPbestPosition(), this->neighbours[best]->getPbestEvaluation());
+		updateGbestParticle(this->neighbours[best]->getPbestPosition(), this->neighbours[best]->getPbestEvaluation());
 		this->gBestID = this->neighbours[best]->getID();
 	}
 	//if (prev_gBestID != best)

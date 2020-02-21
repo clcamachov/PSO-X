@@ -195,6 +195,26 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			randomMatrix = atoi(argv[i+1]);
 			i++;
 			//cout << "\n randomMatrix type has been received \n";
+		} else if (strcmp(argv[i], "--angleCS") == 0) {
+			angleCS = atoi(argv[i+1]);
+			i++;
+			//cout << "\n operator_q has been received \n";
+		} else if (strcmp(argv[i], "--angleSD") == 0) {
+			angleSD = atof(argv[i+1]);
+			i++;
+			//cout << "\n final inertia value has been received \n";
+		} else if (strcmp(argv[i], "--angle_par_alpha") == 0) {
+			angle_par_alpha = atof(argv[i+1]);
+			i++;
+			//cout << "\n final inertia value has been received \n";
+		} else if (strcmp(argv[i], "--angle_par_beta") == 0) {
+			angle_par_beta = atof(argv[i+1]);
+			i++;
+			//cout << "\n final inertia value has been received \n";
+		} else if (strcmp(argv[i], "--rotationAngle") == 0) {
+			rotation_angle = atof(argv[i+1]);
+			i++;
+			//cout << "\n final inertia value has been received \n";
 		} else if (strcmp(argv[i], "--DNPP") == 0) {
 			distributionNPP = atoi(argv[i+1]);
 			i++;
@@ -326,10 +346,20 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		return(false);
 	}
 
-	//Termination criterion 10000 * dimensions
-	maxFES = 10000 * problemDimension;
+	//Termination criteria
+	if ((int)maxFES == -1)	//Use a default small budget of FEs
+		maxFES = 1000 * problemDimension;
+	else if ((int)maxFES == -2)	//Use budget of CEC05 of FEs
+		maxFES = 10000 * problemDimension;
+	else if ((int)maxFES == -3)	//Use a medium budget of FEs
+		maxFES = 5000 * problemDimension;
+	else
+		maxFES = 100;
+
 	if (max_iterations == -1)
 		max_iterations = maxFES;
+	else if (max_iterations == -2)
+		max_iterations = maxFES/particles;
 
 	return(true);
 }
@@ -401,8 +431,8 @@ void Configuration::printUsage(){
 void Configuration::setDefaultParameters(){
 	/** General parameters **/
 	rngSeed = 12345;						//seed for random numbers
-	maxFES = 1000*problemDimension;			//max function evaluation
-	max_iterations = -1;	//max iterations
+	maxFES = -1;							//max function evaluation
+	max_iterations = -1;					//max iterations
 
 	/** Problem parameters **/
 	competitionID = CEC05;					//CEC05, CEC14, SOFT_COMPUTING, MIXTURE
@@ -456,6 +486,11 @@ void Configuration::setDefaultParameters(){
 	perturbation1 = PERT1_NONE;				//distribution-based perturbation
 	perturbation2 = PERT2_NONE;				//additive perturbation
 	randomMatrix = MATRIX_DIAGONAL;			//random matrix
+	angleCS = ANGLE_NORMAL;
+	rotation_angle = 5;						//rotation angle of RRMs
+	angleSD = 20;							//standard deviation of the angle
+	angle_par_alpha = 30;
+	angle_par_beta = 0.01;
 	pert1_par_l = (0.91*0.51)/(pow(particles,0.21)*pow(problemDimension,0.58));  //scaling factor for PERT1_NORMAL_DISTANCE a1=0.91, a2=0.21, a3=0.51, a4=0.58
 
 	/** NPPDistribution **/
@@ -467,7 +502,7 @@ void Configuration::setDefaultParameters(){
 	vRule = VEL_STANDARD;					//use to select a specific velocity update formula
 
 	/** Logs **/
-	useLogs = true;						//create a folder an log the execution of the algorithm
+	useLogs = true;							//create a folder an log the execution of the algorithm
 	verbose = false;
 	outputPath = "../";
 	//When the maxInitRange and minInitRange are different from 100
@@ -478,7 +513,6 @@ void Configuration::setDefaultParameters(){
 }
 
 /*Print parameters */
-//TODO: Update with all the parameters
 void Configuration::printParameters(){
 
 	cout << "\nPSO parameters:\n";
@@ -626,14 +660,14 @@ void Configuration::printParameters(){
 	//<< "  omega2CS          " << getomega2CS() << "\n"
 	switch (getOmega2CS()){
 	case O2_EQUAL_TO_O1: 	cout	<< "  omega2:            EQUAL_TO_omega1\n"; break;
-	case O2_ZERO: 			cout	<< "  omega2:            ZERO (this disables the use of any DNNP)\n"; break;
+	case O2_ZERO: 			cout	<< "  omega2:            ZERO (no DNNP)\n"; break;
 	case O2_ONE: 			cout	<< "  omega2:            ONE\n"; break;
 	case O2_RANDOM: 		cout	<< "  omega2:            RANDOM\n"; break;
 	}
 	//<< "  omega3CS          " << getomega3CS() << "\n"
 	switch (getOmega3CS()){
 	case O3_EQUAL_TO_O1: 	cout	<< "  omega3:            EQUAL_TO_omega1\n"; break;
-	case O3_ZERO:			cout	<< "  omega3:            ZERO (this disables additive perturbation)\n"; break;
+	case O3_ZERO:			cout	<< "  omega3:            ZERO (no additive perturbation)\n"; break;
 	case O3_ONE:			cout	<< "  omega3:            ONE\n"; break;
 	case O3_RANDOM:			cout	<< "  omega3:            RANDOM\n"; break;
 	}
@@ -671,9 +705,42 @@ void Configuration::printParameters(){
 	case MATRIX_NONE:				cout	<< "  randomMatrix:      NONE\n"; break;
 	case MATRIX_DIAGONAL: 			cout	<< "  randomMatrix:      DIAGONAL\n"; break;
 	case MATRIX_LINEAR:				cout	<< "  randomMatrix:      LINEAR\n"; break;
-	case MATRIX_RRM_EXP_MAP:		cout	<< "  randomMatrix:      RRM_EXP_MAP\n"; break;
-	case MATRIX_RRM_EUCLIDEAN_ONE:	cout	<< "  randomMatrix:      RRM_EUCLIDEAN_ONE\n"; break;
-	case MATRIX_RRM_EUCLIDEAN_ALL: 	cout	<< "  randomMatrix:      RRM_EUCLIDEAN_ALL\n"; break;
+	case MATRIX_RRM_EXP_MAP:		cout	<< "  randomMatrix:      RRM_EXP_MAP\n";
+	switch (getAngleCS()){
+	case ANGLE_CONSTANT: cout << "  angleCS:           CONSTANT\n"
+			<< "  rotation_angle:    " << getRotationAgle() << "\n"; break;
+	case ANGLE_NORMAL:   cout << "  angleCS:           NORMAL\n"
+			<< "  angleSD:           " << getAngleSD() << "\n"; break;
+	case ANGLE_ADAPTIVE: cout << "  angleCS:           ADAPTIVE\n"
+			<< "  angle_par_alpha:   " << get_angle_par_alpha() << "\n"
+			<< "  angle_par_beta:    " << get_angle_par_beta() << "\n"; break;
+	break;
+	}
+	break;
+	case MATRIX_RRM_EUCLIDEAN_ONE:	cout	<< "  randomMatrix:      RRM_EUCLIDEAN_ONE\n";
+	switch (getAngleCS()){
+	case ANGLE_CONSTANT: cout << "  angleCS:           CONSTANT\n"
+			<< "  rotation_angle:    " << getRotationAgle() << "\n"; break;
+	case ANGLE_NORMAL:   cout << "  angleCS:           NORMAL\n"
+			<< "  angleSD:           " << getAngleSD() << "\n"; break;
+	case ANGLE_ADAPTIVE: cout << "  angleCS:           ADAPTIVE\n"
+			<< "  angle_par_alpha:   " << get_angle_par_alpha() << "\n"
+			<< "  angle_par_beta:    " << get_angle_par_beta() << "\n"; break;
+	break;
+	}
+	break;
+	case MATRIX_RRM_EUCLIDEAN_ALL: 	cout	<< "  randomMatrix:      RRM_EUCLIDEAN_ALL\n";
+	switch (getAngleCS()){
+	case ANGLE_CONSTANT: cout << "  angleCS:           CONSTANT\n"
+			<< "  rotation_angle:    " << getRotationAgle() << "\n"; break;
+	case ANGLE_NORMAL:   cout << "  angleCS:           NORMAL\n"
+			<< "  angleSD:           " << getAngleSD() << "\n"; break;
+	case ANGLE_ADAPTIVE: cout << "  angleCS:           ADAPTIVE\n"
+			<< "  angle_par_alpha:   " << get_angle_par_alpha() << "\n"
+			<< "  angle_par_beta:    " << get_angle_par_beta() << "\n"; break;
+	break;
+	}
+	break;
 	}
 	//<< "  DistributionNPP    " << getDistributionNPP() << "\n"
 	switch (getDistributionNPP()){
@@ -832,6 +899,28 @@ short Configuration::getPerturbation2Type(){
 }
 short Configuration::getRandomMatrix(){
 	return randomMatrix;
+}
+short Configuration::getAngleCS(){
+	return angleCS;
+}
+double Configuration::getAngleSD(){
+	return angleSD;
+}
+void Configuration::setAngleSD(double angle_sd){
+	angleSD = angle_sd;
+}
+double Configuration::get_angle_par_alpha(){
+	return angle_par_alpha;
+}
+double Configuration::get_angle_par_beta(){
+	return angle_par_beta;
+}
+
+double Configuration::getRotationAgle(){
+	return rotation_angle;
+}
+void Configuration::setRotationAgle(double angle){
+	rotation_angle = angle;
 }
 double Configuration::getPert1_par_l(){
 	return pert1_par_l;

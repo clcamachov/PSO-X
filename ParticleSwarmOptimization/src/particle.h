@@ -72,14 +72,14 @@ public:
 	double* getPbestPosition();
 	long double getPbestEvaluation();
 	double* getCurrentVelocity();
-	void computeEvaluation();
+	void evaluateSolution();
 
 	void addNeighbour(Particle* p);
 	int getBestOfNeibourhood();
 	int getgBestID();
 	void setgBestID(int gB_ID);
 
-	void updateGlobalBest(double* x, double eval);
+	void updateGbestParticle(double* x, double eval);
 	unsigned int getNeighborhoodSize();
 
 	double computeDistPbestGbest();
@@ -121,7 +121,7 @@ public:
 	double applyPerturbation(int pertubType, double pos_xi);
 
 	//Random Matrix
-	void computeRndMatrix(double ** rndMatrix[], int RmatrixType);
+	void computeRndMatrix(double ** rndMatrix[], int RmatrixType, double angle);
 	void multiplyVectorByRndMatrix(vector<vector< double> > &vect_PbestMinusPosition, int informant, double ** rndMatrix[], int RmatrixType);
 
 	//Frankenstein's members

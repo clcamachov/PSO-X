@@ -82,6 +82,7 @@ public:
 
 	//Perturbation
 	void updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration);
+	double computeAngleOfRRM(Configuration* config, long int iteration);
 
 	//Population size
 	void resizeSwarm(Problem* problem, Configuration* config, long int iteration);
@@ -89,6 +90,8 @@ public:
 	void updateTopologyConnections(Configuration* config, long previous_size, long int iteration);
 	void addParticlesInLastLevel(int first, int last, int branching);
 	void updateHierarchical(int branching, long previous_size);
+	//void clearResizeSimpSwarm(vector<SimplifySwarm> &sSwarm);
+	void clearResizeSimpSwarm(Configuration* config, long int iteration);
 
 	//Utils
 	void rankParticles(vector<SimplifySwarm> &sSwarm);

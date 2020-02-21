@@ -274,6 +274,10 @@
 #define MATRIX_RRM_EUCLIDEAN_ONE		4
 #define MATRIX_RRM_EUCLIDEAN_ALL		5
 
+#define ANGLE_CONSTANT					0
+#define ANGLE_NORMAL					1
+#define ANGLE_ADAPTIVE					2
+
 #define POP_CONSTANT					0
 #define POP_LADDERED					1
 #define POP_INCREMENTAL					2
@@ -349,7 +353,11 @@ private:
 	short perturbation2; //additive
 	short randomMatrix;
 	double pert1_par_l; //scaling factor for PERT1_NORMAL_DISTANCE
-
+	short angleCS;
+	double angleSD;
+	double angle_par_alpha;
+	double angle_par_beta;
+	double rotation_angle; //self-explanatory
 
 	//NPPDistribution
 	short distributionNPP;
@@ -445,8 +453,15 @@ public:
 	short getPerturbation1Type();
 	short getPerturbation2Type();
 	short getRandomMatrix();
+	short getAngleCS();
 	double getPert1_par_l();
 	void setPert1_par_l(double l_val);
+	double getRotationAgle();
+	void setRotationAgle(double angle);
+	double getAngleSD();
+	void setAngleSD(double angle_sd);
+	double get_angle_par_alpha();
+	double get_angle_par_beta();
 
 	//Distribution
 	short getDistributionNPP();

@@ -32,7 +32,7 @@ double RNG::randVal(double min,double max){
 	return gsl_ran_flat( RNG::R, min, max);
 }
 
-double RNG::randGauss(double sd){
+double RNG::randGauss(double sd){ //mean = 0
 	return gsl_ran_gaussian( RNG::R, sd);
 }
 
