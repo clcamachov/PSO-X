@@ -187,11 +187,27 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			perturbation1 = atoi(argv[i+1]);
 			i++;
 			//cout << "\n perturbation strategy has been received \n";
+		} else if (strcmp(argv[i], "--pert1_par_l_CS") == 0) {
+			pert1_par_l_CS = atoi(argv[i+1]);
+			i++;
+			//cout << "\n perturbation strategy has been received \n";
+		} else if (strcmp(argv[i], "--pert1_par_l") == 0) {
+			pert1_par_l = atof(argv[i+1]);
+			i++;
+			//cout << "\n final inertia value has been received \n";
+		} else if (strcmp(argv[i], "--pert1_par_success") == 0) {
+			pert1_2_par_success = atoi(argv[i+1]);
+			i++;
+			//cout << "\n perturbation strategy has been received \n";
+		} else if (strcmp(argv[i], "--pert1_par_failure") == 0) {
+			pert1_2_par_failure = atoi(argv[i+1]);
+			i++;
+			//cout << "\n perturbation strategy has been received \n";
 		} else if (strcmp(argv[i], "--perturbation2") == 0) {
 			perturbation2 = atoi(argv[i+1]);
 			i++;
 			//cout << "\n perturbation strategy has been received \n";
-		} else if (strcmp(argv[i], "--randomMatrix") == 0) {
+		}  else if (strcmp(argv[i], "--randomMatrix") == 0) {
 			randomMatrix = atoi(argv[i+1]);
 			i++;
 			//cout << "\n randomMatrix type has been received \n";
@@ -328,7 +344,6 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	}
 
 	//The inertia weight schedule
-
 	if (iwSchedule > 10)
 		iwSchedule = 10;
 	if (iwSchedule <= 0)
@@ -481,17 +496,22 @@ void Configuration::setDefaultParameters(){
 	iw_par_alpha_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
 	iw_par_beta_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
 
-
 	/** Perturbation **/
 	perturbation1 = PERT1_NONE;				//distribution-based perturbation
 	perturbation2 = PERT2_NONE;				//additive perturbation
+	pert1_par_l_CS = PERT1_DIST_L_INDEPENDENT;
+	//scaling factor for PERT1_NORMAL_DISTANCE a1=0.91, a2=0.21, a3=0.51, a4=0.58
+	pert1_par_l = (0.91*0.51)/(pow(particles,0.21)*pow(problemDimension,0.58));
+	pert1_2_par_success = 15;
+	pert1_2_par_failure = 5;
+
+	/** Matrix **/
 	randomMatrix = MATRIX_DIAGONAL;			//random matrix
 	angleCS = ANGLE_NORMAL;
 	rotation_angle = 5;						//rotation angle of RRMs
 	angleSD = 20;							//standard deviation of the angle
 	angle_par_alpha = 30;
 	angle_par_beta = 0.01;
-	pert1_par_l = (0.91*0.51)/(pow(particles,0.21)*pow(problemDimension,0.58));  //scaling factor for PERT1_NORMAL_DISTANCE a1=0.91, a2=0.21, a3=0.51, a4=0.58
 
 	/** NPPDistribution **/
 	distributionNPP = DIST_RECTANGULAR;		//distribution of next possible positions
@@ -687,17 +707,35 @@ void Configuration::printParameters(){
 	//<< "  perturbation1     " << getPerturbation1() << "\n"
 	switch (getPerturbation1Type()){
 	case PERT1_NONE: 			cout	<< "  perturbation1:     NONE\n"; break;
-	case PERT1_NORMAL_DISTANCE:	cout	<< "  perturbation1:     NORMAL_DISTANCE\n"
-			<< "  pert1_par_l        :     " << getPert1_par_l() << "\n"; break;
-	case PERT1_NORMAL_SUCCESS: 	cout	<< "  perturbation1:     NORMAL_SUCCESS\n"; break;
-	case PERT1_CAUCHY_DISTANCE:	cout	<< "  perturbation1:     CAUCHY_DISTANCE\n"
-			<< "  pert1_par_l        :     " << getPert1_par_l() << "\n"; break;
-	case PERT1_CAUCHY_SUCCESS: 	cout	<< "  perturbation1:     CAUCHY_SUCCESS\n"; break;
+	case PERT1_NORMAL_DISTANCE:	cout	<< "  perturbation1:     NORMAL_DISTANCE\n";
+	switch (getPert1_par_l_CS()) {
+	case PERT1_DIST_L_INDEPENDENT: 	cout << "  pert1_par_l_CS:    INDEPENDENT\n"; break;
+	case PERT1_DIST_L_USER_SUPPLIED:cout << "  pert1_par_l_CS:    USER_SUPPLIED\n"; break;
+	}
+	cout << "  pert1_par_l:       " << getPert1_par_l() << "\n"; break;
+	case PERT1_NORMAL_SUCCESS: 	cout	<< "  perturbation1:     NORMAL_SUCCESS\n"
+			<< "  pert1_2_par_success: " << get_pert1_2_par_success() << "\n"
+			<< "  pert1_2_par_failure: " << get_pert1_2_par_failure() << "\n"; break;
+	case PERT1_CAUCHY_DISTANCE:	cout	<< "  perturbation1:     CAUCHY_DISTANCE\n";
+	switch (getPert1_par_l_CS()) {
+	case PERT1_DIST_L_INDEPENDENT: 	cout << "  pert1_par_l_CS:    INDEPENDENT\n"; break;
+	case PERT1_DIST_L_USER_SUPPLIED:cout << "  pert1_par_l_CS:    USER_SUPPLIED\n"; break;
+	}
+	cout << "  pert1_par_l:       " << getPert1_par_l() << "\n"; break;
+	case PERT1_CAUCHY_SUCCESS: 	cout	<< "  perturbation1:     CAUCHY_SUCCESS\n"
+			<< "  pert1_2_par_success: " << get_pert1_2_par_success() << "\n"
+			<< "  pert1_2_par_failure: " << get_pert1_2_par_failure() << "\n"; break;
 	}
 	//<< "  perturbation2     " << getPerturbation2() << "\n"
 	switch (getPerturbation2Type()){
 	case PERT2_NONE: 	 	 cout	<< "  perturbation2:     NONE\n"; break;
-	case PERT2_ADD_RECT:	 cout	<< "  perturbation2:     ADD_RECT\n"; break;
+	case PERT2_ADD_RECT:	 cout	<< "  perturbation2:     ADD_RECT\n";
+	if (getPerturbation1Type() != PERT1_NORMAL_SUCCESS && getPerturbation1Type() != PERT1_CAUCHY_SUCCESS)
+		cout << "  pert1_2_par_success: " << get_pert1_2_par_success() << "\n"
+		<< "  pert1_2_par_failure: " << get_pert1_2_par_failure() << "\n";
+	else cout << "  pert1_2_par_success: same value used for perturbation1\n"
+			<< "  pert1_2_par_failure: same value used for perturbation1\n";
+	break;
 	case PERT2_ADD_NOISY:	 cout	<< "  perturbation2:     ADD_NOISY\n"; break;
 	}
 	//<< "  randomMatrix      " << getRandomMatrix() << "\n"
@@ -894,6 +932,12 @@ short Configuration::getModelOfInfluence(){
 short Configuration::getPerturbation1Type(){
 	return perturbation1;
 }
+int Configuration::get_pert1_2_par_success(){
+	return pert1_2_par_success;
+}
+int Configuration::get_pert1_2_par_failure(){
+	return pert1_2_par_failure;
+}
 short Configuration::getPerturbation2Type(){
 	return perturbation2;
 }
@@ -921,6 +965,9 @@ double Configuration::getRotationAgle(){
 }
 void Configuration::setRotationAgle(double angle){
 	rotation_angle = angle;
+}
+short Configuration::getPert1_par_l_CS(){
+	return pert1_par_l_CS;
 }
 double Configuration::getPert1_par_l(){
 	return pert1_par_l;

@@ -32,10 +32,6 @@ double a = 1;								//small positive constant		IW_LOG_DEC - 10
 double omega_2 = 0;							//								IW_SELF_REGULATING - 11
 double idealVelocity;						//								IW_VELOCITY_BASED - 12
 double avVel;								//								IW_VELOCITY_BASED - 12
-//double eta = 1;							//								IW_SELF_REGULATING - 11
-//double deltaOmega = 0.1;					//small positive constant		IW_VELOCITY_BASED - 12
-//double alpha_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
-//double beta_2 = 0.5;						//small constant in [0,1]		IW_CONVERGE_BASED
 vector<SimplifySwarm> simpSwarm;
 
 
@@ -278,7 +274,9 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 				computeOmega3(config),
 				sizeInformants,
 				lastLevelComplete,
-				alpha_t, config->getPert1_par_l(), delta);
+				alpha_t,
+				config->getPert1_par_l(),
+				delta);
 	}
 	long double prev_Gbest_eval = global_best.eval; //best solution at iteration t-1
 
@@ -742,12 +740,13 @@ void Swarm::computeAccelerationCoefficients(Configuration* config, long int iter
 
 void Swarm::updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration){
 	if(		config->getPerturbation1Type() == PERT1_NORMAL_SUCCESS ||
-			config->getPerturbation2Type() == PERT2_ADD_RECT ||
-			config->getPerturbation1Type() == PERT1_CAUCHY_SUCCESS ){
+			config->getPerturbation1Type() == PERT1_CAUCHY_SUCCESS ||
+			config->getPerturbation2Type() == PERT2_ADD_RECT ){
 		if (previousGbest_eval != currentGbest_eval){ //success
 			sc++;
 			fc=0;
-			if (sc > success){
+			//if (sc > success){
+			if (sc > config->get_pert1_2_par_success()){
 				alpha_t = alpha_t * 2.0;
 				//cout << "\n DOUBLE alpha_t for success" << alpha_t << endl;
 			}
@@ -755,7 +754,8 @@ void Swarm::updatePerturbationVariables(Configuration* config, double previousGb
 		else{ //failure
 			fc++;
 			sc=0;
-			if (fc > failure){
+			//if (fc > failure){
+			if (fc > config->get_pert1_2_par_failure()){
 				alpha_t = alpha_t * 0.5;
 				//cout << "\n HALF alpha_t update for failure: " << alpha_t << endl;
 			}

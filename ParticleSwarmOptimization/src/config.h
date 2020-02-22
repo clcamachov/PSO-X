@@ -258,6 +258,9 @@
 #define PERT1_CAUCHY_DISTANCE			3
 #define PERT1_CAUCHY_SUCCESS			4
 
+#define PERT1_DIST_L_INDEPENDENT		0
+#define PERT1_DIST_L_USER_SUPPLIED		1
+
 #define PERT2_NONE						0
 #define PERT2_ADD_RECT					1
 #define PERT2_ADD_NOISY					2
@@ -351,8 +354,13 @@ private:
 	//Perturbation
 	short perturbation1; //distribution-based
 	short perturbation2; //additive
-	short randomMatrix;
+	short pert1_par_l_CS;
 	double pert1_par_l; //scaling factor for PERT1_NORMAL_DISTANCE
+	int pert1_2_par_success; 		//success threshold of the additive rectangular perturbation
+	int pert1_2_par_failure; 		//failure threshold of the additive rectangular perturbation
+
+	//Random matrix
+	short randomMatrix;
 	short angleCS;
 	double angleSD;
 	double angle_par_alpha;
@@ -452,16 +460,21 @@ public:
 	//Perturbation
 	short getPerturbation1Type();
 	short getPerturbation2Type();
-	short getRandomMatrix();
-	short getAngleCS();
+	short getPert1_par_l_CS();
 	double getPert1_par_l();
 	void setPert1_par_l(double l_val);
+
+	short getRandomMatrix();
+	short getAngleCS();
 	double getRotationAgle();
 	void setRotationAgle(double angle);
 	double getAngleSD();
 	void setAngleSD(double angle_sd);
 	double get_angle_par_alpha();
 	double get_angle_par_beta();
+
+	int get_pert1_2_par_success();
+	int get_pert1_2_par_failure();
 
 	//Distribution
 	short getDistributionNPP();

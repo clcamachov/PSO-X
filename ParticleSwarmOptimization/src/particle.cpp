@@ -17,8 +17,6 @@
 
 using namespace std;
 
-double additionalVal= 0.0; //variable in case some additional value has to be use to update the formula
-
 /* Default constructor*/
 Particle::Particle(){
 	id = 0;
