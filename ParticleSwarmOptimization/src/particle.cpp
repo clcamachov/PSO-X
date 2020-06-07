@@ -192,6 +192,23 @@ void Particle::initUniform(Configuration* config){
 	evaluateSolution();
 }
 
+/* Initialize particle using uniformly random values */
+void Particle::reInitPosUniform(Configuration* config){
+	if (config->verboseMode()) cout << "\tvector::(re-init)::[ " ;
+	for(int i=0; i<size; i++){
+		if(config->getCompetitionID() == CEC05 && config->getProblemID() == SHIFTED_ROTATED_GRIEWANK_CEC05)
+			current.x[i] = problem->getRandomX(0.0,600.0);
+		else if(config->getCompetitionID() == CEC05 && config->getProblemID() == ROTATED_HYBRIDCOMPOSITION4_NO_BOUNDS)
+			current.x[i] = problem->getRandomX(2.0,5.0);
+		else
+			current.x[i] = problem->getRandomX(); //random values within the bounds of the function
+		velocity[i]=0;
+		if (config->verboseMode()) cout << current.x[i] << " ";
+	}
+	if (config->verboseMode()) cout << "]" << endl;
+	//evaluateSolution();
+}
+
 /* Initialize particle using a model (as in Incremental PSO) */
 void Particle::initToModel(){
 	for (int i=0; i<size; i++){
@@ -268,8 +285,9 @@ bool Particle::ispBestIntheInformants(int numInformants){
 }
 
 /* Generate a new solution by updating the particle's position */
-void Particle::move(Configuration* config, double minBound, double maxBound, long int iteration, double omega1, double omega2, double omega3,
-		int numInformants, int lastLevelComplete, double alpha_t, double l, double delta){
+void Particle::move(Configuration* config, double minBound, double maxBound, long int iteration,
+		double omega1, double omega2, double omega3, int numInformants, int lastLevelComplete,
+		double alpha_t, double l, double delta){
 
 	double vect_distribution[size];
 	double vect_perturbation[size];
@@ -368,11 +386,57 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 			current.x[i]= maxBound;
 	}
 
+	//Detect stagnation and introduce perturbation using Schmitt and Wanka technique
+	detectStagnation(config, minBound, maxBound);
+
 	//Evaluate the objective function and update pbest if a new one has been found
 	evaluateSolution();
 	if (config->verboseMode()) cout << "\tParticle with ID:[" << this->id << "].status::MOVED" << endl;
 	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
 
+}
+
+void Particle::detectStagnation(Configuration* config, double minBound, double maxBound){
+	//Compute norm of the velocity
+	double vel_norm =0;
+	for (int i=0;i<size;i++) {
+		vel_norm += pow(velocity[i],2);
+	}
+	vel_norm = sqrt(vel_norm);
+
+	double gBestpPos_norm = 0;
+	for (int i=0;i<size;i++) {
+		gBestpPos_norm += pow((gbest.x[i]-current.x[i]),2);
+	}
+	gBestpPos_norm = sqrt(gBestpPos_norm);
+
+	if((vel_norm + gBestpPos_norm) < STAGNATION_PRECISION){
+		//Compute new position
+		for (int i=0;i<size;i++) {
+			velocity[i] = ((2*problem->getRandom01())-1)*STAGNATION_PRECISION;
+
+			//Clamp velocity
+			if (hasVelocitybounds){
+				if (velocity[i] > maxVelLimit)
+					current.x[i] = current.x[i] + maxVelLimit;
+				else if (velocity[i] < minVelLimit)
+					current.x[i] = current.x[i] + minVelLimit;
+				else
+					current.x[i] = current.x[i] + velocity[i];
+			}
+			else
+				current.x[i] = current.x[i] + velocity[i];
+
+			//Clamp position
+			if(current.x[i] < minBound)
+				current.x[i] = minBound;
+			if(current.x[i] > maxBound)
+				current.x[i]= maxBound;
+		}
+		if (config->verboseMode())
+			cout << "\t\tnotice::stagnation detected in particle :[" << this->id << "] using a randomly generated velocity" << endl;
+		cin.get();
+	}
 }
 
 void Particle::computeSubtractionPerturbationRotation(

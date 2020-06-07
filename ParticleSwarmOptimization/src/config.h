@@ -178,6 +178,8 @@
 #define EPSILON 1E-15
 #define DELTA 1E-30
 #define CONSTRICTION_COEFFICIENT 0.7298
+#define REINIT_PRECISION 0.00001
+#define STAGNATION_PRECISION 0.0000001
 #define MAX_DIMENSION 	1000
 #define LINE_BUF_LEN    100
 #define TRACE( x )
@@ -224,12 +226,14 @@
 #define O2_ZERO							1  //this makes the component Distribution = 0
 #define O2_ONE							2
 #define O2_RANDOM						3
+#define O2_CONSTANT						4
 
 // available omega3 strategies
 #define O3_EQUAL_TO_O1					0
 #define O3_ZERO							1  //this makes the component Perturbation = 0
 #define O3_ONE							2
 #define O3_RANDOM						3
+#define O3_CONSTANT						4
 
 // available acceleration coefficients strategies
 #define AC_CONSTANT						0
@@ -342,14 +346,21 @@ private:
 	double initialIW;
 	double finalIW;
 	unsigned int iwSchedule;	//n^2 , 2n^2 , 3n^2 , 4n^2, etc. (the lower the value the faster)
-	bool useVelClamping;
 	short omega2CS;
+	double omega2;
 	short omega3CS;
+	double omega3;
 	//Additional values for inertia control parameter omega1CS (only adaptive)
 	double iw_par_eta;				//from 0.1 to 1 in IW_SELF_REGULATING - 11
 	double iw_par_deltaOmega;		//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
 	double iw_par_alpha_2;			//from 0 to  1 in IW_CONVERGE_BASED - 16
 	double iw_par_beta_2;			//from 0 to  1 in IW_CONVERGE_BASED - 16
+
+	//Velocity
+	bool useVelClamping;
+
+	//Position
+	bool reinitializePosition;
 
 	//Perturbation
 	short perturbation1; //distribution-based
@@ -433,8 +444,13 @@ public:
 	double getFinalIW();
 	unsigned int getIWSchedule();
 
+	//Velocity
 	bool isVelocityClamped();
 	void setVelocityClamped(bool clamping);
+
+	//Position
+	bool useReinitialization();
+	void setReinitialization(bool reinitilized);
 
 	double get_iw_par_eta();
 	double get_iw_par_deltaOmega();
@@ -444,6 +460,10 @@ public:
 	//Omega2 and Omega3
 	short getOmega2CS();
 	short getOmega3CS();
+	double getOmega2();
+	void setOmega2(double new_omega2);
+	double getOmega3();
+	void setOmega3(double new_omega3);
 
 	//Acceleration coefficients
 	short getAccelCoeffCS();

@@ -97,6 +97,7 @@ public:
 	void rankParticles(vector<SimplifySwarm> &sSwarm);
 	void mergeSort(ssArray* arr, int l, int r);
 	void merge(ssArray* arr, int l, int m, int r);
+	void reinitializeParticlePosition(Configuration* config);
 
 
 };

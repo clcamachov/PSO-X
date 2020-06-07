@@ -94,6 +94,7 @@ public:
 
 	//Initial position
 	void initUniform(Configuration* config);
+	void reInitPosUniform(Configuration* config);
 	void initToModel();
 	void initializePosition(Configuration* config, long int initialPopSize);
 	void printPosition();
@@ -112,7 +113,7 @@ public:
 	int getRandomNeighbor();
 	int getRandomInformantPosition(int numInformants, bool pBestIntheInformants);
 	int getPositionOfpBest(int numInformants, bool pBestIntheInformants);
-
+	void detectStagnation(Configuration* config, double minBound, double maxBound);
 
 	//Perturbation
 	void setPerturbationMagnitude(int pertubType, double * pos_x, double * pbest_x, double alpha_t, double l);

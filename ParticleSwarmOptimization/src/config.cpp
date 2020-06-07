@@ -11,6 +11,7 @@
 #include <string.h>
 #include <iostream>
 #include <stdio.h>
+#include <time.h>       /* time */
 
 /****************************************************************************
  * The Configuration class contains the methods for importing the parameters
@@ -35,6 +36,9 @@ Configuration::Configuration(){
 //TODO: Update with all the parameters
 //TODO: Check the integrity of all the parameters here (values and combination with other parameters)
 bool Configuration::getConfig(int argc, char *argv[]){
+	bool maxIter_received = false;
+	bool maxFES_received = false;
+
 	for(int i=1; i<argc; i++){
 		if(strcmp(argv[i], "--competition") == 0){
 			competitionID = atoi(argv[i+1]);
@@ -54,17 +58,24 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			//cout << "\n random seed has been received \n";
 		} else if (strcmp(argv[i], "--evaluations") == 0){
 			maxFES = atoi(argv[i+1]);
+			maxFES_received = true;
 			i++;
 			//cout << "\n number of evaluations has been received \n";
 		} else if (strcmp(argv[i], "--iterations") == 0){
 			max_iterations = atol(argv[i+1]);
+			maxIter_received = true;
 			i++;
 			//cout << "\n number of iterations has been received \n";
 		} else if (strcmp(argv[i], "--particles") == 0){
 			particles = atol(argv[i+1]);
 			i++;
 			//cout << "\n number of particles has been received \n";
-		} else if (strcmp(argv[i], "--populationCS") == 0) {
+		}
+		else if (strcmp(argv[i], "--reinitPositions") == 0){
+			reinitializePosition = true;
+			//cout << "\n velocity clamping has been set to true \n";
+		}
+		else if (strcmp(argv[i], "--populationCS") == 0) {
 			populationCS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n populationCS has been received \n";
@@ -179,10 +190,18 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			omega2CS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n omega2 strategy has been received \n";
+		} else if (strcmp(argv[i], "--omega2") == 0) {
+			omega2 = atof(argv[i+1]);
+			i++;
+			//cout << "\n final inertia value has been received \n";
 		} else if (strcmp(argv[i], "--omega3CS") == 0) {
 			omega3CS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n omega3 strategy has been received \n";
+		} else if (strcmp(argv[i], "--omega3") == 0) {
+			omega3 = atof(argv[i+1]);
+			i++;
+			//cout << "\n final inertia value has been received \n";
 		} else if (strcmp(argv[i], "--perturbation1") == 0) {
 			perturbation1 = atoi(argv[i+1]);
 			i++;
@@ -368,8 +387,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		maxFES = 10000 * problemDimension;
 	else if ((int)maxFES == -3)	//Use a medium budget of FEs
 		maxFES = 5000 * problemDimension;
-	else
-		maxFES = 100;
+	else {
+		if (! maxIter_received && ! maxFES_received)
+			maxFES = 100;
+	}
 
 	if (max_iterations == -1)
 		max_iterations = maxFES;
@@ -382,7 +403,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 //TODO: Update with all the parameters
 void Configuration::printUsage(){
 	cout << "" << endl;
-	cout << "PSO2020: A flexible and configurable particle swarm optimization framework" << endl;
+	cout << "PSO-2020: A flexible and configurable particle swarm optimization framework" << endl;
 	cout << "" << endl;
 	cout << "General parameters:" << endl;
 	cout << "\t--competition <competitionID>" << endl;
@@ -445,7 +466,8 @@ void Configuration::printUsage(){
 /*Default parameters (KISS)*/
 void Configuration::setDefaultParameters(){
 	/** General parameters **/
-	rngSeed = 12345;						//seed for random numbers
+	srand (time(NULL));
+	rngSeed =  rand();						//seed for random numbers
 	maxFES = -1;							//max function evaluation
 	max_iterations = -1;					//max iterations
 
@@ -462,7 +484,8 @@ void Configuration::setDefaultParameters(){
 	initialPopSize = 2;						//initial population
 	finalPopSize= 1000;						//final or maximum number of individuals allowed
 	particlesToAdd = 1;						//number of particles added in a non-constant PopCS
-	p_intitType = PARTICLE_INIT_MODEL;     //type of initialization of particles in a non-constant PopCS
+	p_intitType = PARTICLE_INIT_MODEL;      //type of initialization of particles in a non-constant PopCS
+	reinitializePosition = true;			//reinitialize particles' position with precision of 10^-5
 
 	/** Acceleration coefficients **/
 	accelCoeffCS = AC_CONSTANT;				//acceleration coefficients control strategy
@@ -490,7 +513,9 @@ void Configuration::setDefaultParameters(){
 	iwSchedule = 0;							//inertia weight schedule
 	useVelClamping = true;					//clamp velocity (step size)
 	omega2CS = O2_EQUAL_TO_O1;				//omega2 control strategy (see GVU formula)
+	omega2 = 1.0;							//omega2 value when used constant
 	omega3CS = O3_EQUAL_TO_O1;				//omega3 control strategy (see GVU formula)
+	omega3 = 1.0;							//omega2 value when used constant
 	iw_par_eta = 1;							//from 0.1 to 1 in IW_SELF_REGULATING - 11
 	iw_par_deltaOmega = 0.1;				//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
 	iw_par_alpha_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
@@ -551,6 +576,10 @@ void Configuration::printParameters(){
 			<< "  evaluations:       " << getMaxFES() << "\n"
 			<< "  iterations:        " << getMaxIterations() << "\n"
 			<< "  particles:         " << getSwarmSize() << "\n";
+	switch(useReinitialization()){
+	case true:		cout	<< "  reinitilize_pos:   YES\n"; break;
+	case false:		cout	<< "  reinitilize_pos:   NO\n"; break;
+	}
 	//<< "  populationCS      " << getModelOfInfluence() << "\n"
 	switch (getPopulationCS()){
 	case POP_CONSTANT: 		cout	<< "  populationCS:      POP_CONSTANT\n"; break;
@@ -679,17 +708,21 @@ void Configuration::printParameters(){
 	}
 	//<< "  omega2CS          " << getomega2CS() << "\n"
 	switch (getOmega2CS()){
-	case O2_EQUAL_TO_O1: 	cout	<< "  omega2:            EQUAL_TO_omega1\n"; break;
-	case O2_ZERO: 			cout	<< "  omega2:            ZERO (no DNNP)\n"; break;
-	case O2_ONE: 			cout	<< "  omega2:            ONE\n"; break;
-	case O2_RANDOM: 		cout	<< "  omega2:            RANDOM\n"; break;
+	case O2_EQUAL_TO_O1: 	cout	<< "  omega2CS:          EQUAL_TO_omega1\n"; break;
+	case O2_ZERO: 			cout	<< "  omega2CS:          ZERO (no DNNP)\n"; break;
+	case O2_ONE: 			cout	<< "  omega2CS:          ONE\n"; break;
+	case O2_RANDOM: 		cout	<< "  omega2CS:          RANDOM\n"; break;
+	case O2_CONSTANT: 		cout	<< "  omega2CS:          CONSTANT\n"
+			<< "  omega2:            " << getOmega2() << "\n"; break;
 	}
 	//<< "  omega3CS          " << getomega3CS() << "\n"
 	switch (getOmega3CS()){
-	case O3_EQUAL_TO_O1: 	cout	<< "  omega3:            EQUAL_TO_omega1\n"; break;
-	case O3_ZERO:			cout	<< "  omega3:            ZERO (no additive perturbation)\n"; break;
-	case O3_ONE:			cout	<< "  omega3:            ONE\n"; break;
-	case O3_RANDOM:			cout	<< "  omega3:            RANDOM\n"; break;
+	case O3_EQUAL_TO_O1: 	cout	<< "  omega3CS:          EQUAL_TO_omega1\n"; break;
+	case O3_ZERO:			cout	<< "  omega3CS:          ZERO (no additive perturbation)\n"; break;
+	case O3_ONE:			cout	<< "  omega3CS:          ONE\n"; break;
+	case O3_RANDOM:			cout	<< "  omega3CS:          RANDOM\n"; break;
+	case O3_CONSTANT: 		cout	<< "  omega3CS:          CONSTANT\n"
+			<< "  omega3:            " << getOmega3() << "\n"; break;
 	}
 	//<< "  accelCoeffCS:     " << getAccelCoeffCS() << "\n"
 	switch (getAccelCoeffCS()){
@@ -920,8 +953,27 @@ double Configuration::get_iw_par_alpha_2(){
 double Configuration::get_iw_par_beta_2(){
 	return iw_par_beta_2;
 }
+double Configuration::getOmega2(){
+	return omega2;
+}
+void Configuration::setOmega2(double new_omega2){
+	omega2 = new_omega2;
+}
+double Configuration::getOmega3(){
+	return omega3;
+}
+void Configuration::setOmega3(double new_omega3){
+	omega3 = new_omega3;
+}
 bool Configuration::isVelocityClamped(){
 	return useVelClamping;
+}
+//Position
+bool Configuration::useReinitialization(){
+	return reinitializePosition;
+}
+void Configuration::setReinitialization(bool reinit){
+	reinitializePosition = reinit;
 }
 void Configuration::setVelocityClamped(bool clamping){
 	useVelClamping = clamping;

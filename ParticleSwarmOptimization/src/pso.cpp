@@ -114,6 +114,8 @@ Problem* initializeProblem() {
 		/////////UNIMODAL FUNCTIONS //////////////////////////////////////////////////
 		case SHIFTED_SPHERE:{
 			problem = new Sphere(config, SHIFTED);
+			config->setMinInitRange(-100.0);	//lower bound of the function
+			config->setMaxInitRange(100.0);	//upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_HIGH_CONDITIONED_ELLIPTIC:{
 			problem = new Elliptic(config, SHIFTED_ROTATED_HIGH_CONDITIONED);
@@ -246,6 +248,8 @@ Problem* initializeProblem() {
 		}break;
 		case H5_CEC14:{
 			problem = new Hybrid5CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0);	//lower bound of the function
+			config->setMaxInitRange(100.0);	//upper bound of the function
 		}break;
 		case H6_CEC14:{
 			problem = new Hybrid6CEC14(config, SHIFTED_ROTATED);
@@ -610,9 +614,10 @@ void openLogFile(Configuration* config, fstream &outfile){
 		thePath = config->getOutputPath();
 	//	cout << " path0: " << config->getOutputPath().substr(0,found) << endl;
 	//	cout << " path1: " << config->getOutputPath().substr(found+1) << endl;
-	string path = thePath + "/OUTPUT_PSO-X_" + date + "/";		//path to the file
+	string path = thePath + "/OUTPUT_PSOX2020" + "/";		//path to the file
 	//string path = thePath + "/OUTPUT-ParticleSwarmOptimization" + "/";		//path to the file
-	string log_file = path + "f" + prob.str() + "-d" + dim.str() + "-c" + comp.str() + "_" + seed.str() + "_" + time  + "_" + unique.str() + ".dat";	//name of the file
+	//string log_file = path + "f" + prob.str() + "-d" + dim.str() + "-c" + comp.str() + "_" + seed.str() + "_" + time  + "_" + unique.str() + ".dat";	//name of the file
+	string log_file = path + "f" + prob.str() + "-d" + dim.str() + "-c" + comp.str() + "_" + seed.str() + "_" + unique.str() + ".dat";	//name of the file
 	const char* pstr = path.c_str();
 	const char* cstr = log_file.c_str();
 	//	cout << " originalPath: " << config->getOutputPath() << endl;
@@ -686,6 +691,7 @@ int main(int argc, char *argv[] ){
 	}
 
 	//Random number generator
+	RNG::initializeRNG(config->getRNGSeed());
 	RNG::initializePermutation(config->getSwarmSize());
 	//Initialize the Problem
 	initializeProblem();

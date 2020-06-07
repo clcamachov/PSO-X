@@ -201,7 +201,7 @@ double Swarm::computeAngleOfRRM(Configuration* config, long int iteration){
 					}
 				}
 				if (config->verboseMode())
-						cout << "\tvar::solutions_improved: " << S_i << endl;
+					cout << "\tvar::solutions_improved: " << S_i << endl;
 				angle = ((alpha * (((double)S_i/swarm.size())))/sqrt((double)config->getProblemDimension()))+beta;
 			}
 		}
@@ -288,6 +288,10 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 			best_particle = swarm.at(i);
 		}
 	}
+
+	//Reinitialize particle position and set v=0 if it is "too" similar to gBest
+	reinitializeParticlePosition(config);
+
 	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval, iteration);
 	clearResizeSimpSwarm(config, iteration);
 	//cout << "\n <<So far so good>>" << endl;
@@ -670,6 +674,51 @@ void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParti
 		}
 		//Update variable size
 		config->setSwarmSize(swarm.size()); //long int particles
+	}
+}
+
+void Swarm::reinitializeParticlePosition(Configuration* config){
+	//Reinitialize particles that are too close to gbest
+	if (config->useReinitialization()){
+		for (unsigned int i=0;i<swarm.size();i++){
+			//Check that the particle is different to itself before reinitializing its position
+			if (swarm.at(i)->getID() != swarm.at(i)->getgBestID()){
+				double* gBestPos;
+				double* particlePos = swarm.at(i)->getCurrentPosition();
+				double similarity = 0; //distance between x and gBest
+				//Find gBest of particle by id
+				for (unsigned int r=0;r<swarm.size();r++){
+					if (swarm.at(i)->getgBestID() == swarm.at(r)->getID()){
+						gBestPos = swarm.at(r)->getCurrentPosition();
+					}
+				}
+				//Compute similarity between particle and gBest
+				for (unsigned int j=0;j<config->getProblemDimension();j++){
+					similarity +=  particlePos[j] / gBestPos[j];
+				}
+				similarity = similarity/config->getProblemDimension();
+				if (abs(1-similarity) < REINIT_PRECISION){
+					if (config->verboseMode()){
+						cout << "\tparticle:: [" << i << "] pos: [ ";
+						for(unsigned int h=0;h<config->getProblemDimension();h++){
+							cout << gBestPos[h] << " ";
+						}
+						cout << "]" << endl;
+						cout << "\tgBest::pos: [";
+						for(unsigned int k=0;k<config->getProblemDimension();k++){
+							cout << particlePos[k] << " ";
+						}
+						cout << "]" << endl;
+					}
+					//Reinitialize particle to a random position and set v=0
+					swarm.at(i)->reInitPosUniform(config);
+					if (config->verboseMode()) {
+						cout << "\t\tnotice::Particle [" << i << "] was reinitialized to a random position"; //<< endl; //remove
+						//cin.get();
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -1803,6 +1852,8 @@ double Swarm::computeOmega2(Configuration* config){
 		return 0.5 * (problem->getRandom01()/2.0);
 	case O2_ZERO:
 		return 0.0; //the component is not used
+	case O2_CONSTANT:
+		return config->getOmega2();
 	default :
 		return 1.0; //no strategy, set the value to one
 	}
@@ -1818,6 +1869,9 @@ double Swarm::computeOmega3(Configuration* config){
 	//Zero -- component is not being used
 	else if (config->getOmega3CS() == O3_ZERO)
 		return 0.0;
+	//Constant
+	else if (config->getOmega3CS() == O3_CONSTANT)
+		return config->getOmega3();
 	//One -- no strategy in particular
 	else
 		return 1.0;
