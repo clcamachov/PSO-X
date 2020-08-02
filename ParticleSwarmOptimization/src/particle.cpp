@@ -435,7 +435,6 @@ void Particle::detectStagnation(Configuration* config, double minBound, double m
 		}
 		if (config->verboseMode())
 			cout << "\t\tnotice::stagnation detected in particle :[" << this->id << "] using a randomly generated velocity" << endl;
-		cin.get();
 	}
 }
 
