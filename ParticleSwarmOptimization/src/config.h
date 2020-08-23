@@ -352,7 +352,7 @@ private:
 	double omega3;
 	//Additional values for inertia control parameter omega1CS (only adaptive)
 	double iw_par_eta;				//from 0.1 to 1 in IW_SELF_REGULATING - 11
-	double iw_par_deltaOmega;		//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
+	double iw_par_lambda;		//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
 	double iw_par_alpha_2;			//from 0 to  1 in IW_CONVERGE_BASED - 16
 	double iw_par_beta_2;			//from 0 to  1 in IW_CONVERGE_BASED - 16
 

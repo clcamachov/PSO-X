@@ -926,7 +926,7 @@ void Particle::multiplyVectorByRndMatrix(vector<vector< double> > &vect_PbestMin
 		for (int i = 0 ; i < size ; i ++) {
 			resultvxM[i] = 0.0;
 			for (int j = 0 ; j < size ; j ++) {
-				resultvxM[i] += (vect_PbestMinusPosition[informant][i] * rndMatrix[0][i][j]);
+				resultvxM[i] += (vect_PbestMinusPosition[informant][j] * rndMatrix[0][i][j]);
 			}
 		}
 	}
@@ -937,7 +937,7 @@ void Particle::multiplyVectorByRndMatrix(vector<vector< double> > &vect_PbestMin
 		for (int i=0; i<size; i++){
 			resultvxM[i] = vect_PbestMinusPosition[informant][i];
 		}
-		//find the planes to rotate
+		//find the rotation planes
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++){
 				if (i != j && rndMatrix[0][i][j] != 0){
@@ -1030,11 +1030,11 @@ void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType, double a
 				trans_rndMatrix[j][i]=rndMatrix[0][i][j];
 		}
 		//3.- Determine the rotation angle
-		double angle = (problem->getRandomX(0.001,7)*PI)/180; //rotation between 0 and 10 degrees
+		double expMapAngle = (angle*PI)/180; //rotation between 0 and 10 degrees
 		//4.- Subtract trans_rndMatrix to rndMatrix, multiply by the angle and add the identity matrix
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++){
-				rndMatrix[0][i][j]=(rndMatrix[0][i][j]-trans_rndMatrix[i][j])*angle;
+				rndMatrix[0][i][j]=(rndMatrix[0][i][j]-trans_rndMatrix[i][j])*expMapAngle;
 				if (i==j)
 					rndMatrix[0][i][j]+=1.0; //Add the Identity matrix
 			}
@@ -1065,7 +1065,7 @@ void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType, double a
 						rndMatrix[0][i][j] = 1;
 				}
 				else {
-					if (i==plane1 && j==plane2)
+					if (i == plane1 && j == plane2)
 						rndMatrix[0][i][j] = -sin(angle);
 					else if (i==plane2 && j==plane1)
 						rndMatrix[0][i][j] = sin(angle);
@@ -1074,28 +1074,6 @@ void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType, double a
 				}
 			}
 		}
-		//4.- Print the matrix
-		//		cout << "\n Euclidean RRM one plane: " << endl;
-		//		for (int i=0; i<size; i++){
-		//			cout << "[" ;
-		//			for (int j=0; j<size; j++){
-		//				if (i == j){
-		//					if (i == plane1 || i == plane2)
-		//						cout << " " << rndMatrix[0][i][j] << " "; //cout << " cos(alpha) ";
-		//					else
-		//						cout << " " << rndMatrix[0][i][j] << " "; //cout << " 1 ";
-		//				}
-		//				else {
-		//					if (i==plane1 && j==plane2)
-		//						cout << " " << rndMatrix[0][i][j] << " "; //cout << " -sin(angle) ";
-		//					else if (i==plane2 && j==plane1)
-		//						cout << " " << rndMatrix[0][i][j] << " "; //cout << " sin(angle) ";
-		//					else
-		//						cout << " " << rndMatrix[0][i][j] << " "; //cout << " 0 ";
-		//				}
-		//			}
-		//			cout << " ]" << endl;
-		//		}
 	}
 	break;
 	case MATRIX_RRM_EUCLIDEAN_ALL:{ //Random rotation matrix using Euclidean rotation (ALL PLANES)
@@ -1103,9 +1081,7 @@ void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType, double a
 		//The maximum number of RRM is (size*size-1)/2
 		for (int g=0; g<size-1; g++) {
 			for (int h=g+1; h<size; h++) {
-				//1.- Randomly choose an angle between 0 and 7
-				//double angle = (problem->getRandomX(0.001,7)*PI)/180; //rotation between 0 and 10 degrees
-				//2.- Generate the Euclidean RRM
+				//Generate the Euclidean RRM
 				for (int i=0; i<size; i++){
 					for (int j=0; j<size; j++){
 						if (i == j){
@@ -1115,7 +1091,7 @@ void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType, double a
 								rndMatrix[matNum][i][j] = 1;
 						}
 						else {
-							if (i==g && j==h)
+							if (i == g && j == h)
 								rndMatrix[matNum][i][j] = -sin(angle);
 							else if (i==h && j==g)
 								rndMatrix[matNum][i][j] = sin(angle);
@@ -1127,28 +1103,6 @@ void Particle::computeRndMatrix(double ** rndMatrix[], int RmatrixType, double a
 				matNum++;
 			}
 		}
-		//		//4.- Print the matrix
-		//		cout << "\n Euclidean RRM all planes (last plane): " << endl;
-		//		for (int i=0; i<size; i++){
-		//			cout << "[" ;
-		//			for (int j=0; j<size; j++){
-		//				if (i == j){
-		//					if (i == size-2 || i == size-1)
-		//						cout << " cos(alpha) ";
-		//					else
-		//						cout << " 1 ";
-		//				}
-		//				else {
-		//					if (i==size-2 && j==size-1)
-		//						cout << " -sin(angle) ";
-		//					else if (i==size-1 && j==size-2)
-		//						cout << " sin(angle) ";
-		//					else
-		//						cout << " 0 ";
-		//				}
-		//			}
-		//			cout << " ]" << endl;
-		//		}
 	}
 	break;
 	case MATRIX_NONE:{

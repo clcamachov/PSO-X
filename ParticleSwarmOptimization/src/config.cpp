@@ -287,7 +287,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			i++;
 			//cout << "\n parameter iw_par_eta for IW_SELF_REGULATING - 11 has been received \n";
 		} else if (strcmp(argv[i], "--iw_par_deltaOmega") == 0) {
-			iw_par_deltaOmega = atof(argv[i+1]);
+			iw_par_lambda = atof(argv[i+1]);
 			i++;
 			//cout << "\n parameter iw_par_deltaOmega for IW_VELOCITY_BASED - 12 has been received \n";
 		} else if (strcmp(argv[i], "--iw_par_alpha_2") == 0) {
@@ -517,7 +517,7 @@ void Configuration::setDefaultParameters(){
 	omega3CS = O3_EQUAL_TO_O1;				//omega3 control strategy (see GVU formula)
 	omega3 = 1.0;							//omega2 value when used constant
 	iw_par_eta = 1;							//from 0.1 to 1 in IW_SELF_REGULATING - 11
-	iw_par_deltaOmega = 0.1;				//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
+	iw_par_lambda = 0.1;				//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
 	iw_par_alpha_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
 	iw_par_beta_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
 
@@ -945,7 +945,7 @@ double Configuration::get_iw_par_eta(){
 	return iw_par_eta;
 }
 double Configuration::get_iw_par_deltaOmega(){
-	return iw_par_deltaOmega;
+	return iw_par_lambda;
 }
 double Configuration::get_iw_par_alpha_2(){
 	return iw_par_alpha_2;

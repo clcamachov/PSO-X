@@ -1605,7 +1605,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		//IW_VELOCITY_BASED - 12 - Based on velocity information
 		else if (config->getOmega1CS() == IW_VELOCITY_BASED) {
 			static double T_0_95 = 95*config->getMaxIterations()/100; //iteration at which 95% of search process is completed
-			double deltaOmega = config->get_iw_par_deltaOmega();
+			double lambda = config->get_iw_par_deltaOmega();
 			if (iteration == 1)
 				config->setOmega1(config->getFinalIW());
 
@@ -1613,12 +1613,12 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			avVel=computeAvgVelocity(config);	//average absolute velocity of the swarm
 
 			if (avVel >= idealVelocity){
-				(config->getOmega1()-deltaOmega) >= config->getInitialIW() ?
-						config->setOmega1(config->getOmega1()-deltaOmega) : config->setOmega1(config->getInitialIW());
+				(config->getOmega1()-lambda) >= config->getInitialIW() ?
+						config->setOmega1(config->getOmega1()-lambda) : config->setOmega1(config->getInitialIW());
 			}
 			else{
-				(config->getOmega1()+deltaOmega) >= config->getFinalIW() ?
-						config->setOmega1(config->getFinalIW()) : config->setOmega1(config->getOmega1()+deltaOmega);
+				(config->getOmega1()+lambda) >= config->getFinalIW() ?
+						config->setOmega1(config->getFinalIW()) : config->setOmega1(config->getOmega1()+lambda);
 			}
 			//cout << iteration << endl;
 			//cout << avVel << " -- " << idealVelocity << endl;
