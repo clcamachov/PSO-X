@@ -312,6 +312,7 @@ private:
 	bool useLogs;
 	bool verbose;
 	std::string outputPath;
+	bool indStrategies;
 
 	//Population
 	long int particles;
@@ -430,6 +431,7 @@ public:
 	int getParticlesToAdd();
 	void setParticlesToAdd(int new_pool_size);
 	int getParticleInitType();
+	bool useIndStrategies();
 
 	//Velocity
 	void setVelocityRule(int rule);

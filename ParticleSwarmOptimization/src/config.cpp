@@ -73,7 +73,11 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		}
 		else if (strcmp(argv[i], "--reinitPositions") == 0){
 			reinitializePosition = true;
-			//cout << "\n velocity clamping has been set to true \n";
+			//cout << "\n reinitializePosition has been set to true \n";
+		}
+		else if (strcmp(argv[i], "--indStrategies") == 0){
+			indStrategies = true;
+			//cout << "\n use indStrategies has been set to true \n";
 		}
 		else if (strcmp(argv[i], "--populationCS") == 0) {
 			populationCS = atoi(argv[i+1]);
@@ -339,6 +343,37 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	if (populationCS != POP_CONSTANT)
 		particles = initialPopSize;
 
+	//Check the bounds of the acceleration coefficients
+	//initialPhi1 finalPhi1 initialPhi2 finalPhi2
+	// > <
+	if (accelCoeffCS == AC_TIME_VARYING){
+		//Check order
+		if (initialPhi1 < finalPhi1)
+			swap(initialPhi1, finalPhi1);
+		if (initialPhi2 > finalPhi2)
+			swap(initialPhi2,finalPhi2);
+		//Check they are different, otherwise use default values
+		if (initialPhi1 == finalPhi1){
+			initialPhi1 = 2.5;
+			finalPhi1 = 0.5;
+		}
+		if (initialPhi2 == finalPhi2){
+			initialPhi2 = 0.5;
+			finalPhi2 = 2.5;
+		}
+	}
+	if (accelCoeffCS == AC_RANDOM){
+		//In this case initialPhi1 is the lower bound and finalPhi1 the upper bound
+		if (finalPhi1 < initialPhi1)
+			swap(initialPhi1, finalPhi1);
+		if (initialPhi1 == finalPhi1){
+			initialPhi1 = 0.5;
+			finalPhi1 = 2.5;
+		}
+		initialPhi2 = initialPhi1;
+		finalPhi2 = finalPhi1;
+	}
+
 	//The topology schedule should be maximum six times the swarm size, i.e. it goes from n to 6n
 	if (tSchedule > 10)
 		tSchedule = 10;
@@ -470,7 +505,7 @@ void Configuration::setDefaultParameters(){
 	rngSeed =  rand();						//seed for random numbers
 	maxFES = -1;							//max function evaluation
 	max_iterations = -1;					//max iterations
-
+	indStrategies = false;
 	/** Problem parameters **/
 	competitionID = CEC05;					//CEC05, CEC14, SOFT_COMPUTING, MIXTURE
 	problemID = 18;							//25, 19, 19 and 50, respectively
@@ -579,6 +614,11 @@ void Configuration::printParameters(){
 	switch(useReinitialization()){
 	case true:		cout	<< "  reinitilize_pos:   YES\n"; break;
 	case false:		cout	<< "  reinitilize_pos:   NO\n"; break;
+	}
+
+	switch(useIndStrategies()){
+	case true:		cout	<< "  useIndStrategies:  YES\n"; break;
+	case false:		cout	<< "  useIndStrategies:  NO\n"; break;
 	}
 	//<< "  populationCS      " << getModelOfInfluence() << "\n"
 	switch (getPopulationCS()){
@@ -967,6 +1007,9 @@ void Configuration::setOmega3(double new_omega3){
 }
 bool Configuration::isVelocityClamped(){
 	return useVelClamping;
+}
+bool Configuration::useIndStrategies(){
+	return indStrategies;
 }
 //Position
 bool Configuration::useReinitialization(){

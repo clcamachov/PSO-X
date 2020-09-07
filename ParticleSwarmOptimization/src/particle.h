@@ -103,13 +103,14 @@ public:
 	//Velocity and position computation
 	void computeSubtractionPerturbationRotation(Configuration* config, vector< vector<double> > &vect_PbestMinusPosition, int &numInformants,
 			bool pBestIntheInformants, double alpha_t, double l_value);
-	void getRectangularDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
-			vector< vector< double> > &vect_PbestMinusPosition, int modelOfInflu);
-	void getSphericalDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
-			vector< vector< double> > &vect_PbestMinusPosition, int modelOfInflu);
+	void getRectangularDNPP(Configuration* config, double vect_distribution[], int numInformants, bool pBestIntheInformants,
+			vector< vector< double> > &vect_PbestMinusPosition);
+	void getSphericalDNPP(Configuration* config, double vect_distribution[], int numInformants, bool pBestIntheInformants,
+			vector< vector< double> > &vect_PbestMinusPosition);
 	void getAdditiveStochasticDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
 			vector< vector< double> > &vect_PbestMinusPosition, bool randNeighbor, int operatorQ);
 
+	void computeAC(Configuration* config, double &c1, double &c2, int numInformants);
 	int getRandomNeighbor();
 	int getRandomInformantPosition(int numInformants, bool pBestIntheInformants);
 	int getPositionOfpBest(int numInformants, bool pBestIntheInformants);

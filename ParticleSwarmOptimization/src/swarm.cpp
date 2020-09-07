@@ -85,7 +85,6 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 	if (config->verboseMode())
 		cout << "\tvar::(default)::global_best.eval: " << global_best.eval << endl;
 
-
 	for (long int i=0; i<size; i++) {
 		Particle* aParticle = new Particle(problem, config, i, 0);
 		swarm.push_back(aParticle);
@@ -265,7 +264,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		//If using a self-adaptive strategy compute omega1, otherwise this function simply returns the value already computed
 		double omega1 = computeOmega1(config, iteration, i, false);
 		//When FI or RankedFI phi_2 has to be decomposed according the number of informants
-		decomposePhi2(config->getModelOfInfluence(), i, sizeInformants);
+		//decomposePhi2(config->getModelOfInfluence(), i, sizeInformants);
 
 		//Note that here computeOmega1 receives the number of the particle and the flag = false
 		swarm.at(i)->move(config, minBound, maxBound, iteration,
@@ -283,14 +282,15 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	//Update best_particle
 	for (unsigned int i=0;i<swarm.size();i++){
 		if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
-			//Update best_particle (a.k.a Gbest) of the Swarm (not to be confused with the gBest of a particle)
+			//Update best_particle of the Swarm (gBest) -- not to be confused with the gBest of a particle, which depends on the topology and MoI
 			Swarm::updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
 			best_particle = swarm.at(i);
 		}
 	}
 
-	//Reinitialize particle position and set v=0 if it is "too" similar to gBest
-	reinitializeParticlePosition(config);
+	if (config->useIndStrategies())
+		//Reinitialize particle position and set v=0 if it is "too" similar to gBest
+		reinitializeParticlePosition(config);
 
 	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval, iteration);
 	clearResizeSimpSwarm(config, iteration);
@@ -714,7 +714,6 @@ void Swarm::reinitializeParticlePosition(Configuration* config){
 					swarm.at(i)->reInitPosUniform(config);
 					if (config->verboseMode()) {
 						cout << "\t\tnotice::Particle [" << i << "] was reinitialized to a random position"; //<< endl; //remove
-						//cin.get();
 					}
 				}
 			}
@@ -764,7 +763,7 @@ void Swarm::computeAccelerationCoefficients(Configuration* config, long int iter
 	case AC_RANDOM:{
 		for (unsigned int i=0; i<swarm.size(); i++){
 			swarm.at(i)->setPhi1(problem->getRandomX(config->getInitialPhi1(),config->getFinalPhi1()));
-			swarm.at(i)->setPhi2(problem->getRandomX(config->getFinalPhi2(),config->getInitialPhi2()));
+			swarm.at(i)->setPhi2(problem->getRandomX(config->getInitialPhi2(),config->getFinalPhi2()));
 		}
 	} break;
 	case AC_EXTRAPOLATED:{
@@ -777,8 +776,10 @@ void Swarm::computeAccelerationCoefficients(Configuration* config, long int iter
 		}
 	} break;
 	case AC_TIME_VARYING:{
-		double varPhi1 = (config->getInitialPhi1()-config->getFinalPhi1()) * (double)(-iteration/config->getMaxIterations()) + config->getInitialPhi1();
-		double varPhi2 = (config->getInitialPhi2()-config->getFinalPhi2()) * (double)(-iteration/config->getMaxIterations()) + config->getInitialPhi2();
+		double varPhi1 = (config->getInitialPhi1()-config->getFinalPhi1()) *
+				(double)(iteration/config->getMaxIterations()) + config->getInitialPhi1();
+		double varPhi2 = (config->getInitialPhi2()-config->getFinalPhi2()) *
+				(double)(iteration/config->getMaxIterations()) + config->getInitialPhi2();
 		for (unsigned int i=0; i<swarm.size(); i++){
 			swarm.at(i)->setPhi1( varPhi1 );
 			swarm.at(i)->setPhi2( varPhi2 );
