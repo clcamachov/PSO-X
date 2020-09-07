@@ -721,6 +721,7 @@ void Particle::getRectangularDNPP(Configuration* config, double vect_distributio
 				}
 				Phi2Array[j] = varPhi2;//COMMENT
 			}
+
 			else{
 				if (j == numInformants-1) //pBest is at the end of the Array
 					vect_distribution[i] += (varPhi1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
