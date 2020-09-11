@@ -1191,7 +1191,7 @@ void Particle::computeRndMatrix(Configuration* config, double ** rndMatrix[], in
 		//cout << " angle:  " << angle << endl;
 		//2.- Randomly select two different planes to rotate
 		int plane1 = (int)floor(RNG::randVal(0.0,(double)size-1));
-		int plane2;
+		int plane2 = 0;
 		for (unsigned int i=0; i<size; i++) {
 			plane2 = (int)floor(RNG::randVal(0.0,(double)size-1));
 			if (plane2 == plane1)

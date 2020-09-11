@@ -695,7 +695,7 @@ void Swarm::reinitializeParticlePosition(Configuration* config){
 		for (unsigned int i=0;i<swarm.size();i++){
 			//Check that the particle is different to itself before reinitializing its position
 			if (swarm.at(i)->getID() != swarm.at(i)->getgBestID()){
-				double* gBestPos;
+				double* gBestPos = 0;
 				double* particlePos = swarm.at(i)->getCurrentPosition();
 				double similarity = 0; //distance between x and gBest
 				//Find gBest of particle by id
@@ -1201,7 +1201,7 @@ void Swarm::getParticleParentsIDs(int particleID, int *ParentsArray1D){
 		ParentsArray1D[i] = -2;
 
 	//Find particle index in the swarm by its ID
-	long int index;
+	long int index=0;
 	for(unsigned int i=0; i<swarm.size(); i++){
 		if (particleID == swarm.at(i)->getID()){
 			index = i;
@@ -1235,7 +1235,7 @@ int Swarm::getParticleNumParents(int particleID){
 	int partents_counter=0;
 
 	//Find particle index in the swarm by its ID
-	long int index;
+	long int index=0;
 	for(unsigned int i=0; i<swarm.size(); i++){
 		if (particleID == swarm.at(i)->getID()){
 			index = i;
