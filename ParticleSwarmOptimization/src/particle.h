@@ -83,7 +83,7 @@ public:
 	unsigned int getNeighborhoodSize();
 
 	double computeDistPbestGbest();
-	double computeDistance(double * x, double * p);
+	double EuclideanDistance(Configuration* config, double * x, double * p, int &countNan);
 
 	bool ispBestIntheInformants(int numInformants);
 
@@ -102,7 +102,7 @@ public:
 
 	//Velocity and position computation
 	void computeSubtractionPerturbationRotation(Configuration* config, vector< vector<double> > &vect_PbestMinusPosition, int &numInformants,
-			bool pBestIntheInformants, double alpha_t, double l_value);
+			bool pBestIntheInformants, double alpha_t, double l_value, long int iteration);
 	void getRectangularDNPP(Configuration* config, double vect_distribution[], int numInformants, bool pBestIntheInformants,
 			vector< vector< double> > &vect_PbestMinusPosition);
 	void getSphericalDNPP(Configuration* config, double vect_distribution[], int numInformants, bool pBestIntheInformants,
@@ -117,14 +117,14 @@ public:
 	void detectStagnation(Configuration* config, double minBound, double maxBound);
 
 	//Perturbation
-	void setPerturbationMagnitude(int pertubType, double * pos_x, double * pbest_x, double alpha_t, double l);
+	void setPerturbationMagnitude(Configuration* config, double * pos_x, double * pbest_x, double alpha_t, double l, long int iteration, long int max_iteration);
 	void setPerturbationMagnitude(int pertubType, double alpha_t);
 	double getPerturbationMagnitude(int pertubType, double alpha_t, double delta);
 	double applyPerturbation(int pertubType, double pos_xi);
 
 	//Random Matrix
-	void computeRndMatrix(double ** rndMatrix[], int RmatrixType, double angle);
-	void multiplyVectorByRndMatrix(vector<vector< double> > &vect_PbestMinusPosition, int informant, double ** rndMatrix[], int RmatrixType);
+	void computeRndMatrix(Configuration* config, double ** rndMatrix[], int RmatrixType, double angle);
+	void multiplyVectorByRndMatrix(Configuration* config, vector<vector< double> > &vect_PbestMinusPosition, int informant, double ** rndMatrix[], int RmatrixType);
 
 	//Frankenstein's members
 	int getID();

@@ -33,6 +33,9 @@ double omega_2 = 0;							//								IW_SELF_REGULATING - 11
 double idealVelocity;						//								IW_VELOCITY_BASED - 12
 double avVel;								//								IW_VELOCITY_BASED - 12
 vector<SimplifySwarm> simpSwarm;
+int	   countNan = 0;								//positive integer constant		IW_OSCILLATING - 9
+
+
 
 
 /* Variable for the topology and model of influence */
@@ -97,11 +100,11 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 			best_particle = swarm.at(i);
 		}
 	}
-
 	//	try{
 	//best_particle->getID();
 	if (best_particle != NULL){
 		if (config->verboseMode()) cout << "\tvar::best_particle.id: " << best_particle->getID() << endl;
+
 	}
 	else {
 		cerr << "The program could not determine an initial solution quality. " << endl;
@@ -109,7 +112,6 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 		cerr << "HINT 2: This error is typically produced when the o.f. cannot be correctly evaluated" << endl;
 		exit (-1);
 	}
-
 	if (config->verboseMode())
 		cout << "\tvar::best_particle.id: " << best_particle->getID() << endl;
 	//	}
@@ -146,6 +148,11 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 		cerr << "Wrong topology" << endl;
 		exit (-1);
 	}
+	//	//Update gBest/lBest of each particle
+	//	for (unsigned int i=0;i<swarm.size();i++){
+	//		//The id of the gBest particle depends on the topology and model of influence
+	//		swarm.at(i)->getBestOfNeibourhood();
+	//	}
 
 	//rankings
 	if (	config->getOmega1CS() == IW_RANKS_BASED ||
@@ -158,17 +165,18 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 
 double Swarm::computeAngleOfRRM(Configuration* config, long int iteration){
 	double angle = 0;
-	if (config->getRandomMatrix() == MATRIX_RRM_EXP_MAP || config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ONE
+
+	if (config->getRandomMatrix() == MATRIX_RRM_EXP_MAP
+			|| config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ONE
 			|| config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ALL){
 
-		switch (config->getAngleCS()) {
-		case ANGLE_CONSTANT: //use the same rotation angle
+		if (config->getAngleCS() == ANGLE_CONSTANT) //use the same rotation angle in every iteration
 			angle = config->getRotationAgle();
-			break;
-		case ANGLE_NORMAL: //map the angle from a Normal distribution with µ=0 and s.d. = angleSD
+
+		if (config->getAngleCS() ==  ANGLE_NORMAL) //map the angle from a Normal distribution with µ=0 and s.d. = angleSD
 			angle = RNG::randGauss(config->getAngleSD());
-			break;
-		case ANGLE_ADAPTIVE:{ //map the angle from a Normal distribution with µ=0 using an adaptive s.d.
+
+		if (config->getAngleCS() ==  ANGLE_ADAPTIVE){ //map the angle from a Normal distribution with µ=0 using an adaptive s.d.
 			double alpha = config->get_angle_par_alpha();
 			double beta = config->get_angle_par_beta();
 			//Since the strategy is based on success, we will use simpSwarm.
@@ -204,8 +212,6 @@ double Swarm::computeAngleOfRRM(Configuration* config, long int iteration){
 				angle = ((alpha * (((double)S_i/swarm.size())))/sqrt((double)config->getProblemDimension()))+beta;
 			}
 		}
-		break;
-		}
 	}
 
 	if (config->verboseMode())
@@ -218,10 +224,19 @@ double Swarm::computeAngleOfRRM(Configuration* config, long int iteration){
 
 /*Move the swarm to new solutions */
 void Swarm::moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound) {
-	//Update gBest of each particle
+
+	//Move particles
+	if (config->verboseMode())
+		cout << "iteration: " << iteration << endl; //remove
+
+	//Update gBest/lBest of each particle
 	for (unsigned int i=0;i<swarm.size();i++){
+		if (config->verboseMode())
+			cout << "\tParticle [" << i << "] -- lBest.at(t-1) [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
 		//The id of the gBest particle depends on the topology and model of influence
 		swarm.at(i)->getBestOfNeibourhood();
+		if (config->verboseMode())
+			cout << "lBest.at(t) [" << swarm.at(i)->getgBestID() << "] -- " << endl;
 	}
 
 	//For the cases in which the entire swarm is using omega1 with the same value
@@ -236,14 +251,10 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	//Compute angle of random rotation matrix
 	computeAngleOfRRM(config, iteration);
 
-	//Move particles
-	if (config->verboseMode())
-		cout << "iteration: " << iteration << endl; //remove
-
 	for (unsigned int i=0;i<swarm.size();i++){
 
 		if (config->verboseMode())
-			cout << "\tParticle [" << i << "] -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
+			cout << "\tParticle [" << i << "] -- "; // -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
 		int sizeInformants = getInformants(config, i, iteration); //Get the informants of i
 
 		if (config->verboseMode()) {
@@ -295,6 +306,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval, iteration);
 	clearResizeSimpSwarm(config, iteration);
 	//cout << "\n <<So far so good>>" << endl;
+
 }
 
 int Swarm::getInformants(Configuration* config, int particleID, long int iteration){
@@ -302,7 +314,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 		//Best of neighborhood
 		if (config->getModelOfInfluence() == MOI_BEST_OF_N){
 			if (config->getTopology() == TOP_HIERARCHICAL){
-				int Array_size = 0;		//variable to the the size of Informants
+				int Array_size = 0;		//variable to get the the size of Informants
 				int TMP_Array[lastLevelComplete];
 				getParticleParentsIDs(particleID, TMP_Array); //Get parents of the particle
 				//cout << "\n\t\t parent nodes: " ;
