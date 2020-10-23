@@ -335,6 +335,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 
 	if (initialPopSize > finalPopSize)
 		cerr << "\nError: Wrong initial (or) final population size..." << endl;
+
 	//Check that initialPopSize is at least of the size of the branching degree
 	if (topology == TOP_HIERARCHICAL && populationCS != POP_CONSTANT){
 		if (branching > (int)initialPopSize)
@@ -560,8 +561,8 @@ void Configuration::setDefaultParameters(){
 	perturbation1 = PERT1_NONE;				//distribution-based perturbation
 	perturbation2 = PERT2_NONE;				//additive perturbation
 	pert1_par_l_CS = PERT1_DIST_L_INDEPENDENT;
-	//scaling factor for PERT1_NORMAL_DISTANCE a1=0.91, a2=0.21, a3=0.51, a4=0.58
-	pert1_par_l = (0.91*0.51)/(pow(particles,0.21)*pow(problemDimension,0.58));
+	//scaling factor for PERT1_NORMAL_DISTANCE a1=0.911, a2=0.21, a3=0.51, a4=0.58
+	pert1_par_l = 0.911*0.51/(pow((particles/problemDimension),0.21)*pow(problemDimension,0.58));
 	pert1_2_par_success = 15;
 	pert1_2_par_failure = 5;
 

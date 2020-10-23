@@ -82,7 +82,8 @@ public:
 
 	//Perturbation
 	void updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration);
-	double computeAngleOfRRM(Configuration* config, long int iteration);
+	//double computeAngleOfRRM(Configuration* config, long int iteration);
+	int countImprovedSolutions(Configuration* config, long int iteration);
 
 	//Population size
 	void resizeSwarm(Problem* problem, Configuration* config, long int iteration);

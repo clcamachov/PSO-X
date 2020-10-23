@@ -163,62 +163,40 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 	init=true;
 }
 
-double Swarm::computeAngleOfRRM(Configuration* config, long int iteration){
-	double angle = 0;
-
-	if (config->getRandomMatrix() == MATRIX_RRM_EXP_MAP
-			|| config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ONE
-			|| config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ALL){
-
-		if (config->getAngleCS() == ANGLE_CONSTANT) //use the same rotation angle in every iteration
-			angle = config->getRotationAgle();
-
-		if (config->getAngleCS() ==  ANGLE_NORMAL) //map the angle from a Normal distribution with µ=0 and s.d. = angleSD
-			angle = RNG::randGauss(config->getAngleSD());
-
-		if (config->getAngleCS() ==  ANGLE_ADAPTIVE){ //map the angle from a Normal distribution with µ=0 using an adaptive s.d.
-			double alpha = config->get_angle_par_alpha();
-			double beta = config->get_angle_par_beta();
-			//Since the strategy is based on success, we will use simpSwarm.
-			if (iteration == 1) { //define simpSwarm if it does not exist
-				if (config->getOmega1CS() != IW_RANKS_BASED && config->getOmega1CS() != IW_SUCCESS_BASED &&
-						config->getOmega1CS() != IW_CONVERGE_BASED){
-					simpSwarm.clear();
-					simpSwarm.resize(swarm.size());
-					for (unsigned int i=0;i<swarm.size();i++){
-						simpSwarm.at(i).id = swarm.at(i)->getID();
-						simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-					}
-				}
-				angle = beta;
-			}
-			else {
-				int S_i = 0; //Number of solutions that improved after the last iteration
-				for (unsigned int i=0; i<swarm.size(); i++){
-					for (unsigned int j=0; j<simpSwarm.size(); j++){
-						if (swarm.at(i)->getID() == simpSwarm.at(j).id){
-							//evaluate if the solution improved
-							if (swarm.at(i)->getCurrentEvaluation() < simpSwarm.at(j).eval){
-								S_i++;
-								break;
-							}
-							else
-								break;
-						}
-					}
-				}
-				if (config->verboseMode())
-					cout << "\tvar::solutions_improved: " << S_i << endl;
-				angle = ((alpha * (((double)S_i/swarm.size())))/sqrt((double)config->getProblemDimension()))+beta;
+//This function returns an angle in radian
+int Swarm::countImprovedSolutions(Configuration* config, long int iteration){
+	//Create simpSwarm if it does not exist and return 0
+	if (iteration == 1) { //define simpSwarm if it does not exist
+		if (config->getOmega1CS() != IW_RANKS_BASED && config->getOmega1CS() != IW_SUCCESS_BASED &&
+				config->getOmega1CS() != IW_CONVERGE_BASED){
+			simpSwarm.clear();
+			simpSwarm.resize(swarm.size());
+			for (unsigned int i=0;i<swarm.size();i++){
+				simpSwarm.at(i).id = swarm.at(i)->getID();
+				simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
 			}
 		}
+		return 0;
 	}
-
-	if (config->verboseMode())
-		cout << "\tvar::rotation_angle: " << angle << endl;
-	config->setRotationAgle(angle);
-
-	return angle;
+	else {
+		int S_i = 0; //Number of solutions that improved after the last iteration
+		for (unsigned int i=0; i<swarm.size(); i++){
+			for (unsigned int j=0; j<simpSwarm.size(); j++){
+				if (swarm.at(i)->getID() == simpSwarm.at(j).id){
+					//evaluate if the solution improved
+					if (swarm.at(i)->getCurrentEvaluation() < simpSwarm.at(j).eval){
+						S_i++;
+						break;
+					}
+					else
+						break;
+				}
+			}
+		}
+		if (config->verboseMode())
+			cout << "\tnotice::" <<  S_i << " solutions improved in the last iteration" << endl;
+		return S_i;
+	}
 }
 
 
@@ -236,7 +214,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		//The id of the gBest particle depends on the topology and model of influence
 		swarm.at(i)->getBestOfNeibourhood();
 		if (config->verboseMode())
-			cout << "lBest.at(t) [" << swarm.at(i)->getgBestID() << "] -- " << endl;
+			cout << "lBest.at(t) [" << swarm.at(i)->getgBestID() << "]" << endl;
 	}
 
 	//For the cases in which the entire swarm is using omega1 with the same value
@@ -248,18 +226,18 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	//Compute the acceleration coefficients of the entire swarm
 	computeAccelerationCoefficients(config, iteration);
 
-	//Compute angle of random rotation matrix
-	computeAngleOfRRM(config, iteration);
+	//Compute the number of solutions that improved in the last iteration
+	int sol_improved = countImprovedSolutions(config, iteration);
 
+	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
 	for (unsigned int i=0;i<swarm.size();i++){
-
 		if (config->verboseMode())
 			cout << "\tParticle [" << i << "] -- "; // -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
 		int sizeInformants = getInformants(config, i, iteration); //Get the informants of i
 
 		if (config->verboseMode()) {
 			//print all neighbors
-			cout << "\tNeighbors ids:  [ ";
+			cout << "\t--  Neighbors ids:  [ ";
 			for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
 				cout << swarm.at(i)->neighbours[j]->getID() << " ";
 			}
@@ -269,13 +247,16 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 			for (int j=0;j<sizeInformants;j++){
 				cout << swarm.at(i)->InformantsPos[j] << " ";
 			}
-			cout << "]" << endl;
+			cout << "]";
+			cout << "\tInformants ids: [ ";
+			for (int j=0;j<sizeInformants;j++){
+				cout << swarm.at(i)->neighbours[swarm.at(i)->InformantsPos[j]]->getID() << " ";
+			}
+			cout << "]"<< endl;
 		}
 
 		//If using a self-adaptive strategy compute omega1, otherwise this function simply returns the value already computed
 		double omega1 = computeOmega1(config, iteration, i, false);
-		//When FI or RankedFI phi_2 has to be decomposed according the number of informants
-		//decomposePhi2(config->getModelOfInfluence(), i, sizeInformants);
 
 		//Note that here computeOmega1 receives the number of the particle and the flag = false
 		swarm.at(i)->move(config, minBound, maxBound, iteration,
@@ -286,7 +267,8 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 				lastLevelComplete,
 				alpha_t,
 				config->getPert1_par_l(),
-				delta);
+				delta,
+				sol_improved);
 	}
 	long double prev_Gbest_eval = global_best.eval; //best solution at iteration t-1
 
@@ -1731,7 +1713,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			//cout << inertia << endl;
 			//return inertia;
 		}
-		if (config->verboseMode()) cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
+		//if (config->verboseMode()) cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 	}
 	else {
 		//These are the strategies that need to compute a independent inertia value for each particle
@@ -1845,7 +1827,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				temp_Omega = config->getOmega1();
 				break;
 			}
-			if (config->verboseMode()) cout << "\tvar::Omega1: " << config->getOmega1() << " \n";
+			if (config->verboseMode()) cout << "\t\tvar::Omega1: " << config->getOmega1() << " \n";
 			return temp_Omega;
 		}
 		else{

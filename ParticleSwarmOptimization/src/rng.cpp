@@ -37,11 +37,15 @@ double RNG::randGauss(double sd){ //mean = 0
 }
 
 double RNG::randGaussWithMean(double sd, double mean){
-	return gsl_ran_gaussian( RNG::R, sd)+ mean;
+	return gsl_ran_gaussian( RNG::R, sd) + mean;
 }
 
 double RNG::randCauchy(double gamma){
-	return gsl_ran_cauchy(RNG::R, 2-gamma);
+	return gsl_ran_cauchy(RNG::R, gamma);
+}
+
+double RNG::randCauchyWithPeak(double gamma, double peak){
+	return gsl_ran_cauchy(RNG::R, 2-gamma) + peak;
 }
 
 unsigned int RNG::randBernoulli(double p) {

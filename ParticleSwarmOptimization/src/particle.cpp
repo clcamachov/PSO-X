@@ -287,7 +287,7 @@ bool Particle::ispBestIntheInformants(int numInformants){
 /* Generate a new solution by updating the particle's position */
 void Particle::move(Configuration* config, double minBound, double maxBound, long int iteration,
 		double omega1, double omega2, double omega3, int numInformants, int lastLevelComplete,
-		double alpha_t, double l, double delta){
+		double alpha_t, double l, double delta, int solImproved){
 
 	double vect_distribution[size];
 	double vect_perturbation[size];
@@ -297,7 +297,7 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	//to avoid including it twice.
 	if (!pBestIntheInformants)
 		numInformants = numInformants+1;
-	if (config->verboseMode()) cout << "\tvar::numInformants: " << numInformants << " ";
+	if (config->verboseMode()) cout << "\t\tvar::numInformants (including pbest): " << numInformants << " ";
 	vector<vector< double> > vect_PbestMinusPosition;
 	vect_PbestMinusPosition.resize(numInformants, vector<double>(size));
 
@@ -318,7 +318,8 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 				pBestIntheInformants,
 				alpha_t,
 				l,
-				iteration);
+				iteration,
+				solImproved);
 		getRectangularDNPP(
 				config,
 				vect_distribution,
@@ -335,7 +336,8 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 				pBestIntheInformants,
 				alpha_t,
 				l,
-				iteration);
+				iteration,
+				solImproved);
 		getSphericalDNPP(
 				config,
 				vect_distribution,
@@ -352,7 +354,8 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 				pBestIntheInformants,
 				alpha_t,
 				l,
-				iteration);
+				iteration,
+				solImproved);
 		getAdditiveStochasticDNPP(
 				vect_distribution,
 				numInformants,
@@ -448,21 +451,24 @@ void Particle::computeSubtractionPerturbationRotation(
 		bool pBestIntheInformants,
 		double alpha_t,
 		double l_value,
-		long int iteration) {
+		long int iteration,
+		int solImprov) {
 
 	double l[size]; //particle's Gbest
-	bool increase_numInformants = false;
+	double pb[size];
+	double pert_vrand[size];
+	//bool increase_numInformants = false;
 	int pertubType = config->getPerturbation1Type();
 
 	if (config->verboseMode()){
 		(pBestIntheInformants) ?
-				cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: TRUE"
-				<< " \n\tvar::DNPP: " << config->getDistributionNPP() << endl :
-				cout << "\n\tvar::this->id: " << this->id << "\n\tvar::pBestIntheInformants: FALSE"
-				<< " \n\tvar::DNPP: " << config->getDistributionNPP() << endl;
+				cout << "\n\t\tvar::pBestIntheInformants: TRUE"
+				<< " \n\t\tvar::DNPP: " << config->getDistributionNPP() << endl :
+				cout << "\n\t\tvar::pBestIntheInformants: FALSE"
+				<< " \n\t\tvar::DNPP: " << config->getDistributionNPP() << endl;
 	}
 
-	//1.- Check if the particle is pBest == gBest
+	//1.1- Check if the particle is pBest == gBest and create a perturbed l position
 	if (this->id == this->gBestID && pBestIntheInformants){
 		if (config->useIndStrategies()) {
 			if (config->verboseMode()) cout << "\t\tnotice::using reinitialization to model for particle "
@@ -475,204 +481,174 @@ void Particle::computeSubtractionPerturbationRotation(
 				l[i] = gbest.x[i];
 	}
 
+	//1.2- Check if the particle's current.x == pBest and create a perturbed pbest position
+	bool isStagnated=true;
+	for (int i=0; i<size; i++){
+		if (current.x[i] != pbest.x[i]){
+			isStagnated = false;
+			break;
+		}
+	}
+	if (isStagnated && config->useIndStrategies()) {
+		if (config->verboseMode()) cout << "\t\tnotice::applying perturbation to pbest of particle "
+				<< this->id << endl;
+		for (int i=0; i<size; i++)
+			//pb[i] = RNG::randGaussWithMean(0.01,pbest.x[i]);
+			pb[i] = pbest.x[i]+RNG::randVal(-1,1)*pbest.x[i];
+	}
+	else
+		for (int i=0; i<size; i++)
+			pb[i] = pbest.x[i];
+
+
 	//2.- Get the p^k-x^i of all Informants and then add pBest as the end of the Array
 	if (!pBestIntheInformants){
-		for (int j=0; j<numInformants-1; j++){
-
-			if (config->verboseMode()){
-				cout << "\tvec::current.x: [ ";
-				for(int i=0;i<size;i++){
-					cout << fixed << current.x[i] << " ";
-				}
-				cout << "]: " << endl;
-				cout << "\tvec::I_pbest.x: ";
-				for(int i=0;i<size;i++){
-					cout << fixed << neighbours[InformantsPos[j]]->pbest.x[i] << " ";
-				}
-				cout << "]: " << endl;
-			}
-
-			//Copy the informants in a temporary structure
-			setPerturbationMagnitude(config, current.x, neighbours[InformantsPos[j]]->pbest.x, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise
-			if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
-
-			for (int i=0; i<size; i++){
-				config->getDistributionNPP() != DIST_ADD_STOCH ?
-						vect_PbestMinusPosition.at(j).at(i) = applyPerturbation(pertubType, neighbours.at(InformantsPos[j])->pbest.x[i])-current.x[i] : //vector to be rotated
-						vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, neighbours.at(InformantsPos[j])->pbest.x[i])); //vector to be rotated
-
-				setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
-			}
-			if (config->verboseMode()){
-				cout << "\tvec::PMinPos: [ ";
-				for(int i=0;i<size;i++){
-					cout << fixed << vect_PbestMinusPosition.at(j).at(i) << " ";
-				}
-				cout << "]: " << endl;
-			}
-		}
 		if (config->verboseMode()){
-			cout << "\tvec::current.x: [ ";
+			cout << "\n\tvec::p[" << id << "].x:  [ ";
 			for(int i=0;i<size;i++){
 				cout << fixed << current.x[i] << " ";
 			}
-			cout << "]: " << endl;
-			cout << "\tvec::pbest.x: [ ";
+			cout << "]" << endl;
+			cout << "\tvec::p[" << id << "].pb: [ ";
 			for(int i=0;i<size;i++){
-				cout << fixed << pbest.x[i] << " ";
+				cout << fixed << pb[i] << " ";
 			}
-			cout << "]: " << endl;
+			cout << "]\n" << endl;
+		}
+		for (int j=0; j<numInformants-1; j++){
+			if (config->verboseMode()){
+				cout << "\tvec::inf.p[" << neighbours[InformantsPos[j]]->getID() << "].pb:    [ ";
+				for(int i=0;i<size;i++){
+					cout << fixed << neighbours[InformantsPos[j]]->pbest.x[i] << " ";
+				}
+				cout << "]" << endl;
+			}
+
+			//Copy the informants in a temporary structure
+			setPerturbationMagnitude(config, pert_vrand, current.x, neighbours[InformantsPos[j]]->pbest.x, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise
+			//if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
+
+			for (int i=0; i<size; i++){
+				config->getDistributionNPP() != DIST_ADD_STOCH ?
+						vect_PbestMinusPosition.at(j).at(i) = applyPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)-current.x[i] : //vector to be rotated
+						vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)); //vector to be rotated
+			}
+			if (config->verboseMode()){
+				config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::p[" << neighbours[InformantsPos[j]]->getID() << "].pb-p[" << id <<"].x: [ " :
+						cout << "\tvec::p[" << neighbours[InformantsPos[j]]->getID() << "].pb: [ ";
+				for(int i=0;i<size;i++){
+					cout << fixed << vect_PbestMinusPosition.at(j).at(i) << " ";
+				}
+				cout << "]\n" << endl;
+			}
 		}
 		//Add pBest at the end of the Array
-		setPerturbationMagnitude(config, current.x, pbest.x, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise
-		if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
+		setPerturbationMagnitude(config, pert_vrand, current.x, pb, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise
+		//if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
 
 		for (int i=0; i<size; i++){
 			config->getDistributionNPP() != DIST_ADD_STOCH ?
-					vect_PbestMinusPosition.at(numInformants-1).at(i) = (applyPerturbation(pertubType, pbest.x[i])-current.x[i]): //vector to be rotated
-					vect_PbestMinusPosition.at(numInformants-1).at(i) = (applyPerturbation(pertubType, pbest.x[i])); //vector to be rotated
-
-			setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
+					vect_PbestMinusPosition.at(numInformants-1).at(i) = (applyPerturbation(pertubType, pert_vrand, pb[i], i)-current.x[i]): //vector to be rotated
+					vect_PbestMinusPosition.at(numInformants-1).at(i) = (applyPerturbation(pertubType, pert_vrand, pb[i], i)); //vector to be rotated
 		}
 		if (config->verboseMode()){
-			cout << "\tvec::PMinPos: [ ";
+			config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::p[" << id << "].pb-p[" << id <<"].x: [ " :
+					cout << "\tvec::p[" << id << "].pb: [ ";
 			for(int i=0;i<size;i++){
 				cout << fixed << vect_PbestMinusPosition.at(numInformants-1).at(i) << " ";
 			}
-			cout << "]: " << endl;
+			cout << "]\n" << endl;
 		}
 	}
+	//2.- Get the p^k-x^i of all Informants
 	else {
-		//Note that in this case, when gBest = pBest, we would be using only one of these two informants. However, for a model of influence such as
-		//best-of-neighborhood, this will actually be limiting the number of informants to 1, which can't be little information to create the random
-		//vector in hypersphere. Therefore, we use l[], which is a position close to gBest created using the method propose in Incremental PSO.
+		if (config->verboseMode()){
+			cout << "\n\tvec::p[" << id << "].x:  [ ";
+			for(int i=0;i<size;i++){
+				cout << fixed << current.x[i] << " ";
+			}
+			cout << "]" << endl;
+			cout << "\tvec::p[" << id << "].pb: [ ";
+			for(int i=0;i<size;i++){
+				cout << fixed << pb[i] << " ";
+			}
+			cout << "]\n" << endl;
+		}
 		for (int j=0; j<numInformants; j++){ //Copy the informants in a temporary structure
+			//When gbest = pbest, we will use l[] instead gbest, where l[] can either be gbest of the particle or a position close to gbest
+			//created using the method propose in Incremental PSO. In the former case, the resulting vector will contain only zeros.
 			if ((neighbours.at(InformantsPos[j])->getID() == this->gBestID) && (this->id == this->gBestID)){
 
 				if (config->verboseMode()){
-					cout << "\tvec::current.x: [ ";
-					for(int i=0;i<size;i++){
-						cout << fixed << current.x[i] << " ";
-					}
-					cout << "]: " << endl;
-					cout << "\tvec::l.x: [ ";
+					cout << "\tvec::inf.l[" << gBestID << "].pb:    [ ";
 					for(int i=0;i<size;i++){
 						cout << fixed << l[i] << " ";
 					}
-					cout << "]: " << endl;
+					cout << "]" << endl;
 				}
-				//use gBest in the form of l[]
-				setPerturbationMagnitude(config, current.x, l, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise perturbation magnitude
-				if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
+				//use pbest in the form of l[]
+				setPerturbationMagnitude(config, pert_vrand, current.x, l, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise perturbation magnitude
+				//if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
 
 				for (int i=0; i<size; i++){
 					config->getDistributionNPP() != DIST_ADD_STOCH ?
-							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, l[i])-current.x[i]):  //vector to be rotated
-							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, l[i]));  //vector to be rotated
-
-					setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise perturbation magnitude
+							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, pert_vrand, l[i], i)-current.x[i]):  //vector to be rotated
+							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, pert_vrand, l[i], i));  //vector to be rotated
 				}
 				if (config->verboseMode()){
-					cout << "\tvec::PMinPos: [ ";
+					config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::l[" << gBestID << "].pb-p[" << id <<"].x: [ " :
+							cout << "\tvec::l[" << id << "].pb: [ ";
 					for(int i=0;i<size;i++){
 						cout << fixed << vect_PbestMinusPosition.at(j).at(i) << " ";
 					}
-					cout << "]: " << endl;
-				}
-				//create one extra space in vect_PbestMinusPosition for l[]
-				vect_PbestMinusPosition.resize(numInformants+1, vector<double>(size));
-				increase_numInformants = true;
-
-				if (config->verboseMode()){
-					cout << "\tvec::current.x: [ ";
-					for(int i=0;i<size;i++){
-						cout << fixed << current.x[i] << " ";
-					}
-					cout << "]: " << endl;
-					cout << "\tvec::pbest.x: [ ";
-					for(int i=0;i<size;i++){
-						cout << fixed << pbest.x[i] << " ";
-					}
-					cout << "]: " << endl;
-				}
-
-				//add pBest at the end of the array
-				setPerturbationMagnitude(config, current.x, pbest.x, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise perturbation magnitude
-				if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
-
-				for (int i=0; i<size; i++){
-					config->getDistributionNPP() != DIST_ADD_STOCH ?
-							vect_PbestMinusPosition.at(numInformants).at(i) = (applyPerturbation(pertubType, pbest.x[i])-current.x[i]):  //vector to be rotated
-							vect_PbestMinusPosition.at(numInformants).at(i) = (applyPerturbation(pertubType, pbest.x[i]));  //vector to be rotated
-
-					setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise perturbation magnitude
-				}
-				if (config->verboseMode()){
-					cout << "\tvec::PMinPos: [ ";
-					for(int i=0;i<size;i++){
-						cout << fixed << vect_PbestMinusPosition.at(numInformants).at(i) << " ";
-					}
-					cout << "]: " << endl;
+					cout << "]\n" << endl;
 				}
 			}
 			else{
 				if (config->verboseMode()){
-					cout << "\tvec::current.x: [ ";
-					for(int i=0;i<size;i++){
-						cout << fixed << current.x[i] << " ";
-					}
-					cout << "]: " << endl;
-					cout << "\tvec::I_pbest.x: [ ";
+					cout << "\tvec::inf.p[" << neighbours[InformantsPos[j]]->getID() << "].pb:    [ ";
 					for(int i=0;i<size;i++){
 						cout << fixed << neighbours[InformantsPos[j]]->pbest.x[i] << " ";
 					}
-					cout << "]: " << endl;
+					cout << "]" << endl;
 				}
-				setPerturbationMagnitude(config, current.x, neighbours[InformantsPos[j]]->pbest.x, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise
-				if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
+
+				setPerturbationMagnitude(config, pert_vrand, current.x, neighbours[InformantsPos[j]]->pbest.x, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise
+				//if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
 
 				for (int i=0; i<size; i++){
 					config->getDistributionNPP() != DIST_ADD_STOCH ?
-							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, neighbours.at(InformantsPos[j])->pbest.x[i])-current.x[i]):  //vector to be rotated
-							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, neighbours.at(InformantsPos[j])->pbest.x[i]));  //vector to be rotated
-
-					setPerturbationMagnitude(pertubType, alpha_t); //dimensional-wise
+							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)-current.x[i]):  //vector to be rotated
+							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i));  //vector to be rotated
 				}
 				if (config->verboseMode()){
-					cout << "\tvec::PMinPos: [ ";
+					config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::p[" << neighbours.at(InformantsPos[j])->getID() << "].pb-p[" << id <<"].x: [ " :
+							cout << "\tvec::p[" << neighbours.at(InformantsPos[j])->getID() << "].pb: [ ";
 					for(int i=0;i<size;i++){
 						cout << fixed << vect_PbestMinusPosition.at(j).at(i) << " ";
 					}
-					cout << "]: " << endl;
+					cout << "]\n" << endl;
 				}
 			}
 		}
-		if (increase_numInformants)
-			numInformants++;
 	}
 	if (config->getDistributionNPP() != DIST_ADD_STOCH) {
 		//3.- Rotate each vector
 		/*** ROTATION MATRICES	--->	has to be computed per Informant ***/
-		int numMatrices =(int)floor(((size*(size-1))/2)); //number of rotation matrices to rotate in all possible planes
-		double ** rndMatrix[numMatrices];
+		//int numMatrices =(int)floor(((size*(size-1))/2)); //number of rotation matrices to rotate in all possible planes
+		double ** rndMatrix = new double*[size];
 		//Allocate memory to be used
-		for(int i=0; i<numMatrices; i++){
-			rndMatrix[i] = new double*[size];
-			for (unsigned int j=0; j<size; j++)
-				rndMatrix[i][j] = new double[size];
+		for(int i=0; i<size; i++){
+			rndMatrix[i] = new double[size];
 		}
-		computeRndMatrix(config, rndMatrix, config->getRandomMatrix(), config->getRotationAgle()); //we need to compute this for each informant
 		for (int j=0; j<numInformants; j++){ //the rest of informants
-			multiplyVectorByRndMatrix(config, vect_PbestMinusPosition, j, rndMatrix, config->getRandomMatrix());
-			if (j<numInformants) //avoid computing a new random matrix in the last iteration
-				computeRndMatrix(config, rndMatrix, config->getRandomMatrix(), config->getRotationAgle()); //compute a random matrix for the next informant
+			computeRndMatrix(config, rndMatrix, config->getRandomMatrix(), getAnAngle(config, solImprov, iteration)); //we need to compute this for each informant
+			multiplyVectorByRndMatrix(config, vect_PbestMinusPosition, j, rndMatrix, config->getRandomMatrix(), solImprov, iteration);
 		}
 		//Deallocate memory used
-		for(int i=0; i<numMatrices; i++){
-			for (unsigned int j=0; j<size; j++)
-				delete [] rndMatrix[i][j];
+		for(int i=0; i<size; i++)
 			delete [] rndMatrix[i];
-		}
+		delete [] rndMatrix;
 	}
 }
 
@@ -766,7 +742,6 @@ void Particle::getAdditiveStochasticDNPP(double vect_distribution[], int numInfo
 	case Q_CAUCHY_NORMAL:
 		for (int i=0; i<size; i++){
 			if (problem->getRandom01() <= 0.5){
-				//to see how the gamma parameter is set see RNG::randCauchy()
 				vect_distribution[i] = vect_PbestMinusPosition[p1Index][i] - current.x[i]; //we need to discount current.x[i] because it will be added later in the GVU formula
 				vect_distribution[i] += (RNG::randCauchy(1.0) * abs(vect_PbestMinusPosition[p1Index][i] -
 						vect_PbestMinusPosition[p2Index][i]));
@@ -894,7 +869,8 @@ void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[
 						varPhi2 = phi_2*((double)(numInformants-1)/numInformants);
 					if (j>0 && config->getModelOfInfluence() == MOI_RANKED_FI)
 						varPhi2 = varPhi2/2.0;
-					R += current.x[i] + (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
+					//R += current.x[i] + (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
+					R += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
 				}
 			}
 			else {
@@ -905,11 +881,12 @@ void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[
 						varPhi2 = phi_2*((double)(numInformants-1)/numInformants);
 					if (j>0 && config->getModelOfInfluence() == MOI_RANKED_FI)
 						varPhi2 = varPhi2/2.0;
-					R += current.x[i] + (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
+					//R += current.x[i] + (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
+					R += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
 				}
 			}
 		}
-		G[i] = (current.x[i] + R )/(numInformants + 1);
+		G[i] = (current.x[i] + current.x[i] + R )/(3);
 		radius += pow(abs(current.x[i] - G[i]), 2);
 		V1[i] = G[i] - current.x[i];
 		varPhi2 = phi_2;
@@ -939,7 +916,7 @@ void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[
 	}
 }
 
-double Particle::applyPerturbation(int pertubType, double pos_xi){
+double Particle::applyPerturbation(int pertubType, double pert_vrand[], double pos_xi, int index){
 	double returnVal = 0.0;
 	switch(pertubType){
 	case PERT1_NONE:
@@ -947,31 +924,29 @@ double Particle::applyPerturbation(int pertubType, double pos_xi){
 		break;
 	case PERT1_NORMAL_DISTANCE:
 		//Gaussian distribution
-		returnVal = RNG::randGaussWithMean(perturbMagnitud1, pos_xi);
+		returnVal = pos_xi + (RNG::randGauss(1.0)*pert_vrand[index]);
+
 		break;
 	case PERT1_NORMAL_SUCCESS:
 		//Gaussian distribution
-		returnVal = RNG::randGaussWithMean(perturbMagnitud1, pos_xi);
+		returnVal = pos_xi + (RNG::randGauss(1.0)*pert_vrand[index]);
 		break;
 	case PERT1_CAUCHY_DISTANCE:
 		//Cauchy distribution
-		returnVal = RNG::randCauchy(perturbMagnitud1);
+		returnVal = pos_xi + (RNG::randCauchy(1.0)*pert_vrand[index]);
 		break;
 	case PERT1_CAUCHY_SUCCESS:
 		//Cauchy distribution
-		returnVal = RNG::randCauchy(perturbMagnitud1);
+		returnVal = pos_xi + (RNG::randCauchy(1.0)*pert_vrand[index]);
 		break;
 	}
 	//cout << "\tvar::returnVal: " << returnVal << endl;
 	return returnVal;
 }
 
-//Perturbation 1 -- informants-wise
-void Particle::setPerturbationMagnitude(Configuration* config, double * pos_x, double * pbest_x, double alpha_t,
+//Perturbation 1
+void Particle::setPerturbationMagnitude(Configuration* config, double pert_vrand[], double * pos_x, double * pbest_x, double alpha_t,
 		double l, long int iteration, long int max_iteration){
-	if (config->getPerturbation1Type() == PERT1_NONE){
-		perturbMagnitud1 = 1.0;
-	}
 	if (config->getPerturbation1Type() == PERT1_CAUCHY_DISTANCE || config->getPerturbation1Type() == PERT1_NORMAL_DISTANCE){
 		double distance = 0.0;
 		double returnVal = 0;
@@ -980,37 +955,22 @@ void Particle::setPerturbationMagnitude(Configuration* config, double * pos_x, d
 		}
 
 		distance = sqrt(returnVal);
-		if (distance == 0){
-			if (perturbMagnitud1 == 0){
-				if (iteration < max_iteration/2) //first half
-					perturbMagnitud1 = 0.15;
-				else
-					perturbMagnitud1 = 0.01;
+		if (distance == 0)
+			for(int i=0;i<size;i++){
+				pert_vrand[i] = l;
 			}
-		}
 		else
-			perturbMagnitud1 = l*distance;
-		//cout << "\tvar::distance: " << distance << endl;
-
+			for(int i=0;i<size;i++){
+				pert_vrand[i] = l*distance;
+			}
 	}
 	if ( config->getPerturbation1Type() == PERT1_CAUCHY_SUCCESS || config->getPerturbation1Type() == PERT1_NORMAL_SUCCESS){
-		perturbMagnitud1 = alpha_t*(1-(2*problem->getRandomX(0,1)));
+		for(int i=0;i<size;i++){
+			pert_vrand[i] = alpha_t*(1-(2*problem->getRandomX(0,1)));
+		}
 	}
 }
-//Perturbation 1 -- dimension-wise
-void Particle::setPerturbationMagnitude(int pertubType, double alpha_t){
 
-	if (pertubType == PERT1_NONE){
-		perturbMagnitud1 = 1.0;
-	}
-	if (pertubType == PERT1_NORMAL_DISTANCE || pertubType == PERT1_CAUCHY_DISTANCE){
-		//Maybe we can add something here to better control the perturbation magnitude
-	}
-	if (pertubType == PERT1_NORMAL_SUCCESS || pertubType == PERT1_CAUCHY_SUCCESS){
-		perturbMagnitud1 = alpha_t*(1-(2*problem->getRandomX(0,1)));
-	}
-
-}
 //Perturbation 2 (additive perturbation) -- particle-wise
 double Particle::getPerturbationMagnitude(int pertubType, double alpha_t, double delta){
 	double returnVal=0.0;
@@ -1037,7 +997,7 @@ double Particle::getPerturbationMagnitude(int pertubType, double alpha_t, double
 
 //Multiply by the random matrix
 void Particle::multiplyVectorByRndMatrix(Configuration* config, vector<vector< double> > &vect_PbestMinusPosition, int informant,
-		double ** rndMatrix[], int RmatrixType){
+		double ** rndMatrix, int RmatrixType, int solImprov, long int iteration){
 	double resultvxM[size]; //working space variable
 
 	if (RmatrixType == MATRIX_NONE){
@@ -1046,76 +1006,59 @@ void Particle::multiplyVectorByRndMatrix(Configuration* config, vector<vector< d
 	}
 	if (RmatrixType == MATRIX_DIAGONAL || RmatrixType == MATRIX_LINEAR){
 		for (int i=0; i<size; i++)
-			resultvxM[i] = vect_PbestMinusPosition[informant][i] * rndMatrix[0][i][i];
+			resultvxM[i] = vect_PbestMinusPosition[informant][i] * rndMatrix[i][i];
 	}
 	if (RmatrixType == MATRIX_RRM_EXP_MAP){
 		for (int i = 0 ; i < size ; i ++) {
 			resultvxM[i] = 0.0;
 			for (int j = 0 ; j < size ; j ++) {
-				resultvxM[i] += (vect_PbestMinusPosition[informant][j] * rndMatrix[0][i][j]);
+				resultvxM[i] += (vect_PbestMinusPosition[informant][j] * rndMatrix[i][j]);
 			}
 		}
 	}
 	if (RmatrixType == MATRIX_RRM_EUCLIDEAN_ONE){
-		bool exitFlag = false;
-		//copy the vector
+		//Copy the vector
 		for (int i=0; i<size; i++){
 			resultvxM[i] = vect_PbestMinusPosition[informant][i];
 		}
-		//find the rotation planes
-		for (int i=0; i<size; i++){
-			for (int j=0; j<size; j++){
-				if (i != j && rndMatrix[0][i][j] != 0){
-					resultvxM[i] = (vect_PbestMinusPosition[informant][i] * rndMatrix[0][i][i]) + (vect_PbestMinusPosition[informant][j] * rndMatrix[0][j][i]);
-					resultvxM[j] = (vect_PbestMinusPosition[informant][j] * rndMatrix[0][j][j]) + (vect_PbestMinusPosition[informant][i] * rndMatrix[0][i][j]);
-					exitFlag = true;
-					break;
-				}
-			}
-			if (exitFlag == false)
+		//Get two random planes
+		int plane1 = (int)floor(RNG::randVal(0.0,(double)size-1));
+		int plane2 = 0;
+		for (unsigned int i=0; i<size; i++) {
+			plane2 = (int)floor(RNG::randVal(0.0,(double)size-1));
+			if (plane2 == plane1)
 				continue;
 			else
 				break;
 		}
+		//compute the angle using any of the available strategies
+		double angle = getAnAngle(config, solImprov, iteration);
+		//Rotate the plane1 of the vector in direction of plane2
+		//v_i = v_i * cos(α_k) - v_j * sin(α_k)
+		resultvxM[plane1] = (vect_PbestMinusPosition[informant][plane1] * cos(angle)) - (vect_PbestMinusPosition[informant][plane2] * sin(angle));
+		//v_j = v_j * cos(α_k) + v_i * sin(α_k)
+		resultvxM[plane2] = (vect_PbestMinusPosition[informant][plane1] * sin(angle)) + (vect_PbestMinusPosition[informant][plane2] * cos(angle));
 	}
 	if (RmatrixType == MATRIX_RRM_EUCLIDEAN_ALL){
-		bool exitFlag = false;
-		//copy the vector
+		//Copy the vector
 		for (int i=0; i<size; i++){
 			resultvxM[i] = vect_PbestMinusPosition[informant][i];
 		}
-		int matNum=0;
-		//The next two loops are to traverse the (size*size-1)/2 random matrices
-		//needed to rotate the vector in all possible planes
-		for (int g=0; g<size-1; g++) {
-			for (int h=g+1; h<size; h++) {
-				//find the planes to rotate
-				for (int i=0; i<size; i++){
-					for (int j=0; j<size; j++){
-						if (i != j && rndMatrix[matNum][i][j] != 0){
-							resultvxM[i] = (vect_PbestMinusPosition[informant][i] * rndMatrix[matNum][i][i]) +
-									(vect_PbestMinusPosition[informant][j] * rndMatrix[matNum][j][i]);
-							resultvxM[j] = (vect_PbestMinusPosition[informant][j] * rndMatrix[matNum][j][j]) +
-									(vect_PbestMinusPosition[informant][i] * rndMatrix[matNum][i][j]);
-							exitFlag = true;
-							break;
-						}
-					}
-					if (exitFlag == false)
-						continue;
-					else
-						break;
-				}
-				matNum++;
+		//Rotate the vector in all possible combination of planes
+		for (int i=size-2; i>=0; i--){
+			for (int j=size-1; j>i+1; j--){
+
+				//compute the angle using any of the available strategies
+				double angle = getAnAngle(config, solImprov, iteration);
+
+				//v_i = v_i * cos(α_k) - v_j * sin(α_k)
+				resultvxM[i] = (vect_PbestMinusPosition[informant][i] * cos(angle)) - (vect_PbestMinusPosition[informant][j] * sin(angle));
+				//v_j = v_j * cos(α_k) + v_i * sin(α_k)
+				resultvxM[j] = (vect_PbestMinusPosition[informant][i] * sin(angle)) + (vect_PbestMinusPosition[informant][j] * cos(angle));
 			}
 		}
 	}
-	//	if (config->verboseMode()){
-	//		cout << "\tmtx::rndMatrix: [";
-	//		for (int i=0; i<size; i++)
-	//			cout << fixed << rndMatrix[0][i][i] << " ";
-	//		cout << "]" << endl;
-	//	}
+
 	if (config->verboseMode()){
 		cout << "\tvec::vect_received: [ " ;
 		for (int i=0; i<size; i++){
@@ -1135,127 +1078,93 @@ void Particle::multiplyVectorByRndMatrix(Configuration* config, vector<vector< d
 }
 
 //Compute the random matrix to employ
-void Particle::computeRndMatrix(Configuration* config, double ** rndMatrix[], int RmatrixType, double angle){
-	switch(RmatrixType){
-	case MATRIX_DIAGONAL: //Random diagonal matrix
-		for (int i=0; i<size; i++)
-			rndMatrix[0][i][i] = problem->getRandom01();
+void Particle::computeRndMatrix(Configuration* config, double ** rndMatrix, int RmatrixType, double angle){
 
-		if (config->verboseMode()){
-			cout << "\tmtx::rndMatrix: [";
-			for (int i=0; i<size; i++)
-				cout << fixed << rndMatrix[0][i][i] << " ";
-			cout << "]" << endl;
-		}
-		break;
-	case MATRIX_LINEAR:{ //Random linear matrix
+	if (RmatrixType == MATRIX_DIAGONAL){//Random diagonal matrix
+		for (int i=0; i<size; i++)
+			rndMatrix[i][i] = problem->getRandom01();
+	}
+	if (RmatrixType == MATRIX_LINEAR){ //Random linear matrix
 		double rndVal = problem->getRandom01();
 		for (int i=0; i<size; i++)
-			rndMatrix[0][i][i] = rndVal;
-
-		if (config->verboseMode()){
-			cout << "\tmtx::rndMatrix: [";
-			for (int i=0; i<size; i++)
-				cout << fixed << rndMatrix[0][i][i] << " ";
-			cout << "]" << endl;
-		}
+			rndMatrix[i][i] = rndVal;
 	}
-	break;
-	case MATRIX_RRM_EXP_MAP:{ //Random rotation matrix using exponential method
+	if (RmatrixType == MATRIX_RRM_EXP_MAP){ //Random rotation matrix using exponential method
 		//1.- Generate a random matrix
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++)
-				rndMatrix[0][i][j] = problem->getRandomX(-0.5,0.5);
+				rndMatrix[i][j] = problem->getRandomX(-0.5,0.5);
 		}
 		//2.- Generate the transpose of the rndMatrix
 		double trans_rndMatrix[size][size];
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++)
-				trans_rndMatrix[j][i]=rndMatrix[0][i][j];
+				trans_rndMatrix[j][i]=rndMatrix[i][j];
 		}
 		//3.- Determine the rotation angle
-		double expMapAngle = (angle*PI)/180; //rotation between 0 and 10 degrees
+		double expMapAngle = angle; //rotation between 0 and 10 degrees
 		//4.- Subtract trans_rndMatrix to rndMatrix, multiply by the angle and add the identity matrix
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++){
-				rndMatrix[0][i][j]=(rndMatrix[0][i][j]-trans_rndMatrix[i][j])*expMapAngle;
+				rndMatrix[i][j]=(rndMatrix[i][j]-trans_rndMatrix[i][j])*expMapAngle;
 				if (i==j)
-					rndMatrix[0][i][j]+=1.0; //Add the Identity matrix
+					rndMatrix[i][j]+=1.0; //Add the Identity matrix
 			}
 		}
 	}
-	break;
-	case MATRIX_RRM_EUCLIDEAN_ONE:{ //Random rotation matrix using Euclidean rotation (ONLY ONE PLANE)
-		//1.- Get the rotation angle
-		//double angle = (problem->getRandomX(0.001,7)*PI)/180; //rotation between 0 and 10 degrees
-		//cout << " angle:  " << angle << endl;
-		//2.- Randomly select two different planes to rotate
-		int plane1 = (int)floor(RNG::randVal(0.0,(double)size-1));
-		int plane2 = 0;
-		for (unsigned int i=0; i<size; i++) {
-			plane2 = (int)floor(RNG::randVal(0.0,(double)size-1));
-			if (plane2 == plane1)
-				continue;
-			else
-				break;
-		}
-		//3.- Generate the Euclidean RRM
-		for (int i=0; i<size; i++){
-			for (int j=0; j<size; j++){
-				if (i == j){
-					if (i == plane1 || i == plane2)
-						rndMatrix[0][i][j] = cos(angle);
-					else
-						rndMatrix[0][i][j] = 1;
-				}
-				else {
-					if (i == plane1 && j == plane2)
-						rndMatrix[0][i][j] = -sin(angle);
-					else if (i==plane2 && j==plane1)
-						rndMatrix[0][i][j] = sin(angle);
-					else
-						rndMatrix[0][i][j] = 0;
-				}
-			}
-		}
-	}
-	break;
-	case MATRIX_RRM_EUCLIDEAN_ALL:{ //Random rotation matrix using Euclidean rotation (ALL PLANES)
-		int matNum=0; //we need a hypercube for each vector (this method is really demanding)
-		//The maximum number of RRM is (size*size-1)/2
-		for (int g=0; g<size-1; g++) {
-			for (int h=g+1; h<size; h++) {
-				//Generate the Euclidean RRM
-				for (int i=0; i<size; i++){
-					for (int j=0; j<size; j++){
-						if (i == j){
-							if (i == g || i == h)
-								rndMatrix[matNum][i][j] = cos(angle);
-							else
-								rndMatrix[matNum][i][j] = 1;
-						}
-						else {
-							if (i == g && j == h)
-								rndMatrix[matNum][i][j] = -sin(angle);
-							else if (i==h && j==g)
-								rndMatrix[matNum][i][j] = sin(angle);
-							else
-								rndMatrix[matNum][i][j] = 0;
-						}
-					}
-				}
-				matNum++;
-			}
-		}
-	}
-	break;
-	case MATRIX_NONE:{
+	if (RmatrixType == MATRIX_RRM_EUCLIDEAN_ONE){ //Random rotation matrix using Euclidean rotation (ONLY ONE PLANE)
+		//No need to generate a matrix, the multiplication of the vector by the rotation matrix is done directly in multiplyVectorByRndMatrix()
 		for (int i=0; i<size; i++)
-			rndMatrix[0][i][i] = 1.0;
+			rndMatrix[i][i] = 1.0;
 	}
-	break;
+	if (RmatrixType == MATRIX_RRM_EUCLIDEAN_ALL){ //Random rotation matrix using Euclidean rotation (ALL PLANES)
+		//No need to generate a matrix, the multiplication of the vector by the rotation matrix is done directly in multiplyVectorByRndMatrix()
+		for (int i=0; i<size; i++)
+			rndMatrix[i][i] = 1.0;
 	}
+	if (RmatrixType == MATRIX_NONE){
+		for (int i=0; i<size; i++)
+			rndMatrix[i][i] = 1.0;
+	}
+
+	if (config->verboseMode()){
+		cout << "\tmtx::rndMatrix: [";
+		for (int i=0; i<size; i++)
+			cout << fixed << rndMatrix[i][i] << " ";
+		cout << "]" << endl;
+	}
+
 }
+
+//This function returns an angle in radian
+double Particle::getAnAngle(Configuration* config, int solImprov, long int iteration){
+	double angle = 0;
+
+	if (config->getAngleCS() == ANGLE_CONSTANT) //use the same rotation angle in every iteration
+		angle = config->getRotationAgle()*PI/180;
+
+	if (config->getAngleCS() ==  ANGLE_NORMAL) //map the angle from a Normal distribution with µ=0 and s.d. = angleSD
+		angle = RNG::randGauss(config->getAngleSD())*PI/180;
+
+	if (config->getAngleCS() ==  ANGLE_ADAPTIVE){ //map the angle from a Normal distribution with µ=0 using an adaptive s.d.
+		double alpha = config->get_angle_par_alpha();
+		double beta = config->get_angle_par_beta();
+		//Since the strategy is based on success, we will use simpSwarm.
+		if (iteration == 1) { //define simpSwarm if it does not exist
+			angle =  RNG::randGauss(beta)*PI/180;
+		}
+		else {
+			double std_dev = ((alpha * ((double)solImprov/config->getSwarmSize()))/sqrt((double)config->getProblemDimension()))+beta;
+			angle =  RNG::randGauss(std_dev)*PI/180;
+		}
+	}
+
+	if (config->verboseMode())
+		cout << "\tvar::rotation_angle: " << angle << endl;
+
+	return angle;
+}
+
 
 void Particle::evaluateSolution() {
 	//cout << "Evaluation: ";
