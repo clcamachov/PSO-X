@@ -34,8 +34,6 @@ protected:
 	int ranking;
 	int parent;
 	int stereotype;
-	double perturbMagnitud1;
-	double perturbMagnitud2;
 	int gBestID;
 
 	/*Solution variables*/
@@ -117,10 +115,9 @@ public:
 	void detectStagnation(Configuration* config, double minBound, double maxBound);
 
 	//Perturbation
-	void setPerturbationMagnitude(Configuration* config, double pert_vrand[], double * pos_x, double * pbest_x, double alpha_t, double l, long int iteration, long int max_iteration);
-	void setPerturbationMagnitude(int pertubType, double alpha_t);
-	double getPerturbationMagnitude(int pertubType, double alpha_t, double delta);
-	double applyPerturbation(int pertubType, double pert_vrand[], double pos_xi, int index);
+	void setPerturbation1Magnitude(Configuration* config, double pert_vrand[], double * pos_x, double * pbest_x);
+	double applyInformedPerturbation(int pertubType, double pert_vrand[], double pos_xi, int index);
+	void getRandomAdditivePerturbation(Configuration* config, double vect_perturbation[]);
 
 	//Random Matrix
 	void computeRndMatrix(Configuration* config, double ** rndMatrix, int RmatrixType, double angle);

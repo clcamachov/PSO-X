@@ -33,10 +33,6 @@ double omega_2 = 0;							//								IW_SELF_REGULATING - 11
 double idealVelocity;						//								IW_VELOCITY_BASED - 12
 double avVel;								//								IW_VELOCITY_BASED - 12
 vector<SimplifySwarm> simpSwarm;
-int	   countNan = 0;								//positive integer constant		IW_OSCILLATING - 9
-
-
-
 
 /* Variable for the topology and model of influence */
 vector<vector< int > > hierarchy;
@@ -45,7 +41,7 @@ int lastLevelComplete = 0;					//global variable for the hierarchy
 bool modInfRanked = false;					//flag to indicate that the rankedSwarm structure was used and delete it
 
 /* Variable for the perturbation strategies */
-int success = 15, failure = 5;				//success and failure thresholds for the additive rectangular perturbation
+//int success = 15, failure = 5;				//success and failure thresholds for the additive rectangular perturbation
 int sc = 0, fc = 0;							//success and failure counters
 double alpha_t = 1.0;						//side length of the rectangle for the success-rate perturbation
 double delta = 1.0;							//side length of the rectangle for the uniform random perturbation
@@ -266,7 +262,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 				sizeInformants,
 				lastLevelComplete,
 				alpha_t,
-				config->getPert1_par_l(),
+				config->getMag1_parm_l(),
 				delta,
 				sol_improved);
 	}
@@ -783,36 +779,78 @@ void Swarm::computeAccelerationCoefficients(Configuration* config, long int iter
 }
 
 void Swarm::updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration){
-	if(		config->getPerturbation1Type() == PERT1_NORMAL_SUCCESS ||
-			config->getPerturbation1Type() == PERT1_CAUCHY_SUCCESS ||
-			config->getPerturbation2Type() == PERT2_ADD_RECT ){
-		if (previousGbest_eval != currentGbest_eval){ //success
-			sc++;
-			fc=0;
-			//if (sc > success){
-			if (sc > config->get_pert1_2_par_success()){
-				alpha_t = alpha_t * 2.0;
-				//cout << "\n DOUBLE alpha_t for success" << alpha_t << endl;
-			}
+
+	if (config->getMagnitude1CS() == MAGNITUDE_SUCCESS){
+		//Success
+		if (previousGbest_eval != currentGbest_eval){
+			config->set_mag1_sc(config->get_mag1_sc()+1); //increase success
+			config->set_mag1_fc(0); //set failures to 0
 		}
-		else{ //failure
-			fc++;
-			sc=0;
-			//if (fc > failure){
-			if (fc > config->get_pert1_2_par_failure()){
-				alpha_t = alpha_t * 0.5;
-				//cout << "\n HALF alpha_t update for failure: " << alpha_t << endl;
-			}
+		//Failure
+		else{
+			config->set_mag1_fc(config->get_mag1_fc()+1); //increase failures
+			config->set_mag1_sc(0); //set successes to 0
 		}
-		//if alpha_t becomes too small, we reinitialize it to 0.15, if we are in the first half of the
-		//iterations, or to 0.001 if we are in the second half of the iterations.
-		if (alpha_t < ALPHA_T_PRECISION){
-			if (iteration < config->getMaxIterations()/2) //first half
-				alpha_t = 0.15;
-			else
-				alpha_t = 0.001;
+
+		//Update magnitude
+		if (config->get_mag1_sc() > config->getMag1_parm_success()){
+			config->setMagnitude1(config->getMagnitude1() * 2.0);
+		}
+		if (config->get_mag1_fc() > config->getMag1_parm_failure()){
+			config->setMagnitude1(config->getMagnitude1() * 0.5);
 		}
 	}
+
+
+	if (config->getMagnitude2CS() == MAGNITUDE_SUCCESS){
+		//Success
+		if (previousGbest_eval != currentGbest_eval){
+			config->set_mag2_sc(config->get_mag2_sc()+1); //increase success
+			config->set_mag2_fc(0); //set failures to 0
+		}
+		//Failure
+		else{
+			config->set_mag2_fc(config->get_mag2_fc()+1); //increase failures
+			config->set_mag2_sc(0); //set successes to 0
+		}
+
+		//Update value of alpha
+		//Increase magnitude
+		if (config->get_mag2_sc() > config->getMag2_parm_success()){
+			if (config->getPerturbation2CS() == PERT2_RECTANGULAR)
+				config->setPert2_alpha( config->getPert2_alpha() * 2.0);
+			if (config->getPerturbation2CS() == PERT2_NOISY)
+				config->setPert2_delta( config->getPert2_delta() * 2.0);
+		}
+		//Decrease magnitude
+		if (config->get_mag2_fc() > config->getMag2_parm_failure()){
+			if (config->getPerturbation2CS() == PERT2_RECTANGULAR)
+				config->setPert2_alpha( config->getPert2_alpha() * 0.5);
+			if (config->getPerturbation2CS() == PERT2_NOISY)
+				config->setPert2_delta( config->getPert2_delta() * 0.5);
+		}
+		//Check if the PM became too small
+		if (config->getPert2_alpha() < ALPHA_T_PRECISION){
+			if (iteration < config->getMaxIterations()/2) //first half
+				config->setPert2_alpha(0.15);
+			else
+				config->setPert2_alpha( 0.001);
+		}
+		if (config->getPert2_delta() < ALPHA_T_PRECISION){
+			if (iteration < config->getMaxIterations()/2) //first half
+				config->setPert2_delta(0.15);
+			else
+				config->setPert2_delta(0.001);
+
+		}
+	}
+
+	if (config->getMagnitude2CS() == MAGNITUDE_CONSTANT){
+		config->setPert2_alpha(config->getMagnitude2());
+		config->setPert2_delta(config->getMagnitude2());
+
+	}
+
 }
 
 /* Topologies */

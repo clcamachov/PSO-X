@@ -257,23 +257,22 @@
 #define DIST_ADD_STOCH 					2
 
 #define PERT1_NONE						0
-#define PERT1_NORMAL_DISTANCE			1
-#define PERT1_NORMAL_SUCCESS			2
-#define PERT1_CAUCHY_DISTANCE			3
-#define PERT1_CAUCHY_SUCCESS			4
-#define PERT1_UNIFORM					5
-
-#define MAGNITUDE_CONSTANT				0
-#define MAGNITUDE_EUC_DISTANCE			1
-#define MAGNITUDE_QLT_DISTANCE			2
-#define MAGNITUDE_SUCCESS				3
-
-#define PERT1_DIST_L_INDEPENDENT		0
-#define PERT1_DIST_L_USER_SUPPLIED		1
+#define PERT1_GAUSSIAN					1
+#define PERT1_CAUCHY					2
+#define PERT1_UNIFORM					3
 
 #define PERT2_NONE						0
-#define PERT2_ADD_RECT					1
-#define PERT2_ADD_NOISY					2
+#define PERT2_RECTANGULAR				1
+#define PERT2_NOISY						2
+
+#define MAGNITUDE_NONE					0
+#define MAGNITUDE_CONSTANT				1
+#define MAGNITUDE_EUC_DISTANCE			2
+#define MAGNITUDE_OBJ_F_DISTANCE		3
+#define MAGNITUDE_SUCCESS				4
+
+#define MAG_PARAM_L_INDEPENDENT			0
+#define MAG_PARAM_L_USER_SUPPLIED		1
 
 #define Q_STANDARD						0
 #define Q_GAUSSIAN						1
@@ -358,10 +357,10 @@ private:
 	short omega3CS;
 	double omega3;
 	//Additional values for inertia control parameter omega1CS (only adaptive)
-	double iw_par_eta;				//from 0.1 to 1 in IW_SELF_REGULATING - 11
+	double iw_par_eta;			//from 0.1 to 1 in IW_SELF_REGULATING - 11
 	double iw_par_lambda;		//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
-	double iw_par_alpha_2;			//from 0 to  1 in IW_CONVERGE_BASED - 16
-	double iw_par_beta_2;			//from 0 to  1 in IW_CONVERGE_BASED - 16
+	double iw_par_alpha_2;		//from 0 to  1 in IW_CONVERGE_BASED - 16
+	double iw_par_beta_2;		//from 0 to  1 in IW_CONVERGE_BASED - 16
 
 	//Velocity
 	bool useVelClamping;
@@ -370,12 +369,31 @@ private:
 	bool reinitializePosition;
 
 	//Perturbation
-	short perturbation1; //distribution-based
-	short perturbation2; //additive
-	short pert1_par_l_CS;
-	double pert1_par_l; //scaling factor for PERT1_NORMAL_DISTANCE
-	int pert1_2_par_success; 		//success threshold of the additive rectangular perturbation
-	int pert1_2_par_failure; 		//failure threshold of the additive rectangular perturbation
+	short perturbation1CS; 	//informed
+	short perturbation2CS; 	//random (additive)
+	double pert2_alpha_t;	//side length of the rectangle for the random (additive) rectangular perturbation
+	double pert2_delta;		//side length of the rectangle for the random (additive) noisy perturbation
+	//Magnitude1
+	short magnitude1CS;
+	double magnitude1;
+	short mag1_parm_l_CS;
+	double mag1_parm_l; 		//scaling factor
+	double mag1_parm_m; 		//scaling factor
+	int mag1_parm_success; 		//success threshold
+	int mag1_parm_failure; 		//failure threshold
+	//Magnitude2
+	short magnitude2CS;
+	double magnitude2;
+	short mag2_parm_l_CS;
+	double mag2_parm_l; 		//scaling factor
+	double mag2_parm_m; 		//scaling factor
+	int mag2_parm_success; 		//success threshold
+	int mag2_parm_failure; 		//failure threshold
+	//Magnitude 1 and 2 global variables
+	int mag1_sc;			//success counter
+	int mag1_fc;			//failure counter
+	int mag2_sc;			//success counter
+	int mag2_fc;			//failure counter
 
 	//Random matrix
 	short randomMatrix;
@@ -486,12 +504,43 @@ public:
 	short getModelOfInfluence();
 
 	//Perturbation
-	short getPerturbation1Type();
-	short getPerturbation2Type();
-	short getPert1_par_l_CS();
-	double getPert1_par_l();
-	void setPert1_par_l(double l_val);
+	short getPerturbation1CS();
+	short getPerturbation2CS();
+	double getPert2_delta();
+	void setPert2_delta(double delta);
+	double getPert2_alpha();
+	void setPert2_alpha(double alpha_t);
 
+	//Getters parameters magnitude1
+	short getMagnitude1CS();
+	double getMagnitude1();
+	void setMagnitude1(double mag_1);
+	short getMagnitude1_parm_l_CS();
+	double getMag1_parm_l();
+	double getMag1_parm_m();
+	int getMag1_parm_success();
+	int getMag1_parm_failure();
+	//Getters parameters magnitude2
+	short getMagnitude2CS();
+	double getMagnitude2();
+	short getMagnitude2_parm_l_CS();
+	double getMag2_parm_l();
+	double getMag2_parm_m();
+	int getMag2_parm_success();
+	int getMag2_parm_failure();
+
+	//Setters/Getters variables magnitude1
+	void set_mag1_sc(int sc);
+	void set_mag1_fc(int fc);
+	int get_mag1_sc();
+	int get_mag1_fc();
+	//Setters/Getters variables magnitude2
+	void set_mag2_sc(int sc);
+	void set_mag2_fc(int fc);
+	int get_mag2_sc();
+	int get_mag2_fc();
+
+	//Random matrices
 	short getRandomMatrix();
 	short getAngleCS();
 	double getRotationAgle();
@@ -500,9 +549,6 @@ public:
 	void setAngleSD(double angle_sd);
 	double get_angle_par_alpha();
 	double get_angle_par_beta();
-
-	int get_pert1_2_par_success();
-	int get_pert1_2_par_failure();
 
 	//Distribution
 	short getDistributionNPP();

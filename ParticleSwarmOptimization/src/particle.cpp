@@ -34,8 +34,6 @@ Particle::Particle(){
 	ranking = 0;
 	parent =0;
 	stereotype = 0;
-	perturbMagnitud1 = 0;
-	perturbMagnitud2 = 0;
 	gBestID = -1;
 }
 
@@ -48,8 +46,6 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier, lon
 	ranking = 0;
 	parent = 0;
 	stereotype = 0;
-	perturbMagnitud1 = 0;
-	perturbMagnitud2 = 0;
 	gBestID = -1;
 
 	hasVelocitybounds = config->useVelocityClamping();
@@ -83,8 +79,6 @@ Particle::Particle (const Particle &p){
 	ranking = p.ranking;
 	parent = p.parent;
 	stereotype = p.stereotype;
-	perturbMagnitud1 = p.perturbMagnitud1;
-	perturbMagnitud2 = p.perturbMagnitud2;
 	gBestID = p.gBestID;
 
 	hasVelocitybounds = p.hasVelocitybounds;
@@ -126,8 +120,6 @@ Particle& Particle::operator= (const Particle& p){
 		ranking = p.ranking;
 		parent = p.parent;
 		stereotype = p.stereotype;
-		perturbMagnitud1 = p.perturbMagnitud1;
-		perturbMagnitud2 = p.perturbMagnitud2;
 		gBestID = p.gBestID;
 
 		hasVelocitybounds = p.hasVelocitybounds;
@@ -160,7 +152,6 @@ Particle& Particle::operator= (const Particle& p){
 	}
 	return *this;
 }
-
 
 /* destructor */
 Particle::~Particle(){
@@ -304,8 +295,7 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	/*** PERTURBATION 1 (distribution-based)	--->	It has to be computed per Informant and/or per Dimension depending on the strategy
 	 *** 						this component is applied directly in the DNNP members of DNPP  ***/
 	/*** PERTURBATION 2	(additive)	--->	It has to be computed per dimension, but only once per particle  ***/
-	for (int i=0;i<size;i++)
-		vect_perturbation[i] = getPerturbationMagnitude(config->getPerturbation2Type(), alpha_t, delta); //Only additive perturbation
+	getRandomAdditivePerturbation(config, vect_perturbation); //Random additive perturbation
 
 
 	/*** DISTRIBUTION VECTOR (DNNPs)***/
@@ -458,7 +448,7 @@ void Particle::computeSubtractionPerturbationRotation(
 	double pb[size];
 	double pert_vrand[size];
 	//bool increase_numInformants = false;
-	int pertubType = config->getPerturbation1Type();
+	int pertubType = config->getPerturbation1CS();
 
 	if (config->verboseMode()){
 		(pBestIntheInformants) ?
@@ -525,13 +515,12 @@ void Particle::computeSubtractionPerturbationRotation(
 			}
 
 			//Copy the informants in a temporary structure
-			setPerturbationMagnitude(config, pert_vrand, current.x, neighbours[InformantsPos[j]]->pbest.x, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise
-			//if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
+			setPerturbation1Magnitude(config, pert_vrand, current.x, neighbours[InformantsPos[j]]->pbest.x); //informant-wise
 
 			for (int i=0; i<size; i++){
 				config->getDistributionNPP() != DIST_ADD_STOCH ?
-						vect_PbestMinusPosition.at(j).at(i) = applyPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)-current.x[i] : //vector to be rotated
-						vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)); //vector to be rotated
+						vect_PbestMinusPosition.at(j).at(i) = applyInformedPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)-current.x[i] : //vector to be rotated
+						vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)); //vector to be rotated
 			}
 			if (config->verboseMode()){
 				config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::p[" << neighbours[InformantsPos[j]]->getID() << "].pb-p[" << id <<"].x: [ " :
@@ -543,13 +532,12 @@ void Particle::computeSubtractionPerturbationRotation(
 			}
 		}
 		//Add pBest at the end of the Array
-		setPerturbationMagnitude(config, pert_vrand, current.x, pb, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise
-		//if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
+		setPerturbation1Magnitude(config, pert_vrand, current.x, pb); //informant-wise
 
 		for (int i=0; i<size; i++){
 			config->getDistributionNPP() != DIST_ADD_STOCH ?
-					vect_PbestMinusPosition.at(numInformants-1).at(i) = (applyPerturbation(pertubType, pert_vrand, pb[i], i)-current.x[i]): //vector to be rotated
-					vect_PbestMinusPosition.at(numInformants-1).at(i) = (applyPerturbation(pertubType, pert_vrand, pb[i], i)); //vector to be rotated
+					vect_PbestMinusPosition.at(numInformants-1).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, pb[i], i)-current.x[i]): //vector to be rotated
+					vect_PbestMinusPosition.at(numInformants-1).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, pb[i], i)); //vector to be rotated
 		}
 		if (config->verboseMode()){
 			config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::p[" << id << "].pb-p[" << id <<"].x: [ " :
@@ -587,13 +575,12 @@ void Particle::computeSubtractionPerturbationRotation(
 					cout << "]" << endl;
 				}
 				//use pbest in the form of l[]
-				setPerturbationMagnitude(config, pert_vrand, current.x, l, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise perturbation magnitude
-				//if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
+				setPerturbation1Magnitude(config, pert_vrand, current.x, l); //informant-wise perturbation magnitude
 
 				for (int i=0; i<size; i++){
 					config->getDistributionNPP() != DIST_ADD_STOCH ?
-							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, pert_vrand, l[i], i)-current.x[i]):  //vector to be rotated
-							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, pert_vrand, l[i], i));  //vector to be rotated
+							vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, l[i], i)-current.x[i]):  //vector to be rotated
+							vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, l[i], i));  //vector to be rotated
 				}
 				if (config->verboseMode()){
 					config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::l[" << gBestID << "].pb-p[" << id <<"].x: [ " :
@@ -613,13 +600,12 @@ void Particle::computeSubtractionPerturbationRotation(
 					cout << "]" << endl;
 				}
 
-				setPerturbationMagnitude(config, pert_vrand, current.x, neighbours[InformantsPos[j]]->pbest.x, alpha_t, l_value, iteration, config->getMaxIterations()); //informant-wise
-				//if (config->verboseMode()) cout << "\tvar::perturbMagnitud1: " << perturbMagnitud1 << endl;
+				setPerturbation1Magnitude(config, pert_vrand, current.x, neighbours[InformantsPos[j]]->pbest.x); //informant-wise
 
 				for (int i=0; i<size; i++){
 					config->getDistributionNPP() != DIST_ADD_STOCH ?
-							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)-current.x[i]):  //vector to be rotated
-							vect_PbestMinusPosition.at(j).at(i) = (applyPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i));  //vector to be rotated
+							vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)-current.x[i]):  //vector to be rotated
+							vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i));  //vector to be rotated
 				}
 				if (config->verboseMode()){
 					config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::p[" << neighbours.at(InformantsPos[j])->getID() << "].pb-p[" << id <<"].x: [ " :
@@ -916,83 +902,115 @@ void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[
 	}
 }
 
-double Particle::applyPerturbation(int pertubType, double pert_vrand[], double pos_xi, int index){
+double Particle::applyInformedPerturbation(int pertubType, double pert_vrand[], double pos_xi, int index){
 	double returnVal = 0.0;
 	switch(pertubType){
 	case PERT1_NONE:
 		returnVal = pos_xi;
 		break;
-	case PERT1_NORMAL_DISTANCE:
-		//Gaussian distribution
-		returnVal = pos_xi + (RNG::randGauss(1.0)*pert_vrand[index]);
-
-		break;
-	case PERT1_NORMAL_SUCCESS:
+	case PERT1_GAUSSIAN:
 		//Gaussian distribution
 		returnVal = pos_xi + (RNG::randGauss(1.0)*pert_vrand[index]);
 		break;
-	case PERT1_CAUCHY_DISTANCE:
+	case PERT1_CAUCHY:
 		//Cauchy distribution
 		returnVal = pos_xi + (RNG::randCauchy(1.0)*pert_vrand[index]);
 		break;
-	case PERT1_CAUCHY_SUCCESS:
+	case PERT1_UNIFORM:
 		//Cauchy distribution
-		returnVal = pos_xi + (RNG::randCauchy(1.0)*pert_vrand[index]);
+		returnVal = pos_xi + (RNG::randVal(0.0,1.0)*pert_vrand[index]*pos_xi);
 		break;
 	}
-	//cout << "\tvar::returnVal: " << returnVal << endl;
 	return returnVal;
 }
 
 //Perturbation 1
-void Particle::setPerturbationMagnitude(Configuration* config, double pert_vrand[], double * pos_x, double * pbest_x, double alpha_t,
-		double l, long int iteration, long int max_iteration){
-	if (config->getPerturbation1Type() == PERT1_CAUCHY_DISTANCE || config->getPerturbation1Type() == PERT1_NORMAL_DISTANCE){
+void Particle::setPerturbation1Magnitude(Configuration* config, double pert_vrand[], double * pos_x, double * pbest_x){
+	if (config->getMagnitude1CS() == MAGNITUDE_EUC_DISTANCE){
 		double distance = 0.0;
-		double returnVal = 0;
 		for(int i=0;i<size;i++){
-			returnVal += pow((pos_x[i] - pbest_x[i]),2);
+			distance += pow((pos_x[i] - pbest_x[i]),2);
 		}
 
-		distance = sqrt(returnVal);
+		distance = sqrt(distance);
 		if (distance == 0)
 			for(int i=0;i<size;i++){
-				pert_vrand[i] = l;
+				pert_vrand[i] = config->getMag1_parm_l();
 			}
 		else
 			for(int i=0;i<size;i++){
-				pert_vrand[i] = l*distance;
+				pert_vrand[i] = config->getMag1_parm_l()*distance;
 			}
 	}
-	if ( config->getPerturbation1Type() == PERT1_CAUCHY_SUCCESS || config->getPerturbation1Type() == PERT1_NORMAL_SUCCESS){
+	if (config->getMagnitude1CS() == MAGNITUDE_OBJ_F_DISTANCE){
+		double ob_distance;
+		//Compute the distance in terms of the objective function
+		if (this->id == this->gBestID)
+			ob_distance = RNG::randVal(0.0,1.0);
+		else
+			ob_distance = (current.eval-gbest.eval)/current.eval;
+
 		for(int i=0;i<size;i++){
-			pert_vrand[i] = alpha_t*(1-(2*problem->getRandomX(0,1)));
+			pert_vrand[i] = exp(-config->getMag1_parm_m()*ob_distance);
+		}
+	}
+	if (config->getMagnitude1CS() == MAGNITUDE_SUCCESS || config->getMagnitude1CS() == MAGNITUDE_CONSTANT){
+		for(int i=0;i<size;i++){
+			pert_vrand[i] = config->getMagnitude1();
 		}
 	}
 }
 
 //Perturbation 2 (additive perturbation) -- particle-wise
-double Particle::getPerturbationMagnitude(int pertubType, double alpha_t, double delta){
-	double returnVal=0.0;
-	switch(pertubType){
-	case PERT2_NONE: //Do not apply perturbation
-		returnVal = 0.0;
-		perturbMagnitud2 = returnVal;
-		break;
-	case PERT2_ADD_RECT : //Additional rectangular
-		returnVal = alpha_t*(1-(2*problem->getRandomX(0,1)));
-		perturbMagnitud2 = returnVal;
-		break;
-	case PERT2_ADD_NOISY: //Additional noisy
-		returnVal = problem->getRandomX(-delta/2,delta/2);
-		perturbMagnitud2 = returnVal;
-		break;
-	default:
-		returnVal = 0.0;
-		perturbMagnitud2 = returnVal;
-		break;
+void Particle::getRandomAdditivePerturbation(Configuration* config, double vect_perturbation[]){
+	double vector_PM;
+
+	//1.0 - Set the perturbation magnitude
+	if (config->getMagnitude2CS() == MAGNITUDE_EUC_DISTANCE){
+		double distance = 0.0;
+		for(int i=0;i<size;i++){
+			distance += pow((current.x[i] - neighbours.at(gBestID)->pbest.x[i]),2);
+		}
+
+		distance = sqrt(distance);
+
+		if (distance == 0)
+			vector_PM = config->getMag2_parm_l();
+		else
+			vector_PM = config->getMag2_parm_l()*distance;
 	}
-	return returnVal;
+	if (config->getMagnitude2CS() == MAGNITUDE_OBJ_F_DISTANCE){
+		double ob_distance;
+		//Compute the distance in terms of the objective function
+		if (this->id == this->gBestID)
+			ob_distance = RNG::randVal(0.0,1.0);
+		else
+			ob_distance = (current.eval-gbest.eval)/current.eval;
+
+		vector_PM = exp(-config->getMag2_parm_m()*ob_distance);
+	}
+	if (config->getMagnitude2CS() == MAGNITUDE_SUCCESS)
+		vector_PM = config->getPert2_alpha();
+
+	if (config->getMagnitude2CS() == MAGNITUDE_CONSTANT)
+		vector_PM = config->getPert2_delta();
+
+	//2.0 Compute the random vector
+	if(config->getPerturbation2CS() == PERT2_RECTANGULAR){ //Additional rectangular
+		for (int i=0; i<size; i++){
+			vect_perturbation[i] = vector_PM*(1-(2*RNG::randVal(0,1)));
+		}
+	}
+	else if(config->getPerturbation2CS() == PERT2_NOISY){ //Additional noisy
+		for (int i=0; i<size; i++){
+			vect_perturbation[i] = RNG::randVal(-vector_PM/2,vector_PM/2);
+		}
+	}
+	else {
+		for (int i=0; i<size; i++){
+			vect_perturbation[i] = 0.0;
+		}
+	}
 }
 
 //Multiply by the random matrix
@@ -1009,7 +1027,7 @@ void Particle::multiplyVectorByRndMatrix(Configuration* config, vector<vector< d
 			resultvxM[i] = vect_PbestMinusPosition[informant][i] * rndMatrix[i][i];
 	}
 	if (RmatrixType == MATRIX_RRM_EXP_MAP){
-		for (int i = 0 ; i < size ; i ++) {
+		for (int i=0; i<size; i++){
 			resultvxM[i] = 0.0;
 			for (int j = 0 ; j < size ; j ++) {
 				resultvxM[i] += (vect_PbestMinusPosition[informant][j] * rndMatrix[i][j]);

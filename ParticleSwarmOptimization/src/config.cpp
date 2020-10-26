@@ -207,30 +207,78 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			i++;
 			//cout << "\n final inertia value has been received \n";
 		} else if (strcmp(argv[i], "--perturbation1") == 0) {
-			perturbation1 = atoi(argv[i+1]);
+			perturbation1CS = atoi(argv[i+1]);
 			i++;
-			//cout << "\n perturbation strategy has been received \n";
-		} else if (strcmp(argv[i], "--pert1_par_l_CS") == 0) {
-			pert1_par_l_CS = atoi(argv[i+1]);
-			i++;
-			//cout << "\n perturbation strategy has been received \n";
-		} else if (strcmp(argv[i], "--pert1_par_l") == 0) {
-			pert1_par_l = atof(argv[i+1]);
-			i++;
-			//cout << "\n final inertia value has been received \n";
-		} else if (strcmp(argv[i], "--pert1_par_success") == 0) {
-			pert1_2_par_success = atoi(argv[i+1]);
-			i++;
-			//cout << "\n perturbation strategy has been received \n";
-		} else if (strcmp(argv[i], "--pert1_par_failure") == 0) {
-			pert1_2_par_failure = atoi(argv[i+1]);
-			i++;
-			//cout << "\n perturbation strategy has been received \n";
+			//cout << "\n perturbation value has been received \n";
 		} else if (strcmp(argv[i], "--perturbation2") == 0) {
-			perturbation2 = atoi(argv[i+1]);
+			perturbation2CS = atoi(argv[i+1]);
 			i++;
-			//cout << "\n perturbation strategy has been received \n";
-		}  else if (strcmp(argv[i], "--randomMatrix") == 0) {
+			//cout << "\n perturbation value has been received \n";
+		} else if (strcmp(argv[i], "--pert2_delta") == 0) {
+			pert2_delta = atof(argv[i+1]);
+			i++;
+			//cout << "\n perturbation parameter been received \n";
+		} else if (strcmp(argv[i], "--pert2_alpha_t") == 0) {
+			pert2_alpha_t = atof(argv[i+1]);
+			i++;
+			//cout << "\n perturbation parameter has been received \n";
+		} else if (strcmp(argv[i], "--magnitude1CS") == 0) {
+			magnitude1CS = atoi(argv[i+1]);
+			i++;
+			//cout << "\n magnitude1 strategy has been received \n";
+		} else if (strcmp(argv[i], "--magnitude2CS") == 0) {
+			magnitude2CS = atoi(argv[i+1]);
+			i++;
+			//cout << "\n magnitude2 strategy has been received \n";
+		} else if (strcmp(argv[i], "--magnitude1") == 0) {
+			magnitude1 = atof(argv[i+1]);
+			i++;
+			//cout << "\n magnitude1 value has been received \n";
+		} else if (strcmp(argv[i], "--mag1_parm_l_CS") == 0) {
+			mag1_parm_l_CS = atoi(argv[i+1]);
+			i++;
+			//cout << "\n magnitude1 parameter has been received \n";
+		} else if (strcmp(argv[i], "--mag1_par_l") == 0) {
+			mag1_parm_l = atof(argv[i+1]);
+			i++;
+			//cout << "\n magnitude1 parameter has been received \n";
+		} else if (strcmp(argv[i], "--mag1_par_m") == 0) {
+			mag1_parm_m = atof(argv[i+1]);
+			i++;
+			//cout << "\n magnitude1 parameter has been received \n";
+		} else if (strcmp(argv[i], "--mag1_parm_success") == 0) {
+			mag1_parm_success = atoi(argv[i+1]);
+			i++;
+			//cout << "\n magnitude1 parameter has been received \n";
+		} else if (strcmp(argv[i], "--mag1_parm_failure") == 0) {
+			mag1_parm_failure = atoi(argv[i+1]);
+			i++;
+			//cout << "\n magnitude1 parameter has been received \n";
+		} else if (strcmp(argv[i], "--magnitude2") == 0) {
+			magnitude2 = atof(argv[i+1]);
+			i++;
+			//cout << "\n magnitude2 value has been received \n";
+		} else if (strcmp(argv[i], "--mag2_parm_l_CS") == 0) {
+			mag2_parm_l_CS = atoi(argv[i+1]);
+			i++;
+			//cout << "\n magnitude2 parameter has been received \n";
+		} else if (strcmp(argv[i], "--mag2_par_l") == 0) {
+			mag2_parm_l = atof(argv[i+1]);
+			i++;
+			//cout << "\n magnitude2 parameter has been received \n";
+		} else if (strcmp(argv[i], "--mag2_par_m") == 0) {
+			mag2_parm_m = atof(argv[i+1]);
+			i++;
+			//cout << "\n magnitude2 parameter has been received \n";
+		} else if (strcmp(argv[i], "--mag2_parm_success") == 0) {
+			mag2_parm_success = atoi(argv[i+1]);
+			i++;
+			//cout << "\n magnitude2 parameter has been received \n";
+		} else if (strcmp(argv[i], "--mag2_parm_failure") == 0) {
+			mag2_parm_failure = atoi(argv[i+1]);
+			i++;
+			//cout << "\n magnitude2 parameter has been received \n";
+		} else if (strcmp(argv[i], "--randomMatrix") == 0) {
 			randomMatrix = atoi(argv[i+1]);
 			i++;
 			//cout << "\n randomMatrix type has been received \n";
@@ -410,6 +458,31 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		randomMatrix = MATRIX_NONE;
 	}
 
+	//Check valid combinations of Perturbation1 and Magnitude1
+	if (perturbation1CS == PERT1_NONE)
+		magnitude1CS = MAGNITUDE_NONE;
+	else{
+		if (magnitude1CS == MAGNITUDE_NONE){
+			magnitude1CS = MAGNITUDE_CONSTANT;
+			magnitude1 = 0.01;
+		}
+	}
+	//Check valid combinations of Perturbation2 and Magnitude2
+	if (perturbation2CS == PERT2_NONE)
+		magnitude2CS = MAGNITUDE_NONE;
+	else{
+		if (magnitude2CS == MAGNITUDE_NONE){
+			magnitude2CS = MAGNITUDE_CONSTANT;
+			magnitude1 = 1.0;
+		}
+	}
+
+	//Check Perturbation magnitude
+	if (magnitude1CS == MAGNITUDE_CONSTANT && magnitude1 < 0)
+		magnitude1 = 0.01;
+	if (magnitude2CS == MAGNITUDE_CONSTANT && magnitude2 < 0)
+		magnitude2 = 0.01;
+
 	//Check problem dimensions
 	if (problemDimension < 2 || problemDimension > 100) {
 		cerr << "\nError: Dimension should be between 2 and 100.\n";
@@ -417,11 +490,11 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	}
 
 	//Termination criteria
-	if ((int)maxFES == -1)	//Use a default small budget of FEs
+	if ((int)maxFES == -1)	//Use a small budget for the number of FEs
 		maxFES = 1000 * problemDimension;
-	else if ((int)maxFES == -2)	//Use budget of CEC05 of FEs
+	else if ((int)maxFES == -2)	//Use the budget of CEC competitions for the number of FEs
 		maxFES = 10000 * problemDimension;
-	else if ((int)maxFES == -3)	//Use a medium budget of FEs
+	else if ((int)maxFES == -3)	//Use half the budget of CEC competitions for the number of FEs
 		maxFES = 5000 * problemDimension;
 	else {
 		if (! maxIter_received && ! maxFES_received)
@@ -557,14 +630,29 @@ void Configuration::setDefaultParameters(){
 	iw_par_alpha_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
 	iw_par_beta_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
 
-	/** Perturbation **/
-	perturbation1 = PERT1_NONE;				//distribution-based perturbation
-	perturbation2 = PERT2_NONE;				//additive perturbation
-	pert1_par_l_CS = PERT1_DIST_L_INDEPENDENT;
-	//scaling factor for PERT1_NORMAL_DISTANCE a1=0.911, a2=0.21, a3=0.51, a4=0.58
-	pert1_par_l = 0.911*0.51/(pow((particles/problemDimension),0.21)*pow(problemDimension,0.58));
-	pert1_2_par_success = 15;
-	pert1_2_par_failure = 5;
+	/** Perturbation and Magnitude**/
+	perturbation1CS = PERT1_NONE;		//informed perturbation
+	perturbation2CS = PERT2_NONE;		//random (additive) perturbation
+	pert2_alpha_t = 1.0;				//side length of the rectangle for the random (additive) rectangular perturbation
+	pert2_delta = 1.0;					//side length of the rectangle for the random (additive) noisy perturbation
+	magnitude1CS = MAGNITUDE_CONSTANT;	//strategy to compute the magnitude of the "informed" perturbation
+	magnitude2CS = MAGNITUDE_CONSTANT; //strategy to compute the magnitude of the "informed" perturbation
+	magnitude1 = 0.01;
+	mag1_parm_l_CS = MAG_PARAM_L_INDEPENDENT;
+	mag1_parm_l = 0.911*0.51/(pow((particles/problemDimension),0.21)*pow(problemDimension,0.58)); //scaling factor for MAGNITUDE_EUC_DISTANCE a1=0.911, a2=0.21, a3=0.51, a4=0.58
+	mag1_parm_m = 1.0;
+	mag1_parm_success = 15;
+	mag1_parm_failure = 5;
+	magnitude2 = 0.01;
+	mag2_parm_l_CS = MAG_PARAM_L_INDEPENDENT;
+	mag2_parm_l = 0.911*0.51/(pow((particles/problemDimension),0.21)*pow(problemDimension,0.58)); //scaling factor for MAGNITUDE_EUC_DISTANCE a1=0.911, a2=0.21, a3=0.51, a4=0.58
+	mag2_parm_m = 1.0;
+	mag2_parm_success = 15;
+	mag2_parm_failure = 5;
+
+	//Magnitude1 and Magnitude2 variables
+	mag1_sc = 0; mag1_fc = 0;	//success and failure counters
+	mag2_sc = 0; mag2_fc = 0;	//success and failure counters
 
 	/** Matrix **/
 	randomMatrix = MATRIX_DIAGONAL;			//random matrix
@@ -779,38 +867,49 @@ void Configuration::printParameters(){
 	case AC_RANDOM:			cout << "  accelCoeffCS:      RANDOM\n"; break;
 	}
 	//<< "  perturbation1     " << getPerturbation1() << "\n"
-	switch (getPerturbation1Type()){
-	case PERT1_NONE: 			cout	<< "  perturbation1:     NONE\n"; break;
-	case PERT1_NORMAL_DISTANCE:	cout	<< "  perturbation1:     NORMAL_DISTANCE\n";
-	switch (getPert1_par_l_CS()) {
-	case PERT1_DIST_L_INDEPENDENT: 	cout << "  pert1_par_l_CS:    INDEPENDENT\n"; break;
-	case PERT1_DIST_L_USER_SUPPLIED:cout << "  pert1_par_l_CS:    USER_SUPPLIED\n"; break;
+	switch (getPerturbation1CS()){
+	case PERT1_NONE: 		cout	<< "  perturbation1CS:   NONE\n"; break;
+	case PERT1_GAUSSIAN:	cout	<< "  perturbation1CS:   GAUSSIAN\n"; break;
+	case PERT1_CAUCHY: 		cout	<< "  perturbation1CS:   CAUCHY\n"; break;
+	case PERT1_UNIFORM: 	cout	<< "  perturbation1CS:   UNIFORM\n"; break;
 	}
-	cout << "  pert1_par_l:       " << getPert1_par_l() << "\n"; break;
-	case PERT1_NORMAL_SUCCESS: 	cout	<< "  perturbation1:     NORMAL_SUCCESS\n"
-			<< "  pert1_2_par_success: " << get_pert1_2_par_success() << "\n"
-			<< "  pert1_2_par_failure: " << get_pert1_2_par_failure() << "\n"; break;
-	case PERT1_CAUCHY_DISTANCE:	cout	<< "  perturbation1:     CAUCHY_DISTANCE\n";
-	switch (getPert1_par_l_CS()) {
-	case PERT1_DIST_L_INDEPENDENT: 	cout << "  pert1_par_l_CS:    INDEPENDENT\n"; break;
-	case PERT1_DIST_L_USER_SUPPLIED:cout << "  pert1_par_l_CS:    USER_SUPPLIED\n"; break;
+	//<< "  magnitude1CS     " << getPerturbation2() << "\n"
+	switch (getMagnitude1CS()){
+	case MAGNITUDE_CONSTANT: 		cout 	<< "  magnitude1CS:      CONSTANT\n"
+			<< "  magnitude1:          " << getMagnitude1() << "\n"; break;
+	case MAGNITUDE_EUC_DISTANCE:	cout 	<< "  magnitude1CS:      EUCLIDEAN_DISTANCE\n";
+	switch (getMagnitude1_parm_l_CS()){
+	case MAG_PARAM_L_INDEPENDENT: 	cout << "  mag1_parm_l_CS:    INDEPENDENT\n"; break;
+	case MAG_PARAM_L_USER_SUPPLIED:	cout << "  mag1_parm_l_CS:    USER_SUPPLIED\n"; break;
 	}
-	cout << "  pert1_par_l:       " << getPert1_par_l() << "\n"; break;
-	case PERT1_CAUCHY_SUCCESS: 	cout	<< "  perturbation1:     CAUCHY_SUCCESS\n"
-			<< "  pert1_2_par_success: " << get_pert1_2_par_success() << "\n"
-			<< "  pert1_2_par_failure: " << get_pert1_2_par_failure() << "\n"; break;
+	cout << "  mag1_parm_l:         " << getMag1_parm_l() << "\n"; break;
+	case MAGNITUDE_OBJ_F_DISTANCE:	cout 	<< "  magnitude1CS:      OBJECTIVE_F_DISTANCE\n"
+			<< "  mag1_parm_m:         " << getMag1_parm_m() << "\n"; break;
+	case MAGNITUDE_SUCCESS:			cout 	<< "  magnitude1CS:      SUCCESS\n"
+			<< "  mag1_parm_success:   " << getMag1_parm_success() << "\n"
+			<< "  mag1_parm_failure:   " << getMag1_parm_failure() << "\n"; break;
 	}
-	//<< "  perturbation2     " << getPerturbation2() << "\n"
-	switch (getPerturbation2Type()){
-	case PERT2_NONE: 	 	 cout	<< "  perturbation2:     NONE\n"; break;
-	case PERT2_ADD_RECT:	 cout	<< "  perturbation2:     ADD_RECT\n";
-	if (getPerturbation1Type() != PERT1_NORMAL_SUCCESS && getPerturbation1Type() != PERT1_CAUCHY_SUCCESS)
-		cout << "  pert1_2_par_success: " << get_pert1_2_par_success() << "\n"
-		<< "  pert1_2_par_failure: " << get_pert1_2_par_failure() << "\n";
-	else cout << "  pert1_2_par_success: same value used for perturbation1\n"
-			<< "  pert1_2_par_failure: same value used for perturbation1\n";
-	break;
-	case PERT2_ADD_NOISY:	 cout	<< "  perturbation2:     ADD_NOISY\n"; break;
+	switch (getPerturbation2CS()){
+	case PERT2_NONE: 	 	 cout	<< "  perturbation2CS:   NONE\n"; break;
+	case PERT2_RECTANGULAR:	 cout	<< "  perturbation2CS:   RECTANGULAR\n"
+			<< "  pert2_alpha_t:       " << getPert2_alpha() << "\n"; break;
+	case PERT2_NOISY:	 	 cout	<< "  perturbation2CS:   NOISY\n"
+			<< "  pert2_delta:         " << getPert2_delta() << "\n"; break;
+	}
+	switch (getMagnitude2CS()){
+	case MAGNITUDE_CONSTANT: 		cout 	<< "  magnitude2CS:      CONSTANT\n"
+			<< "  magnitude2:          " << getMagnitude2() << "\n"; break;
+	case MAGNITUDE_EUC_DISTANCE:	cout 	<< "  magnitude2CS:      EUCLIDEAN_DISTANCE\n";
+	switch (getMagnitude2_parm_l_CS()){
+	case MAG_PARAM_L_INDEPENDENT: 	cout << "  mag2_parm_l_CS:    INDEPENDENT\n"; break;
+	case MAG_PARAM_L_USER_SUPPLIED:cout << "  mag2_parm_l_CS:    USER_SUPPLIED\n"; break;
+	}
+	cout << "  mag2_parm_l:         " << getMag2_parm_l() << "\n"; break;
+	case MAGNITUDE_OBJ_F_DISTANCE:	cout 	<< "  magnitude2CS:      OBJECTIVE_F_DISTANCE\n"
+			<< "  mag2_parm_m:         " << getMag2_parm_m() << "\n"; break;
+	case MAGNITUDE_SUCCESS:			cout 	<< "  magnitude2CS:      SUCCESS\n"
+			<< "  mag2_parm_success:   " << getMag2_parm_success() << "\n"
+			<< "  mag2_parm_failure:   " << getMag2_parm_failure() << "\n"; break;
 	}
 	//<< "  randomMatrix      " << getRandomMatrix() << "\n"
 	switch (getRandomMatrix()){
@@ -1025,18 +1124,101 @@ void Configuration::setVelocityClamped(bool clamping){
 short Configuration::getModelOfInfluence(){
 	return modelOfInfluence;
 }
-short Configuration::getPerturbation1Type(){
-	return perturbation1;
+//Perturbation and Magnitudes Control strategies
+short Configuration::getPerturbation1CS(){
+	return perturbation1CS;
 }
-int Configuration::get_pert1_2_par_success(){
-	return pert1_2_par_success;
+short Configuration::getPerturbation2CS(){
+	return perturbation2CS;
 }
-int Configuration::get_pert1_2_par_failure(){
-	return pert1_2_par_failure;
+void Configuration::setPert2_delta(double delta){
+	pert2_delta = delta;
 }
-short Configuration::getPerturbation2Type(){
-	return perturbation2;
+double Configuration::getPert2_delta(){
+	return pert2_delta;
 }
+void Configuration::setPert2_alpha(double alpha_t){
+	pert2_alpha_t=alpha_t;
+}
+double Configuration::getPert2_alpha(){
+	return pert2_alpha_t;
+}
+short Configuration::getMagnitude1CS(){
+	return magnitude1CS;
+}
+short Configuration::getMagnitude2CS(){
+	return magnitude2CS;
+}
+//Parameters Magnitude1
+double Configuration::getMagnitude1(){
+	return magnitude1;
+}
+void Configuration::setMagnitude1(double mag_1){
+	magnitude1 = mag_1;
+}
+short Configuration::getMagnitude1_parm_l_CS(){
+	return mag1_parm_l_CS;
+}
+double Configuration::getMag1_parm_l(){
+	return mag1_parm_l;
+}
+double Configuration::getMag1_parm_m(){
+	return mag1_parm_m;
+}
+int Configuration::getMag1_parm_success(){
+	return mag1_parm_success;
+}
+int Configuration::getMag1_parm_failure(){
+	return mag1_parm_failure;
+}
+//Setters/Getters variables magnitude1
+void Configuration::set_mag1_sc(int sc){
+	mag1_sc=sc;
+}
+void Configuration::set_mag1_fc(int fc){
+	mag1_fc=fc;
+}
+int Configuration::get_mag1_sc(){
+	return mag1_sc;
+}
+int Configuration::get_mag1_fc(){
+	return mag1_fc;
+}
+
+//Parameters Magnitude2
+double Configuration::getMagnitude2(){
+	return magnitude2;
+}
+short Configuration::getMagnitude2_parm_l_CS(){
+	return mag2_parm_l_CS;
+}
+double Configuration::getMag2_parm_l(){
+	return mag2_parm_l;
+}
+double Configuration::getMag2_parm_m(){
+	return mag2_parm_m;
+}
+int Configuration::getMag2_parm_success(){
+	return mag2_parm_success;
+}
+int Configuration::getMag2_parm_failure(){
+	return mag2_parm_failure;
+}
+
+//Setters/Getters variables magnitude2
+void Configuration::set_mag2_sc(int sc){
+	mag2_sc = sc;
+}
+void Configuration::set_mag2_fc(int fc){
+	mag2_fc = fc;
+}
+int Configuration::get_mag2_sc(){
+	return mag2_sc;
+}
+int Configuration::get_mag2_fc(){
+	return mag2_fc;
+}
+//Random matrices
 short Configuration::getRandomMatrix(){
 	return randomMatrix;
 }
@@ -1061,15 +1243,6 @@ double Configuration::getRotationAgle(){
 }
 void Configuration::setRotationAgle(double angle){
 	rotation_angle = angle;
-}
-short Configuration::getPert1_par_l_CS(){
-	return pert1_par_l_CS;
-}
-double Configuration::getPert1_par_l(){
-	return pert1_par_l;
-}
-void Configuration::setPert1_par_l(double par_l){
-	pert1_par_l = par_l;
 }
 short Configuration::getDistributionNPP(){
 	return distributionNPP;
