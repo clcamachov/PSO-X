@@ -22,7 +22,10 @@ static double randVal(double min,double max);
 static double randGauss(double sd);
 static double randGaussWithMean(double sd, double mean);
 static double randCauchy(double gamma);
-static double randCauchyWithPeak(double gamma, double peak);
+static double randBeta(double alpha, double beta);
+static double randLevy(const double c, const double alpha);
+static double randLevySkew(const double c, const double alpha, const double beta);
+
 
 static unsigned int randBernoulli(double p);
 

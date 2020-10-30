@@ -904,23 +904,52 @@ void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[
 
 double Particle::applyInformedPerturbation(int pertubType, double pert_vrand[], double pos_xi, int index){
 	double returnVal = 0.0;
-	switch(pertubType){
-	case PERT1_NONE:
-		returnVal = pos_xi;
-		break;
-	case PERT1_GAUSSIAN:
+
+	if(pertubType == PERT1_GAUSSIAN){
 		//Gaussian distribution
-		returnVal = pos_xi + (RNG::randGauss(1.0)*pert_vrand[index]);
-		break;
-	case PERT1_CAUCHY:
-		//Cauchy distribution
-		returnVal = pos_xi + (RNG::randCauchy(1.0)*pert_vrand[index]);
-		break;
-	case PERT1_UNIFORM:
-		//Cauchy distribution
-		returnVal = pos_xi + (RNG::randVal(0.0,1.0)*pert_vrand[index]*pos_xi);
-		break;
+		returnVal = pos_xi + RNG::randGauss(1.0)*pert_vrand[index];
 	}
+	else if(pertubType == PERT1_LEVY){
+		//TODO: add parameter alpha as parameter
+		double alpha = floor(RNG::randVal(10,20))/10;
+		//alpha = 1 = Cauchy distribution
+		//alpha = 2 = Gaussian distribution
+
+		//Adjust the peak (parameter c in the function randLevy) according to the analysis of Blackwell 2006
+		//Note that this parameter is obtained by multiplying c*σ and σ is already in the variable pert_vrand[index]
+		if (alpha <= 1.2)
+			pert_vrand[index] = pert_vrand[index] * 0.557;
+		if (alpha > 1.2 && alpha <= 1.3)
+			pert_vrand[index] = pert_vrand[index] * 0.562;
+		if (alpha > 1.3 && alpha <= 1.4)
+			pert_vrand[index] = pert_vrand[index] * 0.565;
+		if (alpha > 1.4 && alpha <= 1.5)
+			pert_vrand[index] = pert_vrand[index] * 0.568;
+		if (alpha > 1.5 && alpha <= 1.6)
+			pert_vrand[index] = pert_vrand[index] * 0.572;
+		if (alpha > 1.6 && alpha <= 1.7)
+			pert_vrand[index] = pert_vrand[index] * 0.576;
+		if (alpha > 1.7 && alpha <= 1.8)
+			pert_vrand[index] = pert_vrand[index] * 0.580;
+		if (alpha > 1.8 && alpha <= 1.9)
+			pert_vrand[index] = pert_vrand[index] * 0.585;
+		if (alpha > 1.9 && alpha <= 2.0)
+			pert_vrand[index] = pert_vrand[index] * 0.633;
+		//Levy distribution
+		returnVal = pos_xi + (RNG::randLevy(pert_vrand[index],alpha));
+	}
+	else if(pertubType == PERT1_UNIFORM){
+		//Cauchy distribution
+		returnVal = pos_xi + (RNG::randVal(-1,1)*pert_vrand[index]*pos_xi);
+	}
+	//	else if(pertubType == PERT1_BETA){
+	//		//Beta distribution
+	//		returnVal = pos_xi + (RNG::randBeta(1.0,3.0)*pert_vrand[index]);
+	//	}
+	else
+		returnVal = pos_xi;
+
+
 	return returnVal;
 }
 
@@ -928,31 +957,39 @@ double Particle::applyInformedPerturbation(int pertubType, double pert_vrand[], 
 void Particle::setPerturbation1Magnitude(Configuration* config, double pert_vrand[], double * pos_x, double * pbest_x){
 	if (config->getMagnitude1CS() == MAGNITUDE_EUC_DISTANCE){
 		double distance = 0.0;
+		//Compute the norm of pos_x - pbest_x
 		for(int i=0;i<size;i++){
 			distance += pow((pos_x[i] - pbest_x[i]),2);
 		}
-
 		distance = sqrt(distance);
-		if (distance == 0)
-			for(int i=0;i<size;i++){
-				pert_vrand[i] = config->getMag1_parm_l();
-			}
+
+		if (distance == 0){ //use the last computed value
+			if (config->getMagnitude1() > 0)
+				for(int i=0;i<size;i++)
+					pert_vrand[i] = config->getMag1_parm_l() * config->getMagnitude1();
+			else
+				for(int i=0;i<size;i++)
+					pert_vrand[i] = config->getMag1_parm_l();
+		}
 		else
 			for(int i=0;i<size;i++){
 				pert_vrand[i] = config->getMag1_parm_l()*distance;
 			}
+		config->setMagnitude1(pert_vrand[size-1]);
+
 	}
 	if (config->getMagnitude1CS() == MAGNITUDE_OBJ_F_DISTANCE){
 		double ob_distance;
 		//Compute the distance in terms of the objective function
 		if (this->id == this->gBestID)
-			ob_distance = RNG::randVal(0.0,1.0);
+			ob_distance = 1-RNG::randVal(0.0,1.0);
 		else
-			ob_distance = (current.eval-gbest.eval)/current.eval;
+			ob_distance = 1-(current.eval-gbest.eval)/current.eval;
 
-		for(int i=0;i<size;i++){
-			pert_vrand[i] = exp(-config->getMag1_parm_m()*ob_distance);
-		}
+		config->setMagnitude1(ob_distance);
+
+		for(int i=0;i<size;i++)
+			pert_vrand[i] = config->getMag1_parm_m()*(ob_distance);
 	}
 	if (config->getMagnitude1CS() == MAGNITUDE_SUCCESS || config->getMagnitude1CS() == MAGNITUDE_CONSTANT){
 		for(int i=0;i<size;i++){
@@ -963,47 +1000,58 @@ void Particle::setPerturbation1Magnitude(Configuration* config, double pert_vran
 
 //Perturbation 2 (additive perturbation) -- particle-wise
 void Particle::getRandomAdditivePerturbation(Configuration* config, double vect_perturbation[]){
-	double vector_PM;
+	double PM;
 
 	//1.0 - Set the perturbation magnitude
 	if (config->getMagnitude2CS() == MAGNITUDE_EUC_DISTANCE){
 		double distance = 0.0;
+		//Compute the norm of pos_x - lbest_x
 		for(int i=0;i<size;i++){
 			distance += pow((current.x[i] - neighbours.at(gBestID)->pbest.x[i]),2);
 		}
-
 		distance = sqrt(distance);
 
-		if (distance == 0)
-			vector_PM = config->getMag2_parm_l();
+		if (distance == 0){ //use the last computed value
+			if (config->getMagnitude2() > 0)
+				for(int i=0;i<size;i++)
+					PM = config->getMag2_parm_l() * config->getMagnitude2();
+			else
+				for(int i=0;i<size;i++)
+					PM = config->getMag2_parm_l();
+		}
 		else
-			vector_PM = config->getMag2_parm_l()*distance;
+			for(int i=0;i<size;i++){
+				PM = config->getMag2_parm_l()*distance;
+			}
+		config->setMagnitude2(PM);
 	}
-	if (config->getMagnitude2CS() == MAGNITUDE_OBJ_F_DISTANCE){
+	else if (config->getMagnitude2CS() == MAGNITUDE_OBJ_F_DISTANCE){
 		double ob_distance;
 		//Compute the distance in terms of the objective function
 		if (this->id == this->gBestID)
-			ob_distance = RNG::randVal(0.0,1.0);
+			ob_distance = 1-RNG::randVal(0.0,1.0);
 		else
-			ob_distance = (current.eval-gbest.eval)/current.eval;
+			ob_distance = 1-(current.eval-gbest.eval)/current.eval;
 
-		vector_PM = exp(-config->getMag2_parm_m()*ob_distance);
+		PM = config->getMag2_parm_m()*ob_distance;
+		config->setMagnitude2(PM);
 	}
-	if (config->getMagnitude2CS() == MAGNITUDE_SUCCESS)
-		vector_PM = config->getPert2_alpha();
-
-	if (config->getMagnitude2CS() == MAGNITUDE_CONSTANT)
-		vector_PM = config->getPert2_delta();
+	else if (config->getMagnitude2CS() == MAGNITUDE_SUCCESS)
+		PM = config->getMagnitude2();
+	else if (config->getMagnitude2CS() == MAGNITUDE_CONSTANT)
+		PM = config->getMagnitude2();
+	else
+		PM = 1.0;
 
 	//2.0 Compute the random vector
 	if(config->getPerturbation2CS() == PERT2_RECTANGULAR){ //Additional rectangular
 		for (int i=0; i<size; i++){
-			vect_perturbation[i] = vector_PM*(1-(2*RNG::randVal(0,1)));
+			vect_perturbation[i] = PM*(1-(2*RNG::randVal(0,1)));
 		}
 	}
 	else if(config->getPerturbation2CS() == PERT2_NOISY){ //Additional noisy
 		for (int i=0; i<size; i++){
-			vect_perturbation[i] = RNG::randVal(-vector_PM/2,vector_PM/2);
+			vect_perturbation[i] = RNG::randVal(-PM/2,PM/2);
 		}
 	}
 	else {

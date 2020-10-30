@@ -16,8 +16,6 @@
 #include "swarm.h"
 #include "rng.h"
 
-#define ALPHA_T_PRECISION  0.00001
-
 using namespace std;
 
 /* Variables to compute the inertia weight using the available control strategies */
@@ -801,7 +799,6 @@ void Swarm::updatePerturbationVariables(Configuration* config, double previousGb
 		}
 	}
 
-
 	if (config->getMagnitude2CS() == MAGNITUDE_SUCCESS){
 		//Success
 		if (previousGbest_eval != currentGbest_eval){
@@ -817,39 +814,20 @@ void Swarm::updatePerturbationVariables(Configuration* config, double previousGb
 		//Update value of alpha
 		//Increase magnitude
 		if (config->get_mag2_sc() > config->getMag2_parm_success()){
-			if (config->getPerturbation2CS() == PERT2_RECTANGULAR)
-				config->setPert2_alpha( config->getPert2_alpha() * 2.0);
-			if (config->getPerturbation2CS() == PERT2_NOISY)
-				config->setPert2_delta( config->getPert2_delta() * 2.0);
+			if (config->getPerturbation2CS() == PERT2_RECTANGULAR || config->getPerturbation2CS() == PERT2_NOISY)
+				config->setMagnitude2(config->getMagnitude2()*2.0);
 		}
 		//Decrease magnitude
 		if (config->get_mag2_fc() > config->getMag2_parm_failure()){
-			if (config->getPerturbation2CS() == PERT2_RECTANGULAR)
-				config->setPert2_alpha( config->getPert2_alpha() * 0.5);
-			if (config->getPerturbation2CS() == PERT2_NOISY)
-				config->setPert2_delta( config->getPert2_delta() * 0.5);
-		}
-		//Check if the PM became too small
-		if (config->getPert2_alpha() < ALPHA_T_PRECISION){
-			if (iteration < config->getMaxIterations()/2) //first half
-				config->setPert2_alpha(0.15);
-			else
-				config->setPert2_alpha( 0.001);
-		}
-		if (config->getPert2_delta() < ALPHA_T_PRECISION){
-			if (iteration < config->getMaxIterations()/2) //first half
-				config->setPert2_delta(0.15);
-			else
-				config->setPert2_delta(0.001);
-
+			if (config->getPerturbation2CS() == PERT2_RECTANGULAR || config->getPerturbation2CS() == PERT2_NOISY)
+				config->setMagnitude2(config->getMagnitude2()*0.5);
 		}
 	}
 
-	if (config->getMagnitude2CS() == MAGNITUDE_CONSTANT){
-		config->setPert2_alpha(config->getMagnitude2());
-		config->setPert2_delta(config->getMagnitude2());
-
-	}
+	//	if (config->getMagnitude2CS() == MAGNITUDE_CONSTANT){
+	//		config->setPert2_alpha(config->getMagnitude2());
+	//		config->setPert2_delta(config->getMagnitude2());
+	//	}
 
 }
 

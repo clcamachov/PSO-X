@@ -44,8 +44,20 @@ double RNG::randCauchy(double gamma){
 	return gsl_ran_cauchy(RNG::R, gamma);
 }
 
-double RNG::randCauchyWithPeak(double gamma, double peak){
-	return gsl_ran_cauchy(RNG::R, 2-gamma) + peak;
+double RNG::randBeta(double alpha, double beta){
+	return gsl_ran_beta(RNG::R, alpha, beta);
+}
+
+double RNG::randLevy(const double c, const double alpha){
+	return gsl_ran_levy(RNG::R, c, alpha);
+	//alpha = 1 = Cauchy distribution
+	//alpha = 2 = Gaussian distribution
+}
+
+double RNG::randLevySkew(const double c, const double alpha, const double beta){
+	return gsl_ran_levy_skew(RNG::R, c, alpha, beta);
+	//alpha = 1 = Cauchy distribution
+	//alpha = 2 = Gaussian distribution
 }
 
 unsigned int RNG::randBernoulli(double p) {

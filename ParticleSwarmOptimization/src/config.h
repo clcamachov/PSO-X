@@ -177,9 +177,10 @@
 #define E  exp(1)
 #define EPSILON 1E-15
 #define DELTA 1E-30
-#define CONSTRICTION_COEFFICIENT 0.7298
+#define CONSTRICTION_COEFFICIENT 0.729843788
 #define REINIT_PRECISION 0.00001
 #define STAGNATION_PRECISION 0.0000001
+#define PERTURBATION_PRECISION  0.00001
 #define MAX_DIMENSION 	1000
 #define LINE_BUF_LEN    100
 #define TRACE( x )
@@ -258,8 +259,9 @@
 
 #define PERT1_NONE						0
 #define PERT1_GAUSSIAN					1
-#define PERT1_CAUCHY					2
+#define PERT1_LEVY						2
 #define PERT1_UNIFORM					3
+#define PERT1_BETA						4
 
 #define PERT2_NONE						0
 #define PERT2_RECTANGULAR				1
@@ -371,8 +373,8 @@ private:
 	//Perturbation
 	short perturbation1CS; 	//informed
 	short perturbation2CS; 	//random (additive)
-	double pert2_alpha_t;	//side length of the rectangle for the random (additive) rectangular perturbation
-	double pert2_delta;		//side length of the rectangle for the random (additive) noisy perturbation
+//	double pert2_alpha;	//side length of the rectangle for the random (additive) rectangular perturbation
+//	double pert2_delta;		//side length of the rectangle for the random (additive) noisy perturbation
 	//Magnitude1
 	short magnitude1CS;
 	double magnitude1;
@@ -506,10 +508,10 @@ public:
 	//Perturbation
 	short getPerturbation1CS();
 	short getPerturbation2CS();
-	double getPert2_delta();
-	void setPert2_delta(double delta);
-	double getPert2_alpha();
-	void setPert2_alpha(double alpha_t);
+//	double getPert2_delta();
+//	void setPert2_delta(double delta);
+//	double getPert2_alpha();
+//	void setPert2_alpha(double alpha);
 
 	//Getters parameters magnitude1
 	short getMagnitude1CS();
@@ -520,9 +522,12 @@ public:
 	double getMag1_parm_m();
 	int getMag1_parm_success();
 	int getMag1_parm_failure();
+	void setMag1_parm_success(int new_mag1_succ);
+	void setMag1_parm_failure(int new_mag1_fail);
 	//Getters parameters magnitude2
 	short getMagnitude2CS();
 	double getMagnitude2();
+	void setMagnitude2(double mag_2);
 	short getMagnitude2_parm_l_CS();
 	double getMag2_parm_l();
 	double getMag2_parm_m();
