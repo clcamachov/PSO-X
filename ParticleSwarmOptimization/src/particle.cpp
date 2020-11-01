@@ -712,7 +712,7 @@ void Particle::getAdditiveStochasticDNPP(double vect_distribution[], int numInfo
 	case Q_GAUSSIAN:
 		for (int i=0; i<size; i++){
 			double center = (vect_PbestMinusPosition[p1Index][i]+ vect_PbestMinusPosition[p2Index][i]) / 2.0;
-			double dispersion = abs (vect_PbestMinusPosition[p1Index][i] - vect_PbestMinusPosition[p2Index][i]);
+			double dispersion = fabs (vect_PbestMinusPosition[p1Index][i] - vect_PbestMinusPosition[p2Index][i]);
 			vect_distribution[i] = RNG::randGaussWithMean(dispersion, center);
 			vect_distribution[i] -= current.x[i];
 		}
@@ -729,13 +729,13 @@ void Particle::getAdditiveStochasticDNPP(double vect_distribution[], int numInfo
 		for (int i=0; i<size; i++){
 			if (problem->getRandom01() <= 0.5){
 				vect_distribution[i] = vect_PbestMinusPosition[p1Index][i] - current.x[i]; //we need to discount current.x[i] because it will be added later in the GVU formula
-				vect_distribution[i] += (RNG::randCauchy(1.0) * abs(vect_PbestMinusPosition[p1Index][i] -
+				vect_distribution[i] += (RNG::randCauchy(1.0) * fabs(vect_PbestMinusPosition[p1Index][i] -
 						vect_PbestMinusPosition[p2Index][i]));
 
 			}
 			else {
 				vect_distribution[i] = vect_PbestMinusPosition[p2Index][i] - current.x[i]; //we need to discount current.x[i] because it will be added later in the GVU formula
-				vect_distribution[i] += (RNG::randGaussWithMean(1.0,0) * abs(vect_PbestMinusPosition[p1Index][i] -
+				vect_distribution[i] += (RNG::randGaussWithMean(1.0,0) * fabs(vect_PbestMinusPosition[p1Index][i] -
 						vect_PbestMinusPosition[p2Index][i]));
 			}
 		}
@@ -847,7 +847,7 @@ void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[
 
 		double R = 0.0;
 		for (int j=0; j<numInformants; j++){
-			if (pBestIntheInformants && (this->id != this->gBestID)){ //we look for pBest in the Array
+			if (pBestIntheInformants){ // && (this->id != this->gBestID)){ //we look for pBest in the Array
 				if (this->id == neighbours.at(InformantsPos[j])->getID())
 					R += current.x[i] + (phi_1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
 				else {
@@ -873,11 +873,12 @@ void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[
 			}
 		}
 		G[i] = (current.x[i] + current.x[i] + R )/(3);
-		radius += pow(abs(current.x[i] - G[i]), 2);
 		V1[i] = G[i] - current.x[i];
+
+		radius += pow(fabs(current.x[i] - G[i]), 2);
 		varPhi2 = phi_2;
 	}
-	radius = sqrt(radius); //this is the actual radius of the hyper-sphere
+	radius = pow(radius, 1/2); //this is the actual radius of the hyper-sphere
 
 	// Get a random vector in the hyper-sphere H(G||G-X||)
 	// ----------------------------------- Step 1.  Direction
@@ -915,7 +916,7 @@ double Particle::applyInformedPerturbation(int pertubType, double pert_vrand[], 
 		//alpha = 1 = Cauchy distribution
 		//alpha = 2 = Gaussian distribution
 
-		//Adjust the peak (parameter c in the function randLevy) according to the analysis of Blackwell 2006
+		//Adjust the peak (parameter c in the function RNG::randLevy()) according to the analysis of Blackwell 2006
 		//Note that this parameter is obtained by multiplying c*σ and σ is already in the variable pert_vrand[index]
 		if (alpha <= 1.2)
 			pert_vrand[index] = pert_vrand[index] * 0.557;
@@ -1552,7 +1553,7 @@ int Particle::getRandomNonAdjacentNeighborID(Configuration* config){
 //		double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i]));
 //		double L = current.x[i] + (phi_2 * (l[i]-current.x[i]));
 //		G[i] = (current.x[i] + P + L)/3.0;
-//		radius += pow(abs(current.x[i] - G[i]), 2);
+//		radius += pow(fabs(current.x[i] - G[i]), 2);
 //		V1[i] = G[i] - current.x[i];
 //	}
 //	radius = sqrt(radius); //this is the actual radius of the hyper-sphere

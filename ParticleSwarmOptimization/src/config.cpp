@@ -214,17 +214,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			perturbation2CS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n perturbation value has been received \n";
-		}
-//			else if (strcmp(argv[i], "--pert2_delta") == 0) {
-//			pert2_delta = atof(argv[i+1]);
-//			i++;
-//			//cout << "\n perturbation parameter been received \n";
-//		} else if (strcmp(argv[i], "--pert2_alpha") == 0) {
-//			pert2_alpha = atof(argv[i+1]);
-//			i++;
-//			//cout << "\n perturbation parameter has been received \n";
-//		}
-			else if (strcmp(argv[i], "--magnitude1CS") == 0) {
+		} else if (strcmp(argv[i], "--magnitude1CS") == 0) {
 			magnitude1CS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n magnitude1 strategy has been received \n";
@@ -439,8 +429,11 @@ bool Configuration::getConfig(int argc, char *argv[]){
 
 	if (branching < 2)
 		branching = 2;
-	if (branching > particles)
-		branching = floor(particles/2);
+	if (branching > particles){
+		//branching = floor(particles/2);
+		cerr << "\nError: The branching degree of a hierarchical topology (" << branching <<  ") should be <= that the population size (" << particles << ").\n";
+		return(false);
+	}
 
 	//Topology and model of influence check
 	if (topology == TOP_HIERARCHICAL && modelOfInfluence == MOI_RANKED_FI ){
@@ -644,8 +637,6 @@ void Configuration::setDefaultParameters(){
 	/** Perturbation and Magnitude**/
 	perturbation1CS = PERT1_NONE;		//informed perturbation
 	perturbation2CS = PERT2_NONE;		//random (additive) perturbation
-//	pert2_alpha = 1.0;					//side length of the rectangle for the random (additive) rectangular perturbation
-//	pert2_delta = 1.0;					//side length of the rectangle for the random (additive) noisy perturbation
 	magnitude1CS = MAGNITUDE_CONSTANT;	//strategy to compute the magnitude of the "informed" perturbation
 	magnitude2CS = MAGNITUDE_CONSTANT;	//strategy to compute the magnitude of the "informed" perturbation
 	//Magnitude 1

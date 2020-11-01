@@ -685,7 +685,7 @@ void Swarm::reinitializeParticlePosition(Configuration* config){
 					similarity +=  particlePos[j] / gBestPos[j];
 				}
 				similarity = similarity/config->getProblemDimension();
-				if (abs(1-similarity) < REINIT_PRECISION){
+				if (fabs(1-similarity) < REINIT_PRECISION){
 					if (config->verboseMode()){
 						cout << "\tparticle:: [" << i << "] pos: [ ";
 						for(unsigned int h=0;h<config->getProblemDimension();h++){
@@ -1711,7 +1711,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				//				}
 				clearResizeSimpSwarm(config, iteration);
 				if (config->getPopulationCS() == POP_CONSTANT)
-					config->setOmega1(1 - abs(alpha_2/(1+beta_2)));
+					config->setOmega1(1 - fabs(alpha_2/(1+beta_2)));
 			}
 			//			else{
 			//				simpSwarm.clear();
@@ -1823,13 +1823,13 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					for (unsigned int j=0; j<simpSwarm.size(); j++){
 						if (simpSwarm.at(j).id == swarm.at(id)->getID()){
 							//convergence factor
-							long double c_i = abs(simpSwarm.at(j).eval - swarm.at(id)->getCurrentEvaluation())/
+							long double c_i = fabs(simpSwarm.at(j).eval - swarm.at(id)->getCurrentEvaluation())/
 									(simpSwarm.at(j).eval + swarm.at(id)->getCurrentEvaluation());
 							//diffusion factor
-							long double d_i = abs(swarm.at(id)->getCurrentEvaluation() - global_best.eval) /
+							long double d_i = fabs(swarm.at(id)->getCurrentEvaluation() - global_best.eval) /
 									(swarm.at(id)->getCurrentEvaluation() + global_best.eval);
 							//set the inertia weight
-							config->setOmega1(1 - abs(alpha_2*(1-c_i)) / (1+d_i)*(1+beta_2));
+							config->setOmega1(1 - fabs(alpha_2*(1-c_i)) / (1+d_i)*(1+beta_2));
 							break;
 						}
 					}
@@ -1896,7 +1896,7 @@ double Swarm::computeAvgVelocity(Configuration* config){
 	double sumVelocity = 0.0;
 	for (unsigned int i=0;i<swarm.size();i++){
 		for (unsigned int j=0;j<config->getProblemDimension();j++){
-			sumVelocity = sumVelocity + abs(swarm.at(i)->getCurrentVelocity()[j]);
+			sumVelocity = sumVelocity + fabs(swarm.at(i)->getCurrentVelocity()[j]);
 		}
 	}
 	return (sumVelocity/(swarm.size()*config->getProblemDimension()));

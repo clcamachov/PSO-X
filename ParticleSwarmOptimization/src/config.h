@@ -224,14 +224,14 @@
 
 // available omega2 strategies
 #define O2_EQUAL_TO_O1					0
-#define O2_ZERO							1  //this makes the component Distribution = 0
+#define O2_ZERO							1  //this disables the component Distribution by multiplying it by 0
 #define O2_ONE							2
 #define O2_RANDOM						3
 #define O2_CONSTANT						4
 
 // available omega3 strategies
 #define O3_EQUAL_TO_O1					0
-#define O3_ZERO							1  //this makes the component Perturbation = 0
+#define O3_ZERO							1  //this disables the component Perturbation by multiplying it by 0
 #define O3_ONE							2
 #define O3_RANDOM						3
 #define O3_CONSTANT						4
@@ -261,7 +261,6 @@
 #define PERT1_GAUSSIAN					1
 #define PERT1_LEVY						2
 #define PERT1_UNIFORM					3
-#define PERT1_BETA						4
 
 #define PERT2_NONE						0
 #define PERT2_RECTANGULAR				1
