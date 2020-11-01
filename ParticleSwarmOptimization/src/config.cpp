@@ -886,11 +886,9 @@ void Configuration::printParameters(){
 	case MAG_PARAM_L_INDEPENDENT: 	cout << "  mag1_parm_l_CS:    INDEPENDENT\n"; break;
 	case MAG_PARAM_L_USER_SUPPLIED:	cout << "  mag1_parm_l_CS:    USER_SUPPLIED\n"; break;
 	}
-	cout << "  mag1_parm_l:       " << getMag1_parm_l() << "\n"
-			<< "  magnitude1:        " << getMagnitude1() << "\n"; break;
+	cout << "  mag1_parm_l:       " << getMag1_parm_l() << "\n"; break;
 	case MAGNITUDE_OBJ_F_DISTANCE:	cout 	<< "  magnitude1CS:      OBJECTIVE_F_DISTANCE\n"
-			<< "  mag1_parm_m:       " << getMag1_parm_m() << "\n"
-			<< "  magnitude1:        " << getMagnitude1() << "\n"; break;
+			<< "  mag1_parm_m:       " << getMag1_parm_m() << "\n"; break;
 	case MAGNITUDE_SUCCESS:			cout 	<< "  magnitude1CS:      SUCCESS\n"
 			<< "  magnitude1:        " << getMagnitude1() << "\n"
 			<< "  mag1_parm_success: " << getMag1_parm_success() << "\n"
@@ -899,9 +897,9 @@ void Configuration::printParameters(){
 	switch (getPerturbation2CS()){
 	case PERT2_NONE: 	 	 cout	<< "  perturbation2CS:   NONE\n"; break;
 	case PERT2_RECTANGULAR:	 cout	<< "  perturbation2CS:   RECTANGULAR\n"; break;
-			//<< "  pert2_alpha_t:     " << getPert2_alpha() << "\n";
+	//<< "  pert2_alpha_t:     " << getPert2_alpha() << "\n";
 	case PERT2_NOISY:	 	 cout	<< "  perturbation2CS:   NOISY\n"; break;
-			//<< "  pert2_delta:       " << getPert2_delta() << "\n"
+	//<< "  pert2_delta:       " << getPert2_delta() << "\n"
 	}
 	switch (getMagnitude2CS()){
 	case MAGNITUDE_CONSTANT: 		cout 	<< "  magnitude2CS:      CONSTANT\n"
@@ -911,11 +909,9 @@ void Configuration::printParameters(){
 	case MAG_PARAM_L_INDEPENDENT: 	cout << "  mag2_parm_l_CS:    INDEPENDENT\n"; break;
 	case MAG_PARAM_L_USER_SUPPLIED:cout << "  mag2_parm_l_CS:    USER_SUPPLIED\n"; break;
 	}
-	cout << "  mag2_parm_l:       " << getMag2_parm_l() << "\n"
-			<< "  magnitude2:        " << getMagnitude2() << "\n"; break;
+	cout << "  mag2_parm_l:       " << getMag2_parm_l() << "\n"; break;
 	case MAGNITUDE_OBJ_F_DISTANCE:	cout 	<< "  magnitude2CS:      OBJECTIVE_F_DISTANCE\n"
-			<< "  mag2_parm_m:       " << getMag2_parm_m() << "\n"
-			<< "  magnitude2:        " << getMagnitude2() << "\n"; break;
+			<< "  mag2_parm_m:       " << getMag2_parm_m() << "\n"; break;
 	case MAGNITUDE_SUCCESS:			cout 	<< "  magnitude2CS:      SUCCESS\n"
 			<< "  magnitude2:        " << getMagnitude2() << "\n"
 			<< "  mag2_parm_success: " << getMag2_parm_success() << "\n"

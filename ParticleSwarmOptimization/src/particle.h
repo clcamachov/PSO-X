@@ -62,7 +62,7 @@ public:
 	Particle& operator= (const Particle& p);  							/* overriding of '=' */
 
 	void move(Configuration* config, double minBound, double maxBound, long int iteration,
-			double omega1, double omega2, double omega3, int numInformants, int lastLevelComplete, double alpha_t, double l, double delta, int solImproved);
+			double omega1, double omega2, double omega3, int numInformants, int lastLevelComplete, int solImproved);
 	double computeNewVelocity(Configuration* config, double vel, double rand1, double rand2,double perInf, double socInf, double pos, double additionalVal);
 
 	double* getCurrentPosition();
@@ -100,7 +100,7 @@ public:
 
 	//Velocity and position computation
 	void computeSubtractionPerturbationRotation(Configuration* config, vector< vector<double> > &vect_PbestMinusPosition, int &numInformants,
-			bool pBestIntheInformants, double alpha_t, double l_value, long int iteration, int solImprov);
+			bool pBestIntheInformants, long int iteration, int solImprov);
 	void getRectangularDNPP(Configuration* config, double vect_distribution[], int numInformants, bool pBestIntheInformants,
 			vector< vector< double> > &vect_PbestMinusPosition);
 	void getSphericalDNPP(Configuration* config, double vect_distribution[], int numInformants, bool pBestIntheInformants,

@@ -40,9 +40,9 @@ bool modInfRanked = false;					//flag to indicate that the rankedSwarm structure
 
 /* Variable for the perturbation strategies */
 //int success = 15, failure = 5;				//success and failure thresholds for the additive rectangular perturbation
-int sc = 0, fc = 0;							//success and failure counters
-double alpha_t = 1.0;						//side length of the rectangle for the success-rate perturbation
-double delta = 1.0;							//side length of the rectangle for the uniform random perturbation
+//int sc = 0, fc = 0;							//success and failure counters
+//double alpha_t = 1.0;						//side length of the rectangle for the success-rate perturbation
+//double delta = 1.0;							//side length of the rectangle for the uniform random perturbation
 //double l = 0.01;							//scaling factor for the perturbation
 
 bool sortcol(const vector<int>& v1, const vector<int>& v2) {
@@ -231,7 +231,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 
 		if (config->verboseMode()) {
 			//print all neighbors
-			cout << "\t--  Neighbors ids:  [ ";
+			cout << "\n\tNeighbors ids:  [ ";
 			for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
 				cout << swarm.at(i)->neighbours[j]->getID() << " ";
 			}
@@ -241,7 +241,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 			for (int j=0;j<sizeInformants;j++){
 				cout << swarm.at(i)->InformantsPos[j] << " ";
 			}
-			cout << "]";
+			cout << "]" << endl;
 			cout << "\tInformants ids: [ ";
 			for (int j=0;j<sizeInformants;j++){
 				cout << swarm.at(i)->neighbours[swarm.at(i)->InformantsPos[j]]->getID() << " ";
@@ -259,9 +259,6 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 				computeOmega3(config),
 				sizeInformants,
 				lastLevelComplete,
-				alpha_t,
-				config->getMag1_parm_l(),
-				delta,
 				sol_improved);
 	}
 	long double prev_Gbest_eval = global_best.eval; //best solution at iteration t-1

@@ -271,14 +271,13 @@ bool Particle::ispBestIntheInformants(int numInformants){
 	for (unsigned int j=0; j<InformantsPos.size(); j++)
 		if (this->id == neighbours.at(InformantsPos[j])->getID() )
 			result = true;
-
 	return result;
 }
 
 /* Generate a new solution by updating the particle's position */
 void Particle::move(Configuration* config, double minBound, double maxBound, long int iteration,
 		double omega1, double omega2, double omega3, int numInformants, int lastLevelComplete,
-		double alpha_t, double l, double delta, int solImproved){
+		int solImproved){
 
 	double vect_distribution[size];
 	double vect_perturbation[size];
@@ -306,8 +305,6 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 				vect_PbestMinusPosition,
 				numInformants,
 				pBestIntheInformants,
-				alpha_t,
-				l,
 				iteration,
 				solImproved);
 		getRectangularDNPP(
@@ -324,8 +321,6 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 				vect_PbestMinusPosition,
 				numInformants,
 				pBestIntheInformants,
-				alpha_t,
-				l,
 				iteration,
 				solImproved);
 		getSphericalDNPP(
@@ -342,8 +337,6 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 				vect_PbestMinusPosition,
 				numInformants,
 				pBestIntheInformants,
-				alpha_t,
-				l,
 				iteration,
 				solImproved);
 		getAdditiveStochasticDNPP(
@@ -439,12 +432,10 @@ void Particle::computeSubtractionPerturbationRotation(
 		vector<vector< double> > &vect_PbestMinusPosition,
 		int &numInformants,
 		bool pBestIntheInformants,
-		double alpha_t,
-		double l_value,
 		long int iteration,
 		int solImprov) {
 
-	double l[size]; //particle's Gbest
+	double l[size]; //particle's lbest
 	double pb[size];
 	double pert_vrand[size];
 	//bool increase_numInformants = false;
@@ -473,12 +464,11 @@ void Particle::computeSubtractionPerturbationRotation(
 
 	//1.2- Check if the particle's current.x == pBest and create a perturbed pbest position
 	bool isStagnated=true;
-	for (int i=0; i<size; i++){
+	for (int i=0; i<size; i++)
 		if (current.x[i] != pbest.x[i]){
 			isStagnated = false;
 			break;
 		}
-	}
 	if (isStagnated && config->useIndStrategies()) {
 		if (config->verboseMode()) cout << "\t\tnotice::applying perturbation to pbest of particle "
 				<< this->id << endl;
@@ -1006,9 +996,16 @@ void Particle::getRandomAdditivePerturbation(Configuration* config, double vect_
 	//1.0 - Set the perturbation magnitude
 	if (config->getMagnitude2CS() == MAGNITUDE_EUC_DISTANCE){
 		double distance = 0.0;
+		int bestID = 0;
+
+		//Get the position of gBestID in the neighbours array
+		for(long unsigned int i=0;i<neighbours.size();i++){
+			if (neighbours.at(i)->getID() == gBestID)
+				bestID = i;
+		}
 		//Compute the norm of pos_x - lbest_x
 		for(int i=0;i<size;i++){
-			distance += pow((current.x[i] - neighbours.at(gBestID)->pbest.x[i]),2);
+			distance += pow((current.x[i] - neighbours.at(bestID)->pbest.x[i]),2);
 		}
 		distance = sqrt(distance);
 

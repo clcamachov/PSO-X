@@ -745,10 +745,8 @@ int main(int argc, char *argv[] ){
 		cout << "Best solution cost: " << fixed << swarm->getGlobalBest().eval << endl;
 		cout << "Best solution components: "; swarm->printGbest(config->getProblemDimension());
 		cout << "Total time: " << fixed << time_taken << setprecision(6) << " sec" << endl;
-		config->printParameters();
+		//config->printParameters();
 	}
-
-
 
 	//close the file
 	if (config->logOutput())
