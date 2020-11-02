@@ -427,18 +427,17 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		esteps = finalPopSize-3;
 	}
 
-	if (branching < 2)
-		branching = 2;
-	if (branching > particles){
-		//branching = floor(particles/2);
-		cerr << "\nError: The branching degree of a hierarchical topology (" << branching <<  ") should be <= that the population size (" << particles << ").\n";
-		return(false);
-	}
-
-	//Topology and model of influence check
-	if (topology == TOP_HIERARCHICAL && modelOfInfluence == MOI_RANKED_FI ){
-		modelOfInfluence = MOI_FI;
-		//cout << "\nModelOfInfluence.type = ranked is not allowed in Hierarchical topology.\n";
+	//Check constraints of the Hierarchical Topology
+	if (topology == TOP_HIERARCHICAL){
+		if( modelOfInfluence == MOI_RANKED_FI )
+			modelOfInfluence = MOI_FI;
+		if (branching < 2)
+			branching = 2;
+		if (branching > particles){
+			//branching = floor(particles/2);
+			cerr << "\nError: The branching degree of a hierarchical topology (" << branching <<  ") should be <= that the population size (" << particles << ").\n";
+			return(false);
+		}
 	}
 
 	//The inertia weight schedule
