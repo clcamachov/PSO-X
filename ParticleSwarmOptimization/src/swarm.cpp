@@ -1857,7 +1857,7 @@ double Swarm::computeOmega2(Configuration* config){
 	case O2_EQUAL_TO_O1:
 		return config->getOmega1();
 	case O2_RANDOM:
-		return 0.5 * (problem->getRandom01()/2.0);
+		return 0.5 + (problem->getRandom01()/2.0);
 	case O2_ZERO:
 		return 0.0; //the component is not used
 	case O2_CONSTANT:
@@ -1873,7 +1873,7 @@ double Swarm::computeOmega3(Configuration* config){
 		return config->getOmega1();
 	//Random value
 	else if (config->getOmega3CS() == O3_RANDOM)
-		return 0.5 * (problem->getRandom01()/2.0);
+		return 0.5 + (problem->getRandom01()/2.0);
 	//Zero -- component is not being used
 	else if (config->getOmega3CS() == O3_ZERO)
 		return 0.0;
