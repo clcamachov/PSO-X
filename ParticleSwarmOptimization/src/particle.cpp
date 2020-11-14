@@ -972,10 +972,16 @@ void Particle::setPerturbation1Magnitude(Configuration* config, double pert_vran
 	if (config->getMagnitude1CS() == MAGNITUDE_OBJ_F_DISTANCE){
 		double ob_distance;
 		//Compute the distance in terms of the objective function
-		if (this->id == this->gBestID)
-			ob_distance = 1-RNG::randVal(0.0,1.0);
+		if (this->id == this->gBestID){
+			if (config->getMagnitude1() > 0)
+				ob_distance = config->getMagnitude1();
+		}
 		else
-			ob_distance = 1-(current.eval-gbest.eval)/current.eval;
+			ob_distance = (gbest.eval-current.eval)/gbest.eval;
+
+		//If the algorithm is stagnated, this can happen
+		if (config->getMagnitude1() <= 0)
+			ob_distance = RNG::randVal(PERTURBATION_PRECISION,0.1);
 
 		config->setMagnitude1(ob_distance);
 
@@ -1026,10 +1032,16 @@ void Particle::getRandomAdditivePerturbation(Configuration* config, double vect_
 	else if (config->getMagnitude2CS() == MAGNITUDE_OBJ_F_DISTANCE){
 		double ob_distance;
 		//Compute the distance in terms of the objective function
-		if (this->id == this->gBestID)
-			ob_distance = 1-RNG::randVal(0.0,1.0);
+		if (this->id == this->gBestID){
+			if (config->getMagnitude2() > 0)
+				ob_distance = config->getMagnitude2();
+		}
 		else
-			ob_distance = 1-(current.eval-gbest.eval)/current.eval;
+			ob_distance = (gbest.eval-current.eval)/gbest.eval;
+
+		//If the algorithm is stagnated, this can happen
+		if (config->getMagnitude2() <= 0)
+			ob_distance = RNG::randVal(PERTURBATION_PRECISION,0.1);
 
 		PM = config->getMag2_parm_m()*ob_distance;
 		config->setMagnitude2(PM);

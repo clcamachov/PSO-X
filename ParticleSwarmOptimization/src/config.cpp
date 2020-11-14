@@ -479,7 +479,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 
 
 	//Check problem dimensions
-	if (problemDimension < 2 || problemDimension > 100) {
+	if (problemDimension < 2 || problemDimension > 1000) {
 		cerr << "\nError: Dimension should be between 2 and 100.\n";
 		return(false);
 	}
