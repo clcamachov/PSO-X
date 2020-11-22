@@ -292,7 +292,7 @@
 #define ANGLE_ADAPTIVE					2
 
 #define POP_CONSTANT					0
-#define POP_LADDERED					1
+#define POP_TIME_VARYING				1
 #define POP_INCREMENTAL					2
 
 #define PARTICLE_INIT_RANDOM 			0
@@ -327,6 +327,7 @@ private:
 	long int finalPopSize;
 	int particlesToAdd;
 	int p_intitType;		//new particle initialization type
+	int popTViterations;
 
 	//Acceleration coefficients
 	double accelCoeffCS;
@@ -457,6 +458,8 @@ public:
 	void setParticlesToAdd(int new_pool_size);
 	int getParticleInitType();
 	bool useIndStrategies();
+	int getPopTViterations();
+
 
 	//Velocity
 	void setVelocityRule(int rule);

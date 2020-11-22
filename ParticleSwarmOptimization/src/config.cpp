@@ -95,6 +95,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			particlesToAdd = atoi(argv[i+1]);
 			i++;
 			//cout << "\n finalPopSize has been received \n";
+		} else if (strcmp(argv[i], "--popTViterations") == 0){
+			popTViterations = atoi(argv[i+1]);
+			i++;
+			//cout << "\n popTViterations has been received \n";
 		} else if (strcmp(argv[i], "--pIntitType") == 0){
 			p_intitType = atoi(argv[i+1]);
 			i++;
@@ -381,8 +385,12 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		if (branching > (int)initialPopSize)
 			initialPopSize = branching;
 	}
-	if (populationCS != POP_CONSTANT)
+	if (populationCS == POP_INCREMENTAL)
 		particles = initialPopSize;
+	if (populationCS == POP_TIME_VARYING){
+		if (particles  < initialPopSize) particles =  initialPopSize;
+		if (particles  > finalPopSize) particles =  finalPopSize;
+	}
 
 	//Check the bounds of the acceleration coefficients
 	//initialPhi1 finalPhi1 initialPhi2 finalPhi2
@@ -482,6 +490,13 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	if (problemDimension < 2 || problemDimension > 1000) {
 		cerr << "\nError: Dimension should be between 2 and 100.\n";
 		return(false);
+	}
+
+	if (populationCS == POP_TIME_VARYING) {
+		if (popTViterations < 2)
+			popTViterations = 2;
+		if (popTViterations > 100)
+			popTViterations = 100;
 	}
 
 	//Termination criteria
@@ -598,6 +613,7 @@ void Configuration::setDefaultParameters(){
 	particlesToAdd = 1;						//number of particles added in a non-constant PopCS
 	p_intitType = PARTICLE_INIT_MODEL;      //type of initialization of particles in a non-constant PopCS
 	reinitializePosition = true;			//reinitialize particles' position with precision of 10^-5
+	popTViterations = 2;
 
 	/** Acceleration coefficients **/
 	accelCoeffCS = AC_CONSTANT;				//acceleration coefficients control strategy
@@ -715,10 +731,10 @@ void Configuration::printParameters(){
 	//<< "  populationCS      " << getModelOfInfluence() << "\n"
 	switch (getPopulationCS()){
 	case POP_CONSTANT: 		cout	<< "  populationCS:      POP_CONSTANT\n"; break;
-	case POP_LADDERED: 		cout	<< "  populationCS:      POP_LADDERED\n"
-			<< "  initialPopSize:    " << initialPopSize << "\n"
-			<< "  finalPopSize:      " << finalPopSize << "\n"
-			<< "  p_intitType:       " << getParticleInitType() << "\n"; break;
+	case POP_TIME_VARYING: 		cout	<< "  populationCS:      POP_TIME_VARYING\n"
+			<< "  minimumPopSize:    " << initialPopSize << "\n"
+			<< "  maximumPopSize:    " << finalPopSize << "\n"
+			<< "  popTViterations:   " << getPopTViterations() << "\n"; break;
 	case POP_INCREMENTAL:	cout	<< "  populationCS:      POP_INCREMENTAL\n"
 			<< "  initialPopSize:    " << initialPopSize << "\n"
 			<< "  finalPopSize:      " << finalPopSize << "\n"
@@ -1061,6 +1077,9 @@ int Configuration::getParticlesToAdd(){
 }
 int Configuration::getParticleInitType(){
 	return p_intitType;
+}
+int Configuration::getPopTViterations(){
+	return popTViterations;
 }
 short Configuration::getOmega1CS(){
 	return omega1CS;

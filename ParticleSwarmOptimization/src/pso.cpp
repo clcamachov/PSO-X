@@ -558,11 +558,11 @@ Problem* initializeProblem() {
 /* Termination condition */
 bool terminationCondition() {
 	//Budget based on iterations
-	if (config->getMaxIterations() != 0 && iterations > config->getMaxIterations()-1) {
+	if (config->getMaxIterations() != 0 && iterations >= config->getMaxIterations()-1) {
 		return true;
 	}
 	//Budget based on evaluations of the objective function
-	if (config->getMaxFES() != 0 && evaluations > config->getMaxFES()) {
+	if (config->getMaxFES() != 0 && evaluations >= config->getMaxFES()) {
 		return true;
 	}
 	return false;
@@ -716,8 +716,9 @@ int main(int argc, char *argv[] ){
 		evaluations=evaluations + config->getSwarmSize();
 
 		//Update dynamic topologies
-		if (config->getTopology() == TOP_TIMEVARYING)
+		if (config->getTopology() == TOP_TIMEVARYING){
 			swarm->updateTimeVaryingTopology(config, iterations) ;
+		}
 		if (config->getTopology() == TOP_HIERARCHICAL){
 			swarm->updateTree(config->getBranchingDegree());
 			//cout << "\n Hierarchical topology updated" << endl;

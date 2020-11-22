@@ -93,6 +93,7 @@ public:
 	void updateHierarchical(int branching, long previous_size);
 	//void clearResizeSimpSwarm(vector<SimplifySwarm> &sSwarm);
 	void clearResizeSimpSwarm(Configuration* config, long int iteration);
+	void removeOneParticle(Configuration* config);
 
 	//Utils
 	void rankParticles(vector<SimplifySwarm> &sSwarm);

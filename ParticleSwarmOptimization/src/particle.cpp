@@ -352,12 +352,13 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 
 	//Compute new position
 	for (int i=0;i<size;i++) {
-		velocity[i] = omega1 *  velocity[i] +
-				omega2 * vect_distribution[i] +
-				omega3 * vect_perturbation[i];
+		velocity[i] = (omega1 *  velocity[i]) +
+				(omega2 * vect_distribution[i]) +
+				(omega3 * vect_perturbation[i]);
 
 		//Clamp velocity
-		if (hasVelocitybounds && config->useIndStrategies()) {
+		//if (hasVelocitybounds && config->useIndStrategies()) {
+		if (hasVelocitybounds) {
 			if (velocity[i] > maxVelLimit)
 				current.x[i] = current.x[i] + maxVelLimit;
 			else if (velocity[i] < minVelLimit)
@@ -901,7 +902,7 @@ double Particle::applyInformedPerturbation(int pertubType, double pert_vrand[], 
 		returnVal = pos_xi + RNG::randGauss(1.0)*pert_vrand[index];
 	}
 	else if(pertubType == PERT1_LEVY){
-		//TODO: add parameter alpha as parameter
+
 		double alpha = floor(RNG::randVal(10,20))/10;
 		//alpha = 1 = Cauchy distribution
 		//alpha = 2 = Gaussian distribution
@@ -1136,16 +1137,16 @@ void Particle::multiplyVectorByRndMatrix(Configuration* config, vector<vector< d
 	}
 
 	if (config->verboseMode()){
-		cout << "\tvec::vect_received: [ " ;
+		cout << "\tvec::Pb-Pos[" << informant << "]:[ " ;
 		for (int i=0; i<size; i++){
 			cout << vect_PbestMinusPosition[informant][i] << " ";
 		}
 		cout << "]" << endl;
-		cout << "\tvec::vect_perturbed: [ " ;
+		cout << "\tvec::rndMtx (Pb-Pos[" << informant << "]:[ " ;
 		for (int i=0; i<size; i++){
 			cout << resultvxM[i] << " ";
 		}
-		cout << "]" << endl;
+		cout << "]\n" << endl;
 	}
 	//Copy the perturbed vector in the distribution vector
 	for (int i=0; i<size; i++){
@@ -1235,8 +1236,8 @@ double Particle::getAnAngle(Configuration* config, int solImprov, long int itera
 		}
 	}
 
-	if (config->verboseMode())
-		cout << "\tvar::rotation_angle: " << angle << endl;
+	//	if (config->verboseMode())
+	//		cout << "\tvar::rotation_angle: " << angle << endl;
 
 	return angle;
 }
@@ -1388,25 +1389,24 @@ void Particle::setgBestID(int gB_ID){
 /*Check the neighborhood for the best particle */
 int Particle::getBestOfNeibourhood(){
 	//double aux_eval=gbest.eval;
-	double aux_eval=LDBL_MAX;
-	int best = -1;
-	int pos = -1;
+	double aux_eval=neighbours.at(0)->getPbestEvaluation();
+	int pos = 0;
 
 	//Look for best particle in the neighborhood
-	for(unsigned int i=0; i<neighbours.size();i++){
+	for(unsigned int i=1; i<neighbours.size();i++){
 		if(neighbours.at(i)->getPbestEvaluation() < aux_eval){
 			aux_eval = neighbours.at(i)->getPbestEvaluation();
-			best = neighbours.at(i)->getID();
 			pos = i;
 		}
 	}
 	//New best particle in the neighborhood
-	if(best!=-1){
+	if(gBestID != neighbours.at(pos)->getID()){
 		updateGbestParticle(neighbours[pos]->getPbestPosition(), neighbours[pos]->getPbestEvaluation());
-		gBestID = best;
+		gBestID = neighbours.at(pos)->getID();
+		return neighbours.at(pos)->getID();
 	}
-
-	return best;
+	else
+		return gBestID;
 }
 
 int Particle::getRandomNeighbor(){
