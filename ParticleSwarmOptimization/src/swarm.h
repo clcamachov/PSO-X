@@ -79,6 +79,7 @@ public:
 	void getParticleParentsIDs(int particleID, int *ParentsArray1D);
 	void printAllParentNodes();
 	int getParticleNumParents(int particleID);
+	void updateIDinTree(int branching, long swarm_size, int OldAndNewIDs[][1]);
 
 	//Perturbation
 	void updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration);

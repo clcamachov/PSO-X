@@ -1442,6 +1442,10 @@ int Particle::getID(){
 	return id;
 }
 
+void Particle::setID(int newID){
+	id = newID;
+}
+
 void Particle::eraseNeighborbyID(int nid){
 	for(unsigned int i=0;i<neighbours.size();i++){
 		if(nid == neighbours.at(i)->id){

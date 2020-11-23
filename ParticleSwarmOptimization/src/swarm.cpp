@@ -36,6 +36,7 @@ double prevGbest = LDBL_MAX;
 vector<SimplifySwarm> simpSwarm;
 long partRemoved = 0;
 long partAdded = 0;
+int sol_improved = 0;
 
 /* Variable for the topology and model of influence */
 vector<vector< int > > hierarchy;
@@ -200,7 +201,7 @@ int Swarm::countImprovedSolutions(Configuration* config, long int iteration){
 /*Move the swarm to new solutions */
 void Swarm::moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound) {
 
-	//Move particles
+	//Print info of the particles
 	if (config->verboseMode())
 		cout << "iteration: " << iteration << endl; //remove
 
@@ -213,9 +214,6 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		if (config->verboseMode())
 			cout << "lBest.at(t) [" << swarm.at(i)->getgBestID() << "]" << endl;
 	}
-
-	//Compute the number of solutions that improved in the last iteration
-	int sol_improved = countImprovedSolutions(config, iteration);
 
 	clearResizeSimpSwarm(config, iteration);
 
@@ -287,6 +285,9 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 		reinitializeParticlePosition(config);
 
 	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval, iteration);
+
+	//Compute the number of solutions that improved in the last iteration
+	sol_improved = countImprovedSolutions(config, iteration);
 
 }
 
@@ -740,6 +741,17 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 			//Create new fully connected topology
 			createFullyConnectedTopology();
 			break;
+		case TOP_HIERARCHICAL:
+				//Clear old connections
+				for(unsigned int i=0; i<swarm.size(); i++){
+					swarm.at(i)->neighbours.clear();
+				}
+				//Create new fully connected topology
+				createHierarchical(config->getBranchingDegree(), config->getFinalPopSize());
+				for (int j=0; j<=lastLevelComplete; j++)
+					updateTree(config->getBranchingDegree());
+
+				break;
 		case TOP_RING:
 			//Clear old connections
 			for(unsigned int i=0; i<swarm.size(); i++){
@@ -872,9 +884,14 @@ void Swarm::removeOneParticle(Configuration* config){
 				break;
 			}
 		}
+
 		//Update lastLevelComplete in case there are no more particles in that level
 		if(childsInLastLevel == 1)
 			lastLevelComplete--;
+
+//		if (config->verboseMode())
+//			printTree(config->getBranchingDegree(),swarm.size());
+
 	}
 	//Find worst particle
 	else {
@@ -906,6 +923,12 @@ void Swarm::removeOneParticle(Configuration* config){
 		cout << "\tnotice::new swarm.size() = " << swarm.size() << endl;
 	//Update variable size
 	config->setSwarmSize(swarm.size()); //long int particles
+
+
+	for (unsigned int i=0;i<swarm.size();i++){
+		swarm.at(i)->setID(i);
+	}
+	//updateIDinTree(config->getBranchingDegree(), swarm.size(), OldAndNewIDs);
 }
 
 
@@ -1310,16 +1333,17 @@ void Swarm::createHierarchical(int branching, int finalPopSize){
 	int maxWidth = 0;
 	int temp_LastLevelComplete = 0;
 	long int temp_firstPart = 1;
+	lastLevelComplete = 0;
 
 	//Find last level that can be filled in the tree with max width and the id of the last particle
-	while (size - pow(branching,lastLevelComplete) >= pow(branching,lastLevelComplete+1)) {
+	while (swarm.size() - pow(branching,lastLevelComplete) >= pow(branching,lastLevelComplete+1)) {
 		lastLevelComplete++;
 		firstPart+=pow(branching,lastLevelComplete);
 	}
 	//It can be the case that for a very large branching degree the firstPart variable
 	//is larger than the size of the swarm. In those cases, we find the last level complete
 	//without exceeding the swarm size
-	while (firstPart > size){
+	while ((long unsigned)firstPart > swarm.size()){
 		lastLevelComplete--;
 		firstPart-=pow(branching,lastLevelComplete);
 	}
@@ -1329,7 +1353,7 @@ void Swarm::createHierarchical(int branching, int finalPopSize){
 	if (firstPart > actualSpace)
 		firstPart = actualSpace;
 	//Constant population size
-	if (finalPopSize == size){
+	if ((long unsigned)finalPopSize == swarm.size()){
 		maxWidth = pow(branching,lastLevelComplete+1);
 		temp_LastLevelComplete = lastLevelComplete;
 		temp_firstPart = firstPart;
@@ -1599,7 +1623,7 @@ void Swarm::updateTree(int branching){
 	int parentNode = swarm.at(hierarchy.at(0).at(0))->getParent();	//start at the root top-bottom
 	int parentH = 0;
 	int parentWidth = -1;
-	for(unsigned int i=1;i<size;i++){
+	for(unsigned int i=1;i<swarm.size();i++){
 		if (h <= lastLevelComplete){
 			if (width < pow(branching,h)){ //max level width
 				if (parentNode!=swarm.at(hierarchy.at(h).at(width))->getParent()){
@@ -1661,7 +1685,7 @@ void Swarm::updateTree(int branching){
 			}
 			iterCount++;
 		}
-		if (childCounter==size)
+		if ((long unsigned)childCounter==swarm.size())
 			break;
 	}
 }
@@ -1734,10 +1758,11 @@ void Swarm::printAllParentNodes(){
 
 void Swarm::printTree(int branching, long swarm_size) {
 	//Raw printing of the structure
+	cout << "\nvar::lastLevelComplete " << lastLevelComplete << endl;
 	cout << endl << endl;
 	for (int i=0; i<=lastLevelComplete+1; i++){
 		cout << "Level " << i << ": ";
-		for (int j=0; j<pow(branching,lastLevelComplete+1); j++)
+		for (int j=0; j<pow(branching,i); j++)
 			cout << hierarchy.at(i).at(j) << " ";
 		cout << endl;
 	}
@@ -1791,332 +1816,6 @@ void Swarm::printTree(int branching, long swarm_size) {
 	}
 }
 
-
-//void Swarm::updateTree(int branching){
-//	//Traverse the tree and update the position of the particles
-//	//reset indexes to traverse the entire tree
-//	//cout << endl << "Traversing the tree: " << endl;
-//	int h = 1;
-//	int width = 0;
-//	int iterCount = 0;
-//	int childCounter = 1;
-//	int newParent = 0;
-//	int newH = 0;
-//	int newWidth = 0;
-//	//get Root node ID
-//	int parentNode;
-//	int currentPNodeID;
-//	int currentPNodeIndex;
-//	for (unsigned int i=0;i<swarm.size();i++){
-//		if (swarm.at(i)->getID() == hierarchy.at(0).at(0)){
-//			parentNode = swarm.at(i)->getParent();
-//			break;
-//		}
-//	}
-//	//int parentNode = swarm.at(hierarchy.at(0).at(0))->getParent();	//start at the root top-bottom
-//	int parentH = 0;
-//	int parentWidth = -1;
-//	for(unsigned int i=1;i<swarm.size();i++){
-//		if (h <= lastLevelComplete){
-//			if (width < pow(branching,h)){ //max level width
-//				//Get particle ID and position in swarm
-//				for (unsigned int l=0;l<swarm.size();l++){
-//					if (swarm.at(l)->getID() == hierarchy.at(h).at(width)){
-//						currentPNodeID = swarm.at(l)->getParent();
-//						currentPNodeIndex = l;
-//						break;
-//					}
-//				}
-//				//if (parentNode!=swarm.at(hierarchy.at(h).at(width))->getParent()){
-//				//	parentNode=swarm.at(hierarchy.at(h).at(width))->getParent();
-//				if (parentNode!=currentPNodeID){
-//					parentNode=currentPNodeID;
-//					//cout << "Parent: " << parentNode << endl;	//Parent coordinates
-//					parentH = h-1;
-//					parentWidth++;
-//				}
-//				//cout << "\t\t" << hierarchy[h][width] << "->" << swarm.at(hierarchy[h][width])->getParent() << endl;
-//				//if (swarm.at(hierarchy.at(h).at(width))->getCurrentEvaluation() < swarm.at(parentNode)->getCurrentEvaluation()){
-//				//	newParent = swarm.at(hierarchy.at(h).at(width))->getID();	//newParent coordinates (this is the child that becomes parent)
-//				if (swarm.at(currentPNodeIndex)->getCurrentEvaluation() < swarm.at(parentNode)->getCurrentEvaluation()){
-//					newParent = swarm.at(currentPNodeIndex)->getID();	//newParent coordinates (this is the child that becomes parent)
-//					newH = h;
-//					newWidth = width;
-//					//we change places only when newParent is different from getParent() of the last particle
-//					//this means that at least one of the children will become parent.
-//					//The id of this particle is saved in newParent
-//					//if (width > 0 && (width+1) % branching == 0 && (newParent != swarm.at(hierarchy.at(h).at(width))->getParent()))
-//					//	swapNodes(newParent, newH, newWidth, parentNode, parentH, parentWidth, branching, h, width, iterCount);
-//					if (width > 0 && (width+1) % branching == 0 && (newParent != swarm.at(currentPNodeIndex)->getParent()))
-//						swapNodes(newParent, newH, newWidth, parentNode, parentH, parentWidth, branching, h, width, iterCount);
-//				}
-//				width++;
-//				childCounter++;
-//			}
-//			if (width == pow(branching,h)){
-//				h++;
-//				width=0;
-//				parentWidth=-1;
-//				parentNode=-1;
-//				//cout << endl << "Level " << h << ": " << endl;
-//			}
-//		}
-//		else {
-//			//Get particle ID and position in swarm
-//			for (unsigned int k=0;k<swarm.size();k++){
-//				if (swarm.at(k)->getID() == hierarchy.at(h-1).at(iterCount)){
-//					parentNode = swarm.at(k)->getParent();
-//					break;
-//				}
-//			}
-//			// parentNode = hierarchy.at(h-1).at(iterCount);
-//			parentH = h-1;
-//			parentWidth++;
-//			newParent = parentNode;
-//			//cout << "Parent: " << parentNode << endl;
-//
-//			for(int j=iterCount*branching;j<(iterCount*branching)+branching;j++){
-//				//Get particle ID and position in swarm
-//				for (unsigned int l=0;l<swarm.size();l++){
-//					if (swarm.at(l)->getID() == hierarchy.at(h).at(j)){
-//						currentPNodeID = swarm.at(l)->getParent();
-//						currentPNodeIndex = l;
-//						break;
-//					}
-//				}
-//				try{
-//					//if (swarm.at(hierarchy.at(h).at(j))->getParent() == parentNode) {
-//					if (currentPNodeID == parentNode) {
-//						//cout << "\t\t" << hierarchy[h][j] << "->" << swarm.at(hierarchy[h][j])->getParent() << endl;
-//						childCounter++;
-//					}
-//					//Check if there is a new parent
-//					if (swarm.at(currentPNodeIndex)->getCurrentEvaluation() < swarm.at(parentNode)->getCurrentEvaluation()){
-//						newParent = swarm.at(currentPNodeIndex)->getID();	//newParent coordinates (this is the  that becomes parent)
-//						newH = h;
-//						newWidth = j;
-//					}
-//					//Switch parent and child after comparing with all children
-//					if (j == (iterCount*branching)+branching-1 && (newParent != currentPNodeID)){
-//						swapNodes(newParent, newH, newWidth, parentNode, parentH, parentWidth, branching, h, width, iterCount);
-//					}
-//				}
-//				catch (const std::exception& e) {
-//					break;
-//				}
-//			}
-//
-//			iterCount++;
-//		}
-//		if ((long unsigned) childCounter==swarm.size())
-//			break;
-//	}
-//}
-//
-//void Swarm::swapNodes(int newParent, int newH, int newWidth, int parentNode, int parentH, int parentWidth, int branching, int h, int width, int iterCount){
-//	//cout << "\t\t New parent: " << newParent << " coordinates: "  << newH << " "<< newWidth << endl;
-//	//cout << "\t\t Replaces: " << parentNode << " coordinates: "  << parentH << " "<< parentWidth << endl;
-//
-//	int childNodeIndex;
-////	int parentID;
-//	int parentNodeIndex;
-//	int partIndex;
-//	//Get particle ID and position in swarm
-//	for (unsigned int l=0;l<swarm.size();l++){
-//		if (swarm.at(l)->getID() == hierarchy.at(newH).at(newWidth)){
-//			childNodeIndex = l;
-//			break;
-//		}
-//	}
-//	//Get particle ID and position in swarm
-//	for (unsigned int l=0;l<swarm.size();l++){
-//		if (swarm.at(l)->getID() == hierarchy.at(parentH).at(parentWidth)){
-//			//parentID = swarm.at(l)->getParent();
-//			parentNodeIndex = l;
-//			break;
-//		}
-//	}
-//
-//	//Swap child and parent IDs
-////	swarm.at(hierarchy.at(newH).at(newWidth))->setParent(swarm.at(hierarchy.at(parentH).at(parentWidth))->getParent());
-////	swarm.at(hierarchy.at(parentH).at(parentWidth))->setParent(newParent); //parent
-//
-//	//Swap places in swarm
-//	swarm.at(childNodeIndex)->setParent(swarm.at(parentNodeIndex)->getParent());
-//	swarm.at(swarm.at(parentNodeIndex)->getParent())->setParent(newParent); //parent
-//	//Swap places in hierarchy
-//	hierarchy.at(parentH).at(parentWidth) = newParent;
-//	hierarchy.at(newH).at(newWidth) = parentNode;
-//
-//	//cout << "\t\t s" << hierarchy[newH][newWidth] << "->" << swarm.at(hierarchy[newH][newWidth])->getParent() << endl;
-//	//cout << "\t\t s" << hierarchy[parentH][parentWidth] << "->" << swarm.at(hierarchy[parentH][parentWidth])->getParent() << endl;
-//
-//	if (h <= lastLevelComplete) {
-//		//Update brothers parentID
-//		for (int k=width-(branching-1); k<=width; k++){
-//			//Find particles position in swarm
-//			for (unsigned int l=0;l<swarm.size();l++){
-//				if (swarm.at(l)->getID() == hierarchy.at(h).at(k)){
-//					//parentID = swarm.at(l)->getParent();
-//					partIndex = l;
-//					break;
-//				}
-//			}
-//			//swarm.at(hierarchy.at(h).at(k))->setParent(newParent);
-//			swarm.at(partIndex)->setParent(newParent);
-//		}
-//		//Update any children that the old child (now parent) may have had
-//		for (int k=branching*width; k<(branching*width)+branching; k++){
-//			//Find particles position in swarm
-//			for (unsigned int l=0;l<swarm.size();l++){
-//				partIndex = -1; //initialize to -1 so the loop breaks with the catch when there are no more childs
-//				if (swarm.at(l)->getID() == hierarchy.at(h+1).at(k)){
-//					//parentID = swarm.at(l)->getParent();
-//					partIndex = l;
-//					break;
-//				}
-//			}
-//			try {
-//				//swarm.at(hierarchy.at(h+1).at(k))->setParent(parentNode);
-//				swarm.at(partIndex)->setParent(parentNode);
-//				//cout << "\t\t c" << hierarchy[h+1][k] << "->" << swarm.at(hierarchy[h+1][k])->getParent() << endl;
-//			}
-//			catch (const std::exception& e) {
-//				break;
-//			}
-//		}
-//	}
-//	if (h == lastLevelComplete+1) {
-//		//Update brothers parentID
-//		for(int k=iterCount*branching;k<(iterCount*branching)+branching;k++){
-//			for (unsigned int l=0;l<swarm.size();l++){
-//				partIndex = -1; //initialize to -1 so the loop breaks with the catch when there are no more childs
-//				if (swarm.at(l)->getID() == hierarchy.at(h).at(k)){
-//					//parentID = swarm.at(l)->getParent();
-//					partIndex = l;
-//					break;
-//				}
-//			}
-//			try{
-//				//swarm.at(hierarchy.at(h).at(k))->setParent(newParent);
-//				swarm.at(partIndex)->setParent(newParent);
-//				//cout << "\t\t b" << hierarchy[h][k] << "->" << swarm.at(hierarchy[h][k])->getParent() << endl;
-//			}
-//			catch (const std::exception& e) {
-//				break;
-//			}
-//		}
-//	}
-//}
-//
-//void Swarm::printAllParentNodes(){
-//	int parentNode = 0;
-//	for(unsigned int i=0; i<swarm.size(); i++){
-//		cout << "Particle " << i << ": " ;
-//		parentNode = swarm.at(i)->getParent();
-//
-//		if (parentNode==-1){
-//			cout << "Root node";
-//		}
-//		else{
-//			while (parentNode != -1){
-//				cout << parentNode << " ";
-//				parentNode = swarm.at(parentNode)->getParent();
-//			}
-//		}
-//		cout << endl ;
-//	}
-//}
-//
-//void Swarm::printTree(int branching, long swarm_size) {
-//	//Raw printing of the structure
-//	cout << endl << endl;
-//	for (int i=0; i<=lastLevelComplete+1; i++){
-//		cout << "Level " << i << ": ";
-//		for (int j=0; j<pow(branching,lastLevelComplete+1); j++)
-//			cout << hierarchy.at(i).at(j) << " ";
-//		cout << endl;
-//	}
-//
-//	int parentNode;
-//	int parentNodeIndex;
-//	int currentPNodeID;
-//	int partIndex;
-//	//Find particle ID and position in swarm
-//	for (unsigned int i=0;i<swarm.size();i++){
-//		if (swarm.at(i)->getID() == hierarchy.at(0).at(0)){
-//			parentNode = swarm.at(i)->getParent();
-//			parentNodeIndex = i;
-//			break;
-//		}
-//	}
-//
-//	//Print tree -- this is the same algorithm we use to traverse the tree and update the position of the particles
-//	cout << "\n\nRoot node: " << endl;
-//	//cout << "\t\t" << hierarchy.at(0).at(0) << "->" << swarm.at(hierarchy.at(0).at(0))->getParent() << endl << "Level 1: " << endl;
-//	cout << "\t\t" << swarm.at(parentNodeIndex)->getID() << "->" << parentNode << endl << "Level 1: " << endl;
-//	//reset indexes to traverse the entire tree
-//	int h = 1;
-//	int width = 0;
-//	int iterCount = 0;
-//	int childCounter = 1;
-//	for(unsigned int i=1;i<swarm_size;i++){
-//		if (h <= lastLevelComplete){
-//			if (width < pow(branching,h)){ //max level width
-//				//Find particle ID and position in swarm
-//				for (unsigned int l=0;l<swarm.size();l++){
-//					if (swarm.at(l)->getID() == hierarchy.at(h).at(width)){
-//						currentPNodeID = swarm.at(l)->getParent();
-//						break;
-//					}
-//				}
-//				if (parentNode!=currentPNodeID){
-//					parentNode=currentPNodeID;
-//					cout << "Parent: " << parentNode << endl;
-//				}
-//				cout << "\t\t" << hierarchy.at(h).at(width) << "->" << currentPNodeID << endl;
-//				width++;
-//				childCounter++;
-//			}
-//			if (width == pow(branching,h)){
-//				h++;
-//				width=0;
-//				cout << "Level " << h << ": " << endl;
-//			}
-//		}
-//		else {
-//			parentNode = hierarchy.at(h-1).at(iterCount);
-//			cout << "Parent: " << parentNode << endl;
-//			for(int j=iterCount*branching;j<(iterCount*branching)+branching;j++){
-//				//Find particle ID and position in swarm
-//				for (unsigned int l=0;l<swarm.size();l++){
-//					partIndex = -1; //initialize to -1 so the loop breaks with the catch when there are no more childs
-//					if (swarm.at(l)->getID() == hierarchy.at(h).at(j)){
-//						//parentID = swarm.at(l)->getParent();
-//						partIndex = l;
-//						break;
-//					}
-//				}
-//				if (partIndex == -1) break;
-//				try{
-//					if (swarm.at(partIndex)->getParent() == parentNode) {
-//						cout << "\t\t" << hierarchy.at(h).at(j) << "->" << swarm.at(partIndex)->getParent() << endl;
-//						childCounter++;
-//					}
-//				}
-//				//This exception is thrown when hierarchy[][] = -2 and we try to access a position of swarm.at(-2), which does not exist
-//				catch (const std::exception& e) {
-//					//cout << "h[" << h << "] j[" << j << "] iter " << iterCount << endl;
-//					break;
-//				}
-//			}
-//			iterCount++;
-//		}
-//		if ((unsigned)childCounter==swarm.size())
-//			break;
-//	}
-//}
-
 void Swarm::clearResizeSimpSwarm(Configuration* config, long int iteration){
 	//	if ((iteration > 1 &&
 	//			((config->getOmega1CS() == IW_SUCCESS_BASED || config->getOmega1CS() == IW_CONVERGE_BASED) ||
@@ -2136,7 +1835,7 @@ void Swarm::clearResizeSimpSwarm(Configuration* config, long int iteration){
 }
 
 // This function computes the inertia weight (omega1 in the GVU formula) according to the selected strategy
-double Swarm::computeOmega1(Configuration* config, long int iteration, long int id, bool newIteration){
+double Swarm::computeOmega1(Configuration* config, long int iteration, long int posIndex, bool newIteration){
 	//If all particle use the same inertia value, it is more efficient
 	//to compute it once at the beginning of the iteration
 	if (newIteration) {
@@ -2145,7 +1844,6 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		if (config->getOmega1CS() == IW_CONSTANT){
 			if (config->getOmega1() < -1 || config->getOmega1() > 1) //check convergence bounds
 				config->setOmega1(CONSTRICTION_COEFFICIENT);
-			//cout << "\tvar::Omega1: " << config->getOmega1() << " ";
 		}
 		//IW_L_INC - 1 - Linear increasing
 		else if (config->getOmega1CS() == IW_L_INC) {
@@ -2156,7 +1854,6 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 							(((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
 									(config->getFinalIW() - config->getInitialIW()))
 					);
-					//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 				}
 				else
 					config->setOmega1(config->getFinalIW());
@@ -2177,7 +1874,6 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 							(((double)(config->getIWSchedule() - iteration)/config->getIWSchedule())*
 									(config->getInitialIW() - config->getFinalIW()))
 					);
-					//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 				}
 				else
 					config->setOmega1(config->getFinalIW());
@@ -2192,7 +1888,6 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		//IW_RANDOM - 3 - Random
 		else if (config->getOmega1CS() == IW_RANDOM) {
 			config->setOmega1( 0.5 * (problem->getRandom01()/2.0));
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_NONL_DEC - 4 - Nonlinear decreasing
 		else if (config->getOmega1CS() == IW_NONL_DEC) {
@@ -2200,24 +1895,18 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					config->getFinalIW() + ((config->getInitialIW()-config->getFinalIW())*
 							pow((double)(iteration)/config->getMaxIterations(),alpha))
 			);
-			//cout << iteration << endl;
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_NONL_DEC_IMP - 5 - Nonlinear decreasing improved
 		else if (config->getOmega1CS() == IW_NONL_DEC_IMP) {
 			config->setOmega1(
 					pow(omegaXu, iteration)
 			);
-			//cout << iteration << endl;
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_NONL_DEC_TIME - 6 - Nonlinear decreasing time-dependent
 		else if (config->getOmega1CS() == IW_NONL_DEC_TIME) {
 			config->setOmega1(
 					pow((2.0/iteration), 0.3)
 			);
-			//cout << iteration << endl;
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_CHAOTIC_DEC - 7 Chaotic decreasing
 		else if (config->getOmega1CS() == IW_CHAOTIC_DEC) {
@@ -2226,8 +1915,6 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					(zFunction*config->getInitialIW()) + (config->getFinalIW()-config->getInitialIW()) *
 					((double)(config->getMaxIterations())-iteration)/config->getMaxIterations()
 			);
-			//cout << iteration << endl;
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_EXP_DEC - 8 - Natural exponential decreasing
 		else if (config->getOmega1CS() == IW_EXP_DEC) {
@@ -2235,8 +1922,6 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					config->getInitialIW() + (config->getFinalIW()-config->getInitialIW())*
 					exp((-10.0*iteration)/config->getMaxIterations())
 			);
-			//cout << iteration << endl;
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_OSCILLATING - 9 - Oscillating
 		else if (config->getOmega1CS() == IW_OSCILLATING) {
@@ -2248,8 +1933,6 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				);
 			else
 				config->setOmega1(config->getInitialIW());
-			//cout << iteration << endl;
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_LOG_DEC - 10 - Logarithm decreasing
 		else if (config->getOmega1CS() == IW_LOG_DEC) {
@@ -2257,8 +1940,6 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					config->getFinalIW() + (config->getInitialIW()-config->getFinalIW())*
 					log10(((10.0*iteration)/config->getMaxIterations())+ a )
 			);
-			//cout << iteration << endl;
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 
 		/* ****************************************************************************************************************/
@@ -2270,8 +1951,6 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			static double deltaOmega = (((double)config->getFinalIW()) - config->getInitialIW())/config->getMaxIterations();
 			iteration == 1 ? omega_2 = config->getFinalIW() : omega_2 = omega_2-deltaOmega;
 			config->setOmega1(omega_2);
-			//cout << iteration << endl;
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_VELOCITY_BASED - 12 - Based on velocity information
 		else if (config->getOmega1CS() == IW_VELOCITY_BASED) {
@@ -2291,40 +1970,14 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				(config->getOmega1()+lambda) >= config->getFinalIW() ?
 						config->setOmega1(config->getFinalIW()) : config->setOmega1(config->getOmega1()+lambda);
 			}
-			//cout << iteration << endl;
-			//cout << avVel << " -- " << idealVelocity << endl;
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_RANKS_BASED - 14 - Rank-based
 		else if (config->getOmega1CS() == IW_RANKS_BASED) {
-			//simpSwarm.clear();
-			//simpSwarm.resize(swarm.size());
-			//try {// vector::at throws an out-of-range
-			//rankParticles(simpSwarm);
-			//}
-			//catch (const std::out_of_range& oor) {
-			//simpSwarm.clear();
-			//simpSwarm.resize(swarm.size());
-			//rankParticles(simpSwarm);
-			//cerr << "Out of Range error: " << oor.what() << '\n';
-			//cout << "\tnotice::swarm.size() = " << swarm.size() << endl;
-			//cout << "\tnotice::simpSwarm.size() = " << simpSwarm.size() << endl;
 			rankParticles(simpSwarm);
-			//			}
-
 		}
 		//IW_SUCCESS_BASED - 15 Success-based
 		else if (config->getOmega1CS() == IW_SUCCESS_BASED) {
-			//if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
 			if (iteration == 1){
-				//simpSwarm contains a simplified copy of the swarm at t-1
-				//				simpSwarm.clear();
-				//				simpSwarm.resize(swarm.size());
-				//				for (unsigned int i=0;i<swarm.size();i++){
-				//					simpSwarm.at(i).id = swarm.at(i)->getID();
-				//					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				//				}
-				//clearResizeSimpSwarm(config, iteration);
 				config->setOmega1(config->getFinalIW()); //set inertia weight to its maximum value for the first iteration
 			}
 			if (iteration > 1){
@@ -2346,45 +1999,16 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
 						((double)S_i/swarm.size()))
 				);
-				//				//Copy particle's id and evaluation in simpSwarm for the next iteration
-				//				simpSwarm.clear();
-				//				simpSwarm.resize(swarm.size());
-				//				for (unsigned int i=0;i<swarm.size();i++){
-				//					simpSwarm.at(i).id = swarm.at(i)->getID();
-				//					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				//				}
-				//cout << iteration << endl;
-				//cout << "P[" << id << "]" << "rank: "<< ranking << " eval:" << current.eval << endl;
 			}
-			//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 		}
 		//IW_CONVERGE_BASED - 16 Convergence-based
 		else if (config->getOmega1CS() == IW_CONVERGE_BASED) {
-			//if ((iteration == 1 && config->getPopulationCS() == POP_CONSTANT) || config->getPopulationCS() != POP_CONSTANT){
 			if (iteration == 1 ){
 				double alpha_2 = config->get_iw_par_alpha_2();
 				double beta_2 = config->get_iw_par_beta_2();
-				//simpSwarm contains a simplified copy of the swarm at t-1
-				//				simpSwarm.clear();
-				//				simpSwarm.resize(swarm.size());
-				//				//Copy particle's id and evaluation in simpSwarm
-				//				for (unsigned int i=0;i<swarm.size();i++){
-				//					simpSwarm.at(i).id = swarm.at(i)->getID();
-				//					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-				//				}
-				clearResizeSimpSwarm(config, iteration);
 				if (config->getPopulationCS() == POP_CONSTANT)
 					config->setOmega1(1 - fabs(alpha_2/(1+beta_2)));
 			}
-			//			else{
-			//				simpSwarm.clear();
-			//				simpSwarm.resize(swarm.size());
-			//				//Copy particle's id and evaluation in simpSwarm for the next iteration
-			//				for (unsigned int i=0;i<swarm.size();i++){
-			//					simpSwarm.at(i).id = swarm.at(i)->getID();
-			//					simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
-			//				}
-			//			}
 		}
 		//Keep inertia constant during the execution
 		else {
@@ -2397,7 +2021,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 	else {
 		//These are the strategies that need to compute a independent inertia value for each particle
 		//Note that the variables used here are computed/allocated when (newIteration == true).
-		if (id != -1){
+		if (posIndex != -1){
 			double temp_Omega = 0;
 
 			switch (config->getOmega1CS()) {
@@ -2405,7 +2029,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			case IW_L_INC:{
 				if (config->getTopology() == TOP_HIERARCHICAL){
 					//From Hierarchical PSO
-					double k=((double)getParticleNumParents(id));
+					double k=((double)getParticleNumParents(posIndex));
 					config->setOmega1( config->getFinalIW() +
 							( ((config->getInitialIW()-config->getFinalIW()) * k) / (lastLevelComplete+1))
 					);
@@ -2423,7 +2047,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			case IW_L_DEC: {
 				if (config->getTopology() == TOP_HIERARCHICAL){
 					//From Hierarchical PSO
-					double k=((double)getParticleNumParents(id));
+					double k=((double)getParticleNumParents(posIndex));
 					config->setOmega1( config->getInitialIW() +
 							( ((config->getFinalIW()-config->getInitialIW()) * k)/(lastLevelComplete+1))
 					);
@@ -2439,12 +2063,8 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			//IW_SELF_REGULATING - 11 - Self-regulating
 			case IW_SELF_REGULATING:{
 				double eta = config->get_iw_par_eta();
-				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-				//cout << "\tvar::eta: " << eta << "\n";
-				//cout << "\tvar::id: " << id << "\n";
-				//cout << "\tvar::best_particle->getID(): " << best_particle->getID() << "\n";
 				//The best particle has a special inertia value
-				if (id == best_particle->getID())
+				if (posIndex == best_particle->getID())
 					temp_Omega = omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations());
 				else
 					temp_Omega = config->getOmega1();
@@ -2458,7 +2078,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					//cout << id << endl;
 				}
 				else {
-					R = swarm.at(id)->computeDistPbestGbest()*((((double)config->getMaxIterations())-iteration)/config->getMaxIterations());
+					R = swarm.at(posIndex)->computeDistPbestGbest()*((((double)config->getMaxIterations())-iteration)/config->getMaxIterations());
 					config->setOmega1( exp(-1*exp((R*-1))));
 					//cout << id << endl;
 				}
@@ -2469,7 +2089,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			//IW_RANKS_BASED - 14 - Rank-based
 			case IW_RANKS_BASED:{
 				config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
-						((double) swarm.at(id)->getRanking()/config->getSwarmSize()))
+						((double) swarm.at(posIndex)->getRanking()/config->getSwarmSize()))
 				);
 				//cout << id << endl;
 				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
@@ -2484,13 +2104,13 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 
 					//Find the particle in simpSwarm
 					for (unsigned int j=0; j<simpSwarm.size(); j++){
-						if (simpSwarm.at(j).id == swarm.at(id)->getID()){
+						if (simpSwarm.at(j).id == swarm.at(posIndex)->getID()){
 							//convergence factor
-							long double c_i = fabs(simpSwarm.at(j).eval - swarm.at(id)->getCurrentEvaluation())/
-									(simpSwarm.at(j).eval + swarm.at(id)->getCurrentEvaluation());
+							long double c_i = fabs(simpSwarm.at(j).eval - swarm.at(posIndex)->getCurrentEvaluation())/
+									(simpSwarm.at(j).eval + swarm.at(posIndex)->getCurrentEvaluation());
 							//diffusion factor
-							long double d_i = fabs(swarm.at(id)->getCurrentEvaluation() - global_best.eval) /
-									(swarm.at(id)->getCurrentEvaluation() + global_best.eval);
+							long double d_i = fabs(swarm.at(posIndex)->getCurrentEvaluation() - global_best.eval) /
+									(swarm.at(posIndex)->getCurrentEvaluation() + global_best.eval);
 							//set the inertia weight
 							config->setOmega1(1 - fabs(alpha_2*(1-c_i)) / (1+d_i)*(1+beta_2));
 							break;

@@ -127,6 +127,7 @@ public:
 
 	//Frankenstein's members
 	int getID();
+	void setID(int newID);
 	void eraseNeighborbyID(int nid);
 	int getRandomNonAdjacentNeighborID(Configuration* config);
 
