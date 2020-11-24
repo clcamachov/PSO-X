@@ -717,7 +717,7 @@ int main(int argc, char *argv[] ){
 
 		//Update dynamic topologies
 		if (config->getTopology() == TOP_TIMEVARYING){
-			swarm->updateTimeVaryingTopology(config, iterations) ;
+			swarm->updateTimeVaryingTopology(config, iterations);
 		}
 		if (config->getTopology() == TOP_HIERARCHICAL){
 			swarm->updateTree(config->getBranchingDegree());

@@ -138,7 +138,7 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 	} else if (config->getTopology() == TOP_TIMEVARYING) {
 		createFullyConnectedTopology();
 		if (config->getPopulationCS() != POP_INCREMENTAL)
-			config->setTopologyUpdatePeriod((int)floor((double)config->getTopologySchedule()/(config->getSwarmSize()-3)));
+			config->setTopologyUpdatePeriod((int)floor((double)config->getTopologySchedule()/(swarm.size()-3)));
 		else
 			config->setTopologyUpdatePeriod((int)floor((double)config->getTopologySchedule()/(config->getFinalPopSize()-3)));
 	} else if (config->getTopology() == TOP_VONNEUMANN) {
@@ -202,18 +202,29 @@ int Swarm::countImprovedSolutions(Configuration* config, long int iteration){
 void Swarm::moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound) {
 
 	//Print info of the particles
-	if (config->verboseMode())
+	if (config->verboseMode()){
 		cout << "iteration: " << iteration << endl; //remove
+		cout << "\tvar::swarm.size()" << swarm.size() << endl; //remove
+	}
+
 
 	//Update gBest/lBest of each particle
 	for (unsigned int i=0;i<swarm.size();i++){
-		if (config->verboseMode())
-			cout << "\tParticle [" << swarm.at(i)->getID() << "] -- lBest.at(t-1) [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
-		//The id of the gBest particle depends on the topology and model of influence
-		swarm.at(i)->getBestOfNeibourhood();
-		if (config->verboseMode())
-			cout << "lBest.at(t) [" << swarm.at(i)->getgBestID() << "]" << endl;
+//		try {// vector::at throws an out-of-range
+
+			if (config->verboseMode())
+				cout << "\tParticle [" << swarm.at(i)->getID() << "] -- lBest.at(t-1) [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
+			//The id of the gBest particle depends on the topology and model of influence
+			swarm.at(i)->getBestOfNeibourhood();
+			if (config->verboseMode())
+				cout << "lBest.at(t) [" << swarm.at(i)->getgBestID() << "]" << endl;
+//		}
+//		catch (const std::out_of_range& oor) {
+//			cerr << "Out of Range error when i=" << i << endl;
+//			exit (-1);
+//		}
 	}
+
 
 	clearResizeSimpSwarm(config, iteration);
 
@@ -289,6 +300,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	//Compute the number of solutions that improved in the last iteration
 	sol_improved = countImprovedSolutions(config, iteration);
 
+
 }
 
 int Swarm::getInformants(Configuration* config, int particleID, long int iteration){
@@ -310,8 +322,8 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				//Clear the vector
 				swarm.at(particleID)->InformantsPos.clear();
 
-				double bestEval;
-				int bestPos;
+				double bestEval = swarm.at(particleID)->neighbours.at(0)->getPbestEvaluation();
+				int bestPos = 0;
 				int iter = 0;
 				//We need to find the position index of the best particle IDs in TMP_Array in the particles neighbors vector
 				for (unsigned int i=0; i<swarm.at(particleID)->neighbours.size(); i++){
@@ -467,8 +479,8 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 					//Try to remove one particle from the swarm
 					if ((long)swarm.size()-1 > config->getInitialPopSize()){
 						removeOneParticle(config);
-						RNG::initializePermutation(config->getSwarmSize());
 						updateTopologyConnections(config, -1, iteration);
+						RNG::initializePermutation(swarm.size());
 						if (config->verboseMode())
 							cout << "\tnotice::one particle removed from the swarm after " << config->getPopTViterations()
 							<< " consecutive iterations where global_best has improved" << endl;
@@ -490,8 +502,8 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 					if ((long)swarm.size()+1 < config->getFinalPopSize()){
 						//If there is space in the swarm: add one particle
 						addParticles(problem, config, 1, iteration);
-						RNG::initializePermutation(config->getSwarmSize());
 						updateTopologyConnections(config, previous_size, iteration);
+						RNG::initializePermutation(swarm.size());
 						if (config->verboseMode())
 							cout << "\tnotice::one particle added to the swarm after " << config->getPopTViterations()
 							<< " consecutive iterations without a new global_best" << endl;
@@ -522,16 +534,16 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 		//Add k particle per iteration
 		if (previous_size+particleToAdd <= config->getFinalPopSize()){
 			addParticles(problem, config, particleToAdd, iteration);
-			RNG::initializePermutation(config->getSwarmSize());
 			updateTopologyConnections(config, previous_size, iteration);
+			RNG::initializePermutation(swarm.size());
 		}
 		else{
 			//See if we can add the difference
 			particleToAdd = config->getFinalPopSize()-previous_size;
 			if ( particleToAdd > 0){
 				addParticles(problem, config, particleToAdd, iteration);
-				RNG::initializePermutation(config->getSwarmSize());
 				updateTopologyConnections( config, previous_size, iteration);
+				RNG::initializePermutation(swarm.size());
 			}
 		}
 	}
@@ -654,24 +666,28 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 				}
 			}
 			else { //RING -- After the topology update period is finished
-				//Remove previous connect between the first and the last particle
-				swarm.at(0)->eraseNeighborbyID(previous_size-1);
-				swarm.at(previous_size-1)->eraseNeighborbyID(0);
-				for(unsigned int i=previous_size; i<swarm.size(); i++){
-					a=i-1;
-					b=i+1;
-					if(i==0)
-						a=swarm.size()-1;
-					if(i==(swarm.size()-1)){
-						b=0;
-						//Reconnect first particle with the last particle
-						swarm.at(0)->addNeighbour(swarm.at(i));
-						swarm.at(previous_size-1)->addNeighbour(swarm.at(previous_size));
-					}
-					//swarm.at(i)->addNeighbour(swarm.at(i));
-					swarm.at(i)->addNeighbour(swarm.at(a));
-					swarm.at(i)->addNeighbour(swarm.at(b));
+				//				//Remove previous connect between the first and the last particle
+				//				swarm.at(0)->eraseNeighborbyID(previous_size-1);
+				//				swarm.at(previous_size-1)->eraseNeighborbyID(0);
+				//				for(unsigned int i=previous_size; i<swarm.size(); i++){
+				//					a=i-1;
+				//					b=i+1;
+				//					if(i==0)
+				//						a=swarm.size()-1;
+				//					if(i==(swarm.size()-1)){
+				//						b=0;
+				//						//Reconnect first particle with the last particle
+				//						swarm.at(0)->addNeighbour(swarm.at(i));
+				//						swarm.at(previous_size-1)->addNeighbour(swarm.at(previous_size));
+				//					}
+				//					//swarm.at(i)->addNeighbour(swarm.at(i));
+				//					swarm.at(i)->addNeighbour(swarm.at(a));
+				//					swarm.at(i)->addNeighbour(swarm.at(b));
+				//				}
+				for(unsigned int i=0; i<swarm.size(); i++){
+					swarm.at(i)->neighbours.clear();
 				}
+				createRingTopology();
 			}
 			break;
 		case TOP_VONNEUMANN:
@@ -742,16 +758,15 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 			createFullyConnectedTopology();
 			break;
 		case TOP_HIERARCHICAL:
-				//Clear old connections
-				for(unsigned int i=0; i<swarm.size(); i++){
-					swarm.at(i)->neighbours.clear();
-				}
-				//Create new fully connected topology
-				createHierarchical(config->getBranchingDegree(), config->getFinalPopSize());
-				for (int j=0; j<=lastLevelComplete; j++)
-					updateTree(config->getBranchingDegree());
-
-				break;
+			//Clear old connections
+			for(unsigned int i=0; i<swarm.size(); i++){
+				swarm.at(i)->neighbours.clear();
+			}
+			//Create new fully connected topology
+			createHierarchical(config->getBranchingDegree(), config->getFinalPopSize());
+			for (int j=0; j<=lastLevelComplete; j++)
+				updateTree(config->getBranchingDegree());
+			break;
 		case TOP_RING:
 			//Clear old connections
 			for(unsigned int i=0; i<swarm.size(); i++){
@@ -889,8 +904,8 @@ void Swarm::removeOneParticle(Configuration* config){
 		if(childsInLastLevel == 1)
 			lastLevelComplete--;
 
-//		if (config->verboseMode())
-//			printTree(config->getBranchingDegree(),swarm.size());
+		//		if (config->verboseMode())
+		//			printTree(config->getBranchingDegree(),swarm.size());
 
 	}
 	//Find worst particle
@@ -936,10 +951,10 @@ void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParti
 	if ((long)swarm.size() <= config->getFinalPopSize()){
 		//Add particles to the swarm
 		int current_size = swarm.size();
-		long int partID = swarm.at(0)->getID();
+		long int partID = 0;
 
 		//Find the particle with the largest ID number
-		for(unsigned int j=1;j<swarm.size();j++){
+		for(unsigned int j=0;j<swarm.size();j++){
 			if (swarm.at(j)->getID() > partID)
 				partID = swarm.at(j)->getID();
 		}
@@ -1215,10 +1230,13 @@ void Swarm::createVonNeumannTopology(){
 
 void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations){
 	long int swarm_size;
+	bool emergyExit = false;
 	(config->getPopulationCS() == POP_CONSTANT) ? swarm_size = swarm.size() : swarm_size = config->getFinalPopSize();
 	//	cout << "\t\tvar::topologyUpdatePeriod:  " <<config->getTopologyUpdatePeriod() << endl;
 	//	cout << "\t\tvar::tschedule: " << config->getTopologySchedule() << endl;
 
+	if (config->getTopologyUpdatePeriod() == 0) //Swarm too small
+		return;
 
 	//Topology update: Following the progression n-2, n-3, ..., 2. (see esteps variable)
 	if ((iterations > 0) &&	(iterations%config->getTopologyUpdatePeriod() == 0) &&
@@ -1234,94 +1252,114 @@ void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations
 			averageConnections += swarm.at(i)->neighbours.size();
 		}
 		averageConnections = averageConnections/swarm.size();
-		//		cout << "\t\tvar::averageConnections: " << averageConnections << endl;
-		//		cout << "\t\tvar::esteps: " << config->getEsteps() << endl;
-		//		cout << "\t\tvar::iteration: " << iterations << endl;
-		//		cout << "\t\tvar::target: " << swarm_size-(2+config->getEsteps()) << endl;
-		//		cout << "\t\tvar::swarm_size: " << swarm_size << endl;
-		while(removals < target && averageConnections > 3){
+
+		if (config->verboseMode()){
+			cout << "\n\t\tvar::averageConnections: " << averageConnections << endl;
+			cout << "\t\tvar::esteps: " << config->getEsteps() << endl;
+			cout << "\t\tvar::iteration: " << iterations << endl;
+			cout << "\t\tvar::target: " << swarm_size-(2+config->getEsteps()) << endl;
+			cout << "\t\tvar::swarm_size: " << swarm_size << endl << endl;
+		}
+		while(removals < target && averageConnections > 3 && emergyExit == false){
+		//while(removals < target && averageConnections > 4){
 			try {// vector::at throws an out-of-range
 				for(unsigned int i=0;i<swarm.size();i++){
 					int particleIndex = RNG::getPermutationElement(i);
 					int neighborID = -1;
-					bool idFound = false;
+					//bool idFound = false;
+					//					if (config->verboseMode()){
+					//						cout << "\t\tvar::particleIndex: " << particleIndex << endl;
+					//						cout << "\t\tvar::neighbours.size(): " << swarm.at(particleIndex)->neighbours.size() << endl;
+					//					}
+
 					if (swarm.at(particleIndex)->neighbours.size() > 3 ){ //3 because a particle is a neighbor to itself
 						//if (config->getPopulationCS() != POP_TIME_VARYING)
-						if (config->getPopulationCS() == POP_CONSTANT || config->getPopulationCS() == POP_INCREMENTAL)
-							neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
-						else {
-							//Look for a neighbor based on the position of the particles in the swarm
-							if (particleIndex == 0){ //Particle in the FIRST position of swarm
-								for(unsigned int k=2; k<swarm.size()-1; k++){
-									for (unsigned int j=0; j<swarm.at(particleIndex)->neighbours.size(); j++){
-										if (swarm.at(k)->getID() == swarm.at(particleIndex)->neighbours.at(j)->getID()){
-											neighborID = swarm.at(k)->getID();
-											idFound = true;
-											break;
-										}
-									}
-									if (idFound == true) break;
-								}
-							}
-							else if ((long unsigned) particleIndex == swarm.size()-1){//Particle in the LAST position of swarm
-								for(unsigned int k=1; k<swarm.size()-2; k++){
-									for (unsigned int j=0; j<swarm.at(particleIndex)->neighbours.size(); j++){
-										if (swarm.at(k)->getID() == swarm.at(particleIndex)->neighbours.at(j)->getID()){
-											neighborID = swarm.at(k)->getID();
-											idFound = true;
-											break;
-										}
-									}
-									if (idFound == true) break;
-								}
-							}
-							else{
-								for(unsigned int k=0; k<swarm.size(); k++){
-									for (unsigned int j=0; j<swarm.at(particleIndex)->neighbours.size(); j++){
-										if (swarm.at(k)->getID() == swarm.at(particleIndex)->neighbours.at(j)->getID()){
-											//Check left-side
-											for (unsigned int l=0; l<swarm.at(particleIndex)->neighbours.size(); l++){
-												if (swarm.at(k-1)->getID() != swarm.at(particleIndex)->neighbours.at(l)->getID()){
-													//Check right-side
-													for (unsigned int r=0; r<swarm.at(particleIndex)->neighbours.size(); r++){
-														if (swarm.at(k+1)->getID() != swarm.at(particleIndex)->neighbours.at(r)->getID()){
-															neighborID = swarm.at(k)->getID();
-															idFound = true;
-															break;
-														}
-													}
-												}
-												if (idFound == true) break;
-											}
-										}
-										if (idFound == true) break;
-									}
-									if (idFound == true) break;
-								}
-							}
-						}
+						//						if (config->getPopulationCS() == POP_CONSTANT || config->getPopulationCS() == POP_INCREMENTAL){
+						neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
+						//							if (config->verboseMode()){
+						//								cout << "\t\tvar::particleID: " << swarm.at(particleIndex)->getID() << endl;
+						//								cout << "\t\tvar::neighborID: " << neighborID << endl;
+						//							}
+						//						}
+						//						else {
+						//							//Look for a neighbor based on the position of the particles in the swarm
+						//							if (particleIndex == 0){ //Particle in the FIRST position of swarm
+						//								for(unsigned int k=2; k<swarm.size()-1; k++){
+						//									for (unsigned int j=0; j<swarm.at(particleIndex)->neighbours.size(); j++){
+						//										if (swarm.at(k)->getID() == swarm.at(particleIndex)->neighbours.at(j)->getID()){
+						//											neighborID = swarm.at(k)->getID();
+						//											idFound = true;
+						//											break;
+						//										}
+						//									}
+						//									if (idFound == true) break;
+						//								}
+						//							}
+						//							else if ((long unsigned) particleIndex == swarm.size()-1){//Particle in the LAST position of swarm
+						//								for(unsigned int k=1; k<swarm.size()-2; k++){
+						//									for (unsigned int j=0; j<swarm.at(particleIndex)->neighbours.size(); j++){
+						//										if (swarm.at(k)->getID() == swarm.at(particleIndex)->neighbours.at(j)->getID()){
+						//											neighborID = swarm.at(k)->getID();
+						//											idFound = true;
+						//											break;
+						//										}
+						//									}
+						//									if (idFound == true) break;
+						//								}
+						//							}
+						//							else{
+						//								for(unsigned int k=0; k<swarm.size(); k++){
+						//									for (unsigned int j=0; j<swarm.at(particleIndex)->neighbours.size(); j++){
+						//										if (swarm.at(k)->getID() == swarm.at(particleIndex)->neighbours.at(j)->getID()){
+						//											//Check left-side
+						//											for (unsigned int l=0; l<swarm.at(particleIndex)->neighbours.size(); l++){
+						//												if (swarm.at(k-1)->getID() != swarm.at(particleIndex)->neighbours.at(l)->getID()){
+						//													//Check right-side
+						//													for (unsigned int r=0; r<swarm.at(particleIndex)->neighbours.size(); r++){
+						//														if (swarm.at(k+1)->getID() != swarm.at(particleIndex)->neighbours.at(r)->getID()){
+						//															neighborID = swarm.at(k)->getID();
+						//															idFound = true;
+						//															break;
+						//														}
+						//													}
+						//												}
+						//												if (idFound == true) break;
+						//											}
+						//										}
+						//										if (idFound == true) break;
+						//									}
+						//									if (idFound == true) break;
+						//								}
+						//							}
+						//						}
 						//Prevent an infinite loop
-						if (neighborID == -1){
-							removals++;
-							break;
-						}
+						//						if (neighborID == -1){
+						//							removals++;
+						//							break;
+						//						}
+						//						if (config->verboseMode()){
+						//							cout << "\t\tvar::neighborID: " << neighborID << endl;
+						//							cout << "\t\tvar::removals: " << removals << endl;
+						//						}
+
 						swarm.at(particleIndex)->eraseNeighborbyID(neighborID);
 						swarm.at(neighborID)->eraseNeighborbyID(particleIndex);
 						removals++;
 					}
-					if (removals == target)
+					if (i== swarm.size()-1)
+						emergyExit = true;
+					if (removals == target )
 						break;
 				}
-				//			cout << "\t\tvar::removals: " << removals << endl;
 			}
 			catch (const std::out_of_range& oor) {
-				//std::cerr << "Out of Range error: " << oor.what() << '\n';
 				break;
 			}
 		}
-		//cout << "\t\tvar::removals: " << removals << endl;
+
 		(config->getPopulationCS() == POP_CONSTANT || config->getPopulationCS() == POP_TIME_VARYING) ? config->setEsteps(config->getEsteps()+1) : config->setEsteps(config->getEsteps()-1);
-		//		cout << "\t\tfunc::updateTimeVaryingTopology().status() -> correct" << endl;
+		if (config->verboseMode())
+			cout << "\t\tfunc::updateTimeVaryingTopology().status() -> correct" << endl;
 	}
 }
 
@@ -2089,7 +2127,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			//IW_RANKS_BASED - 14 - Rank-based
 			case IW_RANKS_BASED:{
 				config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
-						((double) swarm.at(posIndex)->getRanking()/config->getSwarmSize()))
+						((double) swarm.at(posIndex)->getRanking()/swarm.size()))
 				);
 				//cout << id << endl;
 				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
