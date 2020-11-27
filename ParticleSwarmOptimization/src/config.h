@@ -405,10 +405,11 @@ private:
 	double angle_par_beta;
 	double rotation_angle; //self-explanatory
 
-	//NPPDistribution
+	//DNPP
 	short distributionNPP;
 	short operator_q;
 	bool randNeighbor;
+	double operatorCG_parm_r;
 
 	//Velocity rules
 	int vRule;
@@ -561,6 +562,7 @@ public:
 	short getDistributionNPP();
 	short getOperator_q();
 	bool getRandNeighbor();
+	double getOperatorCG_parm_r();
 
 	//Topology
 	short getTopology();

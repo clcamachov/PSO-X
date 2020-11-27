@@ -106,7 +106,7 @@ public:
 	void getSphericalDNPP(Configuration* config, double vect_distribution[], int numInformants, bool pBestIntheInformants,
 			vector< vector< double> > &vect_PbestMinusPosition);
 	void getAdditiveStochasticDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
-			vector< vector< double> > &vect_PbestMinusPosition, bool randNeighbor, int operatorQ);
+			vector< vector< double> > &vect_PbestMinusPosition, bool randNeighbor, int operatorQ, double CG_parm_r);
 
 	void computeAC(Configuration* config, double &c1, double &c2, int numInformants);
 	int getRandomNeighbor();

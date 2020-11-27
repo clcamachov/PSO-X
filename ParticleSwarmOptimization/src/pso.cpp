@@ -558,7 +558,7 @@ Problem* initializeProblem() {
 /* Termination condition */
 bool terminationCondition() {
 	//Budget based on iterations
-	if (config->getMaxIterations() != 0 && iterations >= config->getMaxIterations()-1) {
+	if (config->getMaxIterations() != 0 && iterations >= config->getMaxIterations()-2) {
 		return true;
 	}
 	//Budget based on evaluations of the objective function
@@ -674,6 +674,38 @@ void freeMemory(){
 	RNG::deallocateRNG();
 }
 
+bool printIteration(Configuration* config, long int iterations){
+	//Always print the first and last 10% of iterations
+	if (iterations < config->getMaxIterations()*0.1 || iterations > (config->getMaxIterations()-(config->getMaxIterations()*0.1))){
+		if (iterations%4 == 0 || iterations  <= 10)
+			return true;
+		else
+			return false;
+	}
+	else {
+		//Print one other iterations
+		if (config->getSwarmSize() >= 100){
+			if (iterations%2 == 0)
+				return true;
+			else
+				return false;
+		}
+		//Print every 12 to 50 iterations depending on the swarm size
+		else if (config->getSwarmSize() <= 40){
+			if (iterations%(52-config->getSwarmSize()) == 0)
+				return true;
+			else
+				return false;
+		}
+		else {
+			if (iterations%8 == 0)
+				return true;
+			else
+				return false;
+		}
+	}
+}
+
 int main(int argc, char *argv[] ){
 	//Start timer
 	double time_taken;
@@ -727,7 +759,8 @@ int main(int argc, char *argv[] ){
 		swarm->resizeSwarm(problem, config, iterations);
 		//problem->printProgress();
 
-		outfile << "iteration: " << iterations << " func_evaluations: " << evaluations  << " best: " << scientific << swarm->getGlobalBest().eval << endl;
+		if(printIteration(config,iterations))
+			outfile << "iteration: " << iterations << " func_evaluations: " << evaluations  << " best: " << scientific << swarm->getGlobalBest().eval << endl;
 	}
 	cout.precision(16);
 	cout << "Best " << scientific << swarm->getGlobalBest().eval << endl;

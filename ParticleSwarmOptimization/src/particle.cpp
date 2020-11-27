@@ -345,7 +345,8 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 				pBestIntheInformants,
 				vect_PbestMinusPosition,
 				config->getRandNeighbor(),
-				config->getOperator_q());
+				config->getOperator_q(),
+				config->getOperatorCG_parm_r());
 		break;
 	}
 	}
@@ -679,7 +680,7 @@ int Particle::getPositionOfpBest(int numInformants, bool pBestIntheInformants){
 }
 
 void Particle::getAdditiveStochasticDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
-		vector<vector< double> > &vect_PbestMinusPosition, bool randNeighbor, int operatorQ){
+		vector<vector< double> > &vect_PbestMinusPosition, bool randNeighbor, int operatorQ, double CG_parm_r){
 
 	int p2Index;
 	int p1Index = getPositionOfpBest(numInformants, pBestIntheInformants);
@@ -718,7 +719,7 @@ void Particle::getAdditiveStochasticDNPP(double vect_distribution[], int numInfo
 		break;
 	case Q_CAUCHY_NORMAL:
 		for (int i=0; i<size; i++){
-			if (problem->getRandom01() <= 0.5){
+			if (problem->getRandom01() <= CG_parm_r){
 				vect_distribution[i] = vect_PbestMinusPosition[p1Index][i] - current.x[i]; //we need to discount current.x[i] because it will be added later in the GVU formula
 				vect_distribution[i] += (RNG::randCauchy(1.0) * fabs(vect_PbestMinusPosition[p1Index][i] -
 						vect_PbestMinusPosition[p2Index][i]));

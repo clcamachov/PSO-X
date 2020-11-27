@@ -306,6 +306,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			operator_q = atoi(argv[i+1]);
 			i++;
 			//cout << "\n operator_q has been received \n";
+		} else if (strcmp(argv[i], "--operatorCG_parm_r") == 0) {
+			operatorCG_parm_r = atof(argv[i+1]);
+			i++;
+			//cout << "\n operatorCG_parm_r has been received \n";
 		} else if (strcmp(argv[i], "--randNeighbor") == 0) {
 			if (atoi(argv[i+1]) == 0)
 				randNeighbor = false;
@@ -681,10 +685,11 @@ void Configuration::setDefaultParameters(){
 	angle_par_alpha = 30;
 	angle_par_beta = 0.01;
 
-	/** NPPDistribution **/
+	/** DNPP **/
 	distributionNPP = DIST_RECTANGULAR;		//distribution of next possible positions
 	operator_q = Q_STANDARD;				//q_operator in simple dynamics PSO
 	randNeighbor = false;					//chose a random neighbor as p2 in operator_q
+	operatorCG_parm_r = 0.5;				//probability for the Cauchy distribution
 
 	/** Velocity rules **/
 	vRule = VEL_STANDARD;					//use to select a specific velocity update formula
@@ -984,7 +989,8 @@ void Configuration::printParameters(){
 	case Q_STANDARD: 		cout	<< "  operator_q:        STANDARD\n"; break;
 	case Q_GAUSSIAN: 		cout	<< "  operator_q:        GAUSSIAN\n"; break;
 	case Q_DISCRETE_2: 		cout	<< "  operator_q:        DISCRETE_2\n"; break;
-	case Q_CAUCHY_NORMAL:	cout	<< "  operator_q:        CAUCHY_NORMAL\n"; break;
+	case Q_CAUCHY_NORMAL:	cout	<< "  operator_q:        CAUCHY_NORMAL\n"
+			<< "  operatorCG_parm_r: " << getOperatorCG_parm_r() << "\n"; break;
 	}
 	break;
 	}
@@ -1285,6 +1291,9 @@ short Configuration::getOperator_q(){
 }
 bool Configuration::getRandNeighbor(){
 	return randNeighbor;
+}
+double Configuration::getOperatorCG_parm_r(){
+	return operatorCG_parm_r;
 }
 short Configuration::getTopology(){
 	return topology;
