@@ -531,7 +531,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	return(true);
 }
 
-//TODO: Update with all the parameters
+//TODO: Create complete man page
 void Configuration::printUsage(){
 	cout << "" << endl;
 	cout << "PSO-2020: A flexible and configurable particle swarm optimization framework" << endl;

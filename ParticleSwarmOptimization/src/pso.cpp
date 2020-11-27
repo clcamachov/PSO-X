@@ -697,6 +697,7 @@ bool printIteration(Configuration* config, long int iterations){
 			else
 				return false;
 		}
+		//Print every 8 iterations
 		else {
 			if (iterations%8 == 0)
 				return true;

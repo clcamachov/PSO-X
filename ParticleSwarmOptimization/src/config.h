@@ -558,7 +558,7 @@ public:
 	double get_angle_par_alpha();
 	double get_angle_par_beta();
 
-	//Distribution
+	//DNPP
 	short getDistributionNPP();
 	short getOperator_q();
 	bool getRandNeighbor();
