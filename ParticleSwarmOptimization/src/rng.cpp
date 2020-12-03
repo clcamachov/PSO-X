@@ -1,8 +1,8 @@
 /*
  * rng.cpp
  *
- *  Created on: Jun 4, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 
 #include "rng.h"
@@ -29,39 +29,39 @@ void RNG::initializePermutation(unsigned int size){
 }
 
 double RNG::randVal(double min,double max){
-	return gsl_ran_flat( RNG::R, min, max);
+	return (gsl_ran_flat( RNG::R, min, max));
 }
 
 double RNG::randGauss(double sd){ //mean = 0
-	return gsl_ran_gaussian( RNG::R, sd);
+	return (gsl_ran_gaussian( RNG::R, sd));
 }
 
 double RNG::randGaussWithMean(double sd, double mean){
-	return gsl_ran_gaussian( RNG::R, sd) + mean;
+	return (gsl_ran_gaussian( RNG::R, sd) + mean);
 }
 
 double RNG::randCauchy(double gamma){
-	return gsl_ran_cauchy(RNG::R, gamma);
+	return (gsl_ran_cauchy(RNG::R, gamma));
 }
 
 double RNG::randBeta(double alpha, double beta){
-	return gsl_ran_beta(RNG::R, alpha, beta);
+	return (gsl_ran_beta(RNG::R, alpha, beta));
 }
 
 double RNG::randLevy(const double c, const double alpha){
-	return gsl_ran_levy(RNG::R, c, alpha);
+	return (gsl_ran_levy(RNG::R, c, alpha));
 	//alpha = 1 = Cauchy distribution
 	//alpha = 2 = Gaussian distribution
 }
 
 double RNG::randLevySkew(const double c, const double alpha, const double beta){
-	return gsl_ran_levy_skew(RNG::R, c, alpha, beta);
+	return (gsl_ran_levy_skew(RNG::R, c, alpha, beta));
 	//alpha = 1 = Cauchy distribution
 	//alpha = 2 = Gaussian distribution
 }
 
 unsigned int RNG::randBernoulli(double p) {
-	return gsl_ran_bernoulli (RNG::R, p);
+	return (gsl_ran_bernoulli (RNG::R, p));
 }
 
 void RNG::randHypersphere( double * G){
@@ -73,7 +73,7 @@ void RNG::shufflePermutation(){
 }
 
 int RNG::getPermutationElement(int index){
-	return gsl_permutation_get (RNG::P,index);
+	return (gsl_permutation_get (RNG::P,index));
 }
 
 void RNG::deallocateRNG(){

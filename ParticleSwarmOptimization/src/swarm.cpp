@@ -1,12 +1,12 @@
 /*
  * swarm.cpp
  *
- *  Created on: Jun 20, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
-//cout << "\n So far, so good" << endl; //remove
 
 #include "iostream"
+#include <sstream>
 #include "float.h"
 #include "utils.h"
 #include <bits/stdc++.h>
@@ -18,51 +18,17 @@
 
 using namespace std;
 
-/* Variables to compute the inertia weight using the available control strategies */
-double alpha = 1/pow(M_PI,2); 				//small positive constant 		IW_NONL_DEC - 4
-double omega = 0.3;						//value between [0,1] 			IW_NONL_DEC_IMP - 5
-double u = 1.0002;							//value between [1.0001,1.0005] IW_NONL_DEC_IMP - 5
-double omegaXu = omega * u;					//								IW_NONL_DEC_IMP - 5
-double zFunction;							//								IW_CHAOTIC_DEC - 7
-int	   k = 7;								//positive integer constant		IW_OSCILLATING - 9
-double simNumOfCos = 2.0*M_PI*((4*k)+6);	//								IW_OSCILLATING - 9
-double a = 1;								//small positive constant		IW_LOG_DEC - 10
-double omega_2 = 0;							//								IW_SELF_REGULATING - 11
-double idealVelocity;						//								IW_VELOCITY_BASED - 12
-double avVel;								//								IW_VELOCITY_BASED - 12
-int iterWithoutImprvCounter=0;
-int iterWithImprvCounter=0;
-double prevGbest = LDBL_MAX;
-vector<SimplifySwarm> simpSwarm;
-long partRemoved = 0;
-long partAdded = 0;
-int sol_improved = 0;
-
-/* Variable for the topology and model of influence */
-vector<vector< int > > hierarchy;
-vector<SimplifySwarm> rankedSwarm;			//ranked FI model of influence
-int lastLevelComplete = 0;					//global variable for the hierarchy
-bool modInfRanked = false;					//flag to indicate that the rankedSwarm structure was used and delete it
-
-/* Variable for the perturbation strategies */
-//int success = 15, failure = 5;				//success and failure thresholds for the additive rectangular perturbation
-//int sc = 0, fc = 0;							//success and failure counters
-//double alpha_t = 1.0;						//side length of the rectangle for the success-rate perturbation
-//double delta = 1.0;							//side length of the rectangle for the uniform random perturbation
-//double l = 0.01;							//scaling factor for the perturbation
-
 bool sortcol(const vector<int>& v1, const vector<int>& v2) {
-	return v1[1] < v2[1];
+	return (v1[1] < v2[1]);
 }
 
 //Default constructor
 Swarm::Swarm(){
-	problem = 0;
+	problem = NULL;
 	size = 0;
-	best_particle = 0;
+	best_particle = NULL;
 	init = false;
-	ranked = false;
-	hierarchical = false;
+	lastLevelComplete = 0;
 }
 
 Swarm::~Swarm(){
@@ -81,52 +47,30 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 
 	/*Initialize global best*/
 	global_best.x = new double[config->getProblemDimension()];
-	for(unsigned int i=0;i<config->getProblemDimension();i++)
+	for(int i=0;i<config->getProblemDimension();i++)
 		global_best.x[i] = 0;
 	global_best.eval=LDBL_MAX;
-
-	if (config->verboseMode())
-		cout << "\tvar::(default)::global_best.eval: " << global_best.eval << endl;
 
 	for (long int i=0; i<size; i++) {
 		Particle* aParticle = new Particle(problem, config, i, 0);
 		swarm.push_back(aParticle);
-
-		if (config->verboseMode())
-			cout << "\tvar::swarm.at(" << i <<")->getPbestEvaluation(): " << swarm.at(i)->getPbestEvaluation() << endl;
 
 		if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
 			updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
 			best_particle = swarm.at(i);
 		}
 	}
-	//	try{
-	//best_particle->getID();
-	if (best_particle != NULL){
-		if (config->verboseMode()) cout << "\tvar::best_particle.id: " << best_particle->getID() << endl;
-
-	}
-	else {
+	if (best_particle == NULL){
 		cerr << "The program could not determine an initial solution quality. " << endl;
-		cerr << "HINT 1: Make sure that all input files can be accessed by the program" << endl;
-		cerr << "HINT 2: This error is typically produced when the o.f. cannot be correctly evaluated" << endl;
+		cerr << "HINT : Make sure that all input files can be accessed by the program" << endl;
+		cerr << "     : This error is typically produced when the o.f. cannot be correctly evaluated" << endl;
 		exit (-1);
 	}
-	if (config->verboseMode())
-		cout << "\tvar::best_particle.id: " << best_particle->getID() << endl;
-	//	}
-	//	catch (const std::exception& e) {
-	//		cerr << "The program could not determine an initial solution quality. " << endl;
-	//		cerr << "HINT: Make sure that all input files can be accessed by the program" << endl;
-	//		exit (-1);
-	//	}
-	hierarchical = false;
 
 	//Select one of the available topologies
 	if (config->getTopology() == TOP_FULLYCONNECTED) {
 		createFullyConnectedTopology();
 	} else if (config->getTopology() == TOP_HIERARCHICAL) {
-		hierarchical = true;
 		(config->getPopulationCS() == POP_CONSTANT) ? createHierarchical(config->getBranchingDegree(), swarm.size()) :
 				createHierarchical(config->getBranchingDegree(), config->getFinalPopSize());
 	} else if (config->getTopology() == TOP_RING) {
@@ -148,17 +92,6 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 		cerr << "Wrong topology" << endl;
 		exit (-1);
 	}
-	//	//Update gBest/lBest of each particle
-	//	for (unsigned int i=0;i<swarm.size();i++){
-	//		//The id of the gBest particle depends on the topology and model of influence
-	//		swarm.at(i)->getBestOfNeibourhood();
-	//	}
-
-	//rankings
-	if (	config->getOmega1CS() == IW_RANKS_BASED ||
-			config->getOmega1CS() == IW_SUCCESS_BASED ||
-			config->getOmega1CS() == IW_CONVERGE_BASED)
-		ranked = true;
 
 	init=true;
 }
@@ -166,7 +99,6 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 int Swarm::countImprovedSolutions(Configuration* config, long int iteration){
 	//Create simpSwarm if it does not exist and return 0
 	if (iteration == 1) { //define simpSwarm if it does not exist
-		//if (config->getOmega1CS() != IW_RANKS_BASED && config->getOmega1CS() != IW_SUCCESS_BASED && config->getOmega1CS() != IW_CONVERGE_BASED){
 		simpSwarm.clear();
 		simpSwarm.resize(swarm.size());
 		for (unsigned int i=0;i<swarm.size();i++){
@@ -174,7 +106,7 @@ int Swarm::countImprovedSolutions(Configuration* config, long int iteration){
 			simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
 		}
 		//}
-		return 0;
+		return (0);
 	}
 	else {
 		int S_i = 0; //Number of solutions that improved after the last iteration
@@ -191,47 +123,23 @@ int Swarm::countImprovedSolutions(Configuration* config, long int iteration){
 				}
 			}
 		}
-		if (config->verboseMode())
-			cout << "\tnotice::" <<  S_i << " solutions improved in the last iteration" << endl;
-		return S_i;
+		return (S_i);
 	}
 }
 
 
 /*Move the swarm to new solutions */
 void Swarm::moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound) {
+	static int sol_improved = 0;
 
-	//Print info of the particles
-	if (config->verboseMode()){
-		cout << "iteration: " << iteration << endl; //remove
-		cout << "\tvar::swarm.size()" << swarm.size() << endl; //remove
-	}
-
-
-	//Update gBest/lBest of each particle
+	//Update lBest of each particle
 	for (unsigned int i=0;i<swarm.size();i++){
-//		try {// vector::at throws an out-of-range
-
-			if (config->verboseMode())
-				cout << "\tParticle [" << swarm.at(i)->getID() << "] -- lBest.at(t-1) [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
-			//The id of the gBest particle depends on the topology and model of influence
-			swarm.at(i)->getBestOfNeibourhood();
-			if (config->verboseMode())
-				cout << "lBest.at(t) [" << swarm.at(i)->getgBestID() << "]" << endl;
-//		}
-//		catch (const std::out_of_range& oor) {
-//			cerr << "Out of Range error when i=" << i << endl;
-//			exit (-1);
-//		}
+		//The id of the gBest particle depends on the topology and model of influence
+		swarm.at(i)->getBestOfNeibourhood();
 	}
 
-
+	//Self-explanatory
 	clearResizeSimpSwarm(config, iteration);
-
-	if (config->verboseMode() && config->getTopology() == TOP_HIERARCHICAL){
-		cout << "\tvar::lastLevelComplete: " << lastLevelComplete << endl;
-		printTree(config->getBranchingDegree(),swarm.size());
-	}
 
 	//For the cases in which the entire swarm is using omega1 with the same value
 	computeOmega1(config, iteration, -1, true); // -1 is a place holder for the id of the particle
@@ -242,31 +150,10 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	//Compute the acceleration coefficients of the entire swarm
 	computeAccelerationCoefficients(config, iteration);
 
-	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
+	//	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
 	for (unsigned int i=0;i<swarm.size();i++){
-		if (config->verboseMode())
-			cout << "\tParticle [" << swarm.at(i)->getID() << "] -- "; // -- gBestID [" << swarm.at(i)->getgBestID() << "] -- "; //<< endl; //remove
-		int sizeInformants = getInformants(config, i, iteration); //Get the informants of i
 
-		if (config->verboseMode()) {
-			//print all neighbors
-			cout << "\n\tNeighbors ids:  [ ";
-			for (unsigned int j=0;j<swarm.at(i)->neighbours.size();j++){
-				cout << swarm.at(i)->neighbours[j]->getID() << " ";
-			}
-			cout << "]" << endl;
-			//print all neighbors
-			cout << "\tInformants pos: [ ";
-			for (int j=0;j<sizeInformants;j++){
-				cout << swarm.at(i)->InformantsPos[j] << " ";
-			}
-			cout << "]" << endl;
-			cout << "\tInformants ids: [ ";
-			for (int j=0;j<sizeInformants;j++){
-				cout << swarm.at(i)->neighbours[swarm.at(i)->InformantsPos[j]]->getID() << " ";
-			}
-			cout << "]"<< endl;
-		}
+		int sizeInformants = getInformants(config, i, iteration); //Get the informants of i
 
 		//If using a self-adaptive strategy compute omega1, otherwise this function simply returns the value already computed
 		double omega1 = computeOmega1(config, iteration, i, false);
@@ -303,14 +190,14 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 
 }
 
-int Swarm::getInformants(Configuration* config, int particleID, long int iteration){
-	if (particleID != -1){
+int Swarm::getInformants(Configuration* config, int partPosinSwarm, long int iteration){
+	if (partPosinSwarm != -1){
 		//Best of neighborhood
 		if (config->getModelOfInfluence() == MOI_BEST_OF_N){
 			if (config->getTopology() == TOP_HIERARCHICAL){
 				int Array_size = 0;		//variable to get the the size of Informants
 				int TMP_Array[lastLevelComplete];
-				getParticleParentsIDs(particleID, TMP_Array); //Get parents of the particle
+				getParticleParentsIDs(partPosinSwarm, TMP_Array); //Get parents of the particle
 				for (int i=0; i<=lastLevelComplete; i++){
 					if (TMP_Array[i] != -2){ //-2 indicates an empty position
 						Array_size++;
@@ -320,47 +207,50 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 				}
 
 				//Clear the vector
-				swarm.at(particleID)->InformantsPos.clear();
+				swarm.at(partPosinSwarm)->InformantsPos.clear();
 
-				double bestEval = swarm.at(particleID)->neighbours.at(0)->getPbestEvaluation();
+				double bestEval = swarm.at(partPosinSwarm)->neighbours.at(0)->getPbestEvaluation();
 				int bestPos = 0;
 				int iter = 0;
-				//We need to find the position index of the best particle IDs in TMP_Array in the particles neighbors vector
-				for (unsigned int i=0; i<swarm.at(particleID)->neighbours.size(); i++){
+				//We need to find the position of the particle in neighbors vector that has the best PbestEvaluation
+				//We have to do that by finding the corresponding IDs in TMP_Array and neighbours.at(i)->getID()
+				for (unsigned int i=0; i<swarm.at(partPosinSwarm)->neighbours.size(); i++){
 					for (int j=0; j<Array_size; j++){
-						if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j]){
+						if (swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == TMP_Array[j]){
 							if (iter == 0){
 								bestPos = i;
-								bestEval = swarm.at(particleID)->neighbours.at(i)->getPbestEvaluation();
+								bestEval = swarm.at(partPosinSwarm)->neighbours.at(i)->getPbestEvaluation();
 								iter++;
 							}
 							else{
-								if (bestEval > swarm.at(particleID)->neighbours.at(i)->getPbestEvaluation()){
+								if (bestEval > swarm.at(partPosinSwarm)->neighbours.at(i)->getPbestEvaluation()){
 									bestPos = i;
-									bestEval = swarm.at(particleID)->neighbours.at(i)->getPbestEvaluation();
+									bestEval = swarm.at(partPosinSwarm)->neighbours.at(i)->getPbestEvaluation();
 									iter++;
 								}
 							}
 						}
+						//Add the particle itself to the the InformantsPos array
+						if (swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == swarm.at(partPosinSwarm)->getID())
+							swarm.at(partPosinSwarm)->InformantsPos.push_back(i);//
 					}
 				}
-				swarm.at(particleID)->InformantsPos.push_back(bestPos);//
-				if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
-				return 1;
+				swarm.at(partPosinSwarm)->InformantsPos.push_back(bestPos);//
+				return (1);
 			}
 			else {
 				//Clear the vector
-				swarm.at(particleID)->InformantsPos.clear();
+				swarm.at(partPosinSwarm)->InformantsPos.clear();
 
-				int bestID = swarm.at(particleID)->getgBestID();
+				int bestID = swarm.at(partPosinSwarm)->getgBestID();
 
 				//We need to find the position index of the IDs in TMP_Array in the particles neighbors vector
-				for (unsigned int i=0; i<swarm.at(particleID)->neighbours.size(); i++){
-					if (swarm.at(particleID)->neighbours.at(i)->getID() == bestID)
-						swarm.at(particleID)->InformantsPos.push_back(i);
+				for (unsigned int i=0; i<swarm.at(partPosinSwarm)->neighbours.size(); i++){
+					if (swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == bestID ||
+							swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == swarm.at(partPosinSwarm)->getID())
+						swarm.at(partPosinSwarm)->InformantsPos.push_back(i);
 				}
-				if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
-				return 1;
+				return (1);
 			}
 		}
 		//Fully informed
@@ -368,7 +258,7 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 			if (config->getTopology() == TOP_HIERARCHICAL ){
 				int Array_size = 0;		//variable to the the size of Informants
 				int TMP_Array[lastLevelComplete];
-				getParticleParentsIDs(particleID, TMP_Array); //Get parents of the particle
+				getParticleParentsIDs(partPosinSwarm, TMP_Array); //Get parents of the particle
 				for (int i=0; i<=lastLevelComplete; i++){
 					if (TMP_Array[i] != -2){ //-2 indicates an empty position
 						Array_size++;
@@ -377,43 +267,44 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 						break;
 				}
 				//Clear the vector
-				swarm.at(particleID)->InformantsPos.clear();
+				swarm.at(partPosinSwarm)->InformantsPos.clear();
 
 				//We need to find the position index of the IDs in TMP_Array in the particles neighbors vector
-				for (unsigned int i=0; i<swarm.at(particleID)->neighbours.size(); i++){
-					for (int j=0; j<Array_size; j++)
-						if (swarm.at(particleID)->neighbours.at(i)->getID() == TMP_Array[j])
-							swarm.at(particleID)->InformantsPos.push_back(i);
+				for (unsigned int i=0; i<swarm.at(partPosinSwarm)->neighbours.size(); i++){
+					for (int j=0; j<Array_size; j++){
+						if (swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == TMP_Array[j])
+							swarm.at(partPosinSwarm)->InformantsPos.push_back(i);
+					}
+					if (swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == swarm.at(partPosinSwarm)->getID())
+							swarm.at(partPosinSwarm)->InformantsPos.push_back(i);//
 				}
-				if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
-				return Array_size;
+				return (Array_size);
 			}
 			else {
 				//Since some topologies are dynamic, the size of informants may change from iteration to iteration
 				//Clear the vector
-				swarm.at(particleID)->InformantsPos.clear();
+				swarm.at(partPosinSwarm)->InformantsPos.clear();
 
-				for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
-					swarm.at(particleID)->InformantsPos.push_back(i); //we use the indexes of neighbors
+				for (unsigned int i=0;i<swarm.at(partPosinSwarm)->neighbours.size();i++){
+					swarm.at(partPosinSwarm)->InformantsPos.push_back(i); //we use the indexes of neighbors
 				}
-				if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size();
-				return swarm.at(particleID)->InformantsPos.size();
+				return (swarm.at(partPosinSwarm)->InformantsPos.size());
 			}
 		}
 		//Ranked fully informed
 		else if (config->getModelOfInfluence() == MOI_RANKED_FI) {
 			//Clear the vector
-			swarm.at(particleID)->InformantsPos.clear();
+			swarm.at(partPosinSwarm)->InformantsPos.clear();
 
 			//Container to sort the neighbors
 			vector< vector<int> > TMP_vect;
 			//Resize vector
-			TMP_vect.resize((swarm.at(particleID)->neighbours.size()), vector<int>(2));
+			TMP_vect.resize((swarm.at(partPosinSwarm)->neighbours.size()), vector<int>(2));
 
 			//This is the same as Fully informed
-			for (unsigned int i=0;i<swarm.at(particleID)->neighbours.size();i++){
+			for (unsigned int i=0;i<swarm.at(partPosinSwarm)->neighbours.size();i++){
 				TMP_vect.at(i).at(0) = i; ///we use the indexes of neighbors
-				TMP_vect.at(i).at(1) = swarm.at(particleID)->neighbours.at(i)->getRanking();
+				TMP_vect.at(i).at(1) = swarm.at(partPosinSwarm)->neighbours.at(i)->getRanking();
 			}
 
 			//we sort by the second column (see sortcol driver function above)
@@ -421,14 +312,14 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 
 			//copy informants ID to Informants sorted
 			for (unsigned int i=0; i<TMP_vect.size(); i++){ //rows
-				swarm.at(particleID)->InformantsPos.push_back(TMP_vect[i][0]);
+				swarm.at(partPosinSwarm)->InformantsPos.push_back(TMP_vect[i][0]);
 				//Informants[i] = TMP_vect[i][0];
 				TMP_vect[i].clear();
 			}
 			TMP_vect.clear();
 
-			if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size(); ;
-			return swarm.at(particleID)->InformantsPos.size();;
+			//			if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size(); ;
+			return (swarm.at(partPosinSwarm)->InformantsPos.size());
 		}
 		else {
 			cerr << "No model of influence matches the available options" << endl;
@@ -440,26 +331,20 @@ int Swarm::getInformants(Configuration* config, int particleID, long int iterati
 		if (config->getModelOfInfluence() == MOI_RANKED_FI){
 			//Only implement ranks if particles are not using them already
 			if (config->getOmega1CS() != IW_RANKS_BASED){
-				//				if ((iteration == 1) || (config->getPopulationCS() != POP_CONSTANT)){
-				//					if (!modInfRanked) //flag to delete the structure at the end
-				//						modInfRanked = true;
-				rankedSwarm.clear();
-				rankedSwarm.resize(swarm.size());
 				//Rank particles
-				rankParticles(rankedSwarm);
-				//cout << "\nRanking swarm..." << endl;
-				//cout << "\n So far, so good" << endl; //remove
-				//				}
-				//				else{
-				//					rankParticles(rankedSwarm);
-				//				}
+				rankParticles(simpSwarm);
 			}
 		}
-		return 0;
+		return (0);
 	}
 }
 
 void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iteration){
+	static int iterWithoutImprvCounter=0;
+	static int iterWithImprvCounter=0;
+	static double prevGbest = LDBL_MAX;
+	static long partRemoved = 0;
+	static long partAdded = 0;
 	int particleToAdd = 0;
 	long int previous_size = swarm.size();
 
@@ -481,15 +366,7 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 						removeOneParticle(config);
 						updateTopologyConnections(config, -1, iteration);
 						RNG::initializePermutation(swarm.size());
-						if (config->verboseMode())
-							cout << "\tnotice::one particle removed from the swarm after " << config->getPopTViterations()
-							<< " consecutive iterations where global_best has improved" << endl;
 						partRemoved++;
-					}
-					else {
-						if (config->verboseMode())
-							cout << "\tnotice::there's been " << config->getPopTViterations()
-							<< " without improvement, but swarm is already in its lower bound" << endl;
 					}
 				}
 			}
@@ -504,9 +381,6 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 						addParticles(problem, config, 1, iteration);
 						updateTopologyConnections(config, previous_size, iteration);
 						RNG::initializePermutation(swarm.size());
-						if (config->verboseMode())
-							cout << "\tnotice::one particle added to the swarm after " << config->getPopTViterations()
-							<< " consecutive iterations without a new global_best" << endl;
 						partAdded++;
 					}
 					else {
@@ -520,10 +394,7 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 								worstP_eval = swarm.at(i)->getPbestEvaluation();
 							}
 						}
-						swarm.at(worstP_pos)->reInitPosUniform(config);
-						if (config->verboseMode()) {
-							cout << "\t\tnotice::Particle [" << swarm.at(worstP_pos)->getID() << "] was reinitialized to a random position"; //<< endl; //remove
-						}
+						swarm.at(worstP_pos)->initializePosition(config,100, false);
 					}
 				}
 			}
@@ -547,25 +418,32 @@ void Swarm::resizeSwarm(Problem* problem, Configuration* config, long int iterat
 			}
 		}
 	}
-	if (config->verboseMode()){
-		cout << "\tnotice::particles added so far: " << partAdded << endl;
-		cout << "\tnotice::particles removed so far: " << partRemoved << endl;
-	}
 }
 
 void Swarm::updateTopologyConnections(Configuration* config, long previous_size, long int iteration){
-	int a,b,c;
+
+	if (config->getTopology() == TOP_FULLYCONNECTED){
+		//Clear connections
+		for(unsigned int i=0; i<swarm.size(); i++)
+			swarm.at(i)->neighbours.clear();
+		//Create new connections
+		createFullyConnectedTopology();
+	}
+	if (config->getTopology() == TOP_RING){
+		//Reconnect the whole swarm
+		for(unsigned int i=0; i<swarm.size(); i++)
+			swarm.at(i)->neighbours.clear();
+		createRingTopology();
+	}
+	if (config->getTopology() == TOP_VONNEUMANN){
+		//Reconnect the whole swarm
+		for(unsigned int i=0; i<swarm.size(); i++)
+			swarm.at(i)->neighbours.clear();
+		createVonNeumannTopology();
+	}
+
 	if (previous_size > 0) { //PARTICLES WERE ADDED -- EXTEND THE TOPOLOGY
-		switch (config->getTopology()){
-		case TOP_FULLYCONNECTED:
-			//Clear connections
-			for(unsigned int i=0; i<swarm.size(); i++){
-				swarm.at(i)->neighbours.clear();
-			}
-			//Create new connections
-			createFullyConnectedTopology();
-			break;
-		case TOP_HIERARCHICAL:
+		if (config->getTopology() == TOP_HIERARCHICAL){
 			for(unsigned int i=previous_size; i<swarm.size(); i++){
 				for(unsigned int j=0; j<swarm.size(); j++){
 					swarm.at(i)->addNeighbour(swarm.at(j));
@@ -574,69 +452,49 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 				}
 			}
 			updateHierarchical(config->getBranchingDegree(),previous_size);
-			break;
-		case TOP_RING:
-			if (swarm.size() > 3){
-				//Remove previous connect between the first and the last particle
-				swarm.at(0)->eraseNeighborbyID(previous_size-1);
-				swarm.at(previous_size-1)->eraseNeighborbyID(0);
-				for(unsigned int i=previous_size; i<swarm.size(); i++){
-					a=i-1;
-					b=i+1;
-					if(i==0)
-						a=swarm.size()-1;
-					if(i==(swarm.size()-1)){
-						b=0;
-						//Reconnect first particle with the last particle
-						swarm.at(0)->addNeighbour(swarm.at(i));
-						swarm.at(previous_size-1)->addNeighbour(swarm.at(previous_size));
-					}
-					swarm.at(i)->addNeighbour(swarm.at(a));
-					swarm.at(i)->addNeighbour(swarm.at(b));
-				}
-			}
-			else {
-				//Reconnect the whole swarm
-				for(unsigned int i=0; i<swarm.size(); i++)
-					swarm.at(i)->neighbours.clear();
-				createRingTopology();
-			}
-			break;
-		case TOP_WHEEL:
+		}
+		if (config->getTopology() == TOP_WHEEL){
 			for(unsigned int i=previous_size; i<swarm.size(); i++){
+				swarm.at(i)->addNeighbour(swarm.at(i));
 				swarm.at(i)->addNeighbour(swarm.at(0));
 				swarm.at(0)->addNeighbour(swarm.at(i));
 			}
-			break;
-		case TOP_RANDOM:{
+		}
+		if (config->getTopology() == TOP_RANDOM){
 			long int randomEdge;
+
+			//First: make all particles neighbors of themselves
+			for(unsigned int i=previous_size; i<swarm.size(); i++)
+				swarm.at(i)->addNeighbour(swarm.at(i));
+
+			//Second: Add a random neighbor
 			for(unsigned int i=previous_size; i<swarm.size(); i++){
-				randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
-				//randomEdge = RNG::getPermutationElement(i);
-				if (randomEdge == i){
+				for(unsigned int j=0;j<swarm.size();j++){
 					randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
-					swarm.at(i)->addNeighbour(swarm.at(randomEdge));
+
+					if (randomEdge == i){
+						continue;
+					}
+					else{
+						swarm.at(i)->addNeighbour(swarm.at(randomEdge));
+						break;
+					}
 				}
-				else
-					swarm.at(i)->addNeighbour(swarm.at(randomEdge));
 			}
 		}
-		break;
-		case TOP_TIMEVARYING:
+		if (config->getTopology() == TOP_TIMEVARYING){
 			if (iteration < config->getTopologySchedule()){
 				//We connect a particle randomly with swarm ensuring that the particle is connected to the adjacent neighbors (RING)
+
 				//Get average connections number of the swarm.
 				int averageConnections = 0;
 				for(unsigned int i=0; i<previous_size; i++){
 					averageConnections += swarm.at(i)->neighbours.size();
 				}
 				averageConnections = (int)floor((double)averageConnections/previous_size);
-				//			cout << "\tvar::averageConnections: " << averageConnections << endl;
-				//			cout << "\tvar::previous_size: " << previous_size << endl;
 
-				//swarm.at(0)->eraseNeighborbyID(previous_size-1);
-				//swarm.at(previous_size-1)->eraseNeighborbyID(0);
-				unsigned int a,b;
+				unsigned int a;
+				unsigned int b;
 				for(unsigned int i=previous_size; i<swarm.size(); i++){
 					//First connect the new particles in RING
 					a=i-1;
@@ -654,9 +512,8 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 					swarm.at(i)->addNeighbour(swarm.at(a));
 					swarm.at(i)->addNeighbour(swarm.at(b));
 
-					//After connect the new particles with #averageConnections random neighbors
+					//Create #averageConnections random connections
 					for(int j=0; j<averageConnections-3; j++){
-						//unsigned int randomEdge = RNG::getPermutationElement(j);
 						unsigned int randomEdge = (unsigned int)floor(RNG::randVal(0.0,(double)swarm.size()));
 						if (randomEdge != a && randomEdge != b && randomEdge != i){
 							swarm.at(i)->addNeighbour(swarm.at(randomEdge));
@@ -666,98 +523,17 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 				}
 			}
 			else { //RING -- After the topology update period is finished
-				//				//Remove previous connect between the first and the last particle
-				//				swarm.at(0)->eraseNeighborbyID(previous_size-1);
-				//				swarm.at(previous_size-1)->eraseNeighborbyID(0);
-				//				for(unsigned int i=previous_size; i<swarm.size(); i++){
-				//					a=i-1;
-				//					b=i+1;
-				//					if(i==0)
-				//						a=swarm.size()-1;
-				//					if(i==(swarm.size()-1)){
-				//						b=0;
-				//						//Reconnect first particle with the last particle
-				//						swarm.at(0)->addNeighbour(swarm.at(i));
-				//						swarm.at(previous_size-1)->addNeighbour(swarm.at(previous_size));
-				//					}
-				//					//swarm.at(i)->addNeighbour(swarm.at(i));
-				//					swarm.at(i)->addNeighbour(swarm.at(a));
-				//					swarm.at(i)->addNeighbour(swarm.at(b));
-				//				}
 				for(unsigned int i=0; i<swarm.size(); i++){
 					swarm.at(i)->neighbours.clear();
 				}
 				createRingTopology();
 			}
-			break;
-		case TOP_VONNEUMANN:
-			//If the swarm is bigger than 5 we can simply reconnect the first two particle according to the new size.
-			//The last one will be reconnected using the second for loop
-			//cout << "\n swarm.size(): "  << swarm.size() << endl;
-			if (swarm.size() >= 5){
-				//Reconnect two first and the last particle
-				for(unsigned int i=0; i<2; i++){
-					swarm.at(i)->neighbours.clear();
-					c=i+1;
-					if(i==0){
-						a=swarm.size()-1;
-						b=a-1;
-					}
-					if (i==1){
-						a=swarm.size()-1;
-						b=0;
-					}
-
-					swarm.at(i)->addNeighbour(swarm.at(a));
-					swarm.at(i)->addNeighbour(swarm.at(b));
-					swarm.at(i)->addNeighbour(swarm.at(c));
-					//cout << "Reconnect first two particles" << endl; //remove
-				}
-				//Connect the new particles added and the former last one in the previous iteration
-				swarm.at(previous_size)->neighbours.clear();
-				for(unsigned int i=previous_size; i<swarm.size(); i++){
-					a=i-1;
-					b=a-1;
-					c=i+1;
-					if(i==0){
-						a=swarm.size()-1;
-						b=a-1;
-					}
-					if (i==1){
-						a=swarm.size()-1;
-						b=0;
-					}
-					if(i==(swarm.size()-1))
-						c=0;
-
-					swarm.at(i)->addNeighbour(swarm.at(a));
-					swarm.at(i)->addNeighbour(swarm.at(b));
-					swarm.at(i)->addNeighbour(swarm.at(c));
-					//cout << "Reconnect last particle" << endl; //remove
-				}
-			}
-			else {
-				//Reconnect the whole swarm
-				for(unsigned int i=0; i<swarm.size(); i++)
-					swarm.at(i)->neighbours.clear();
-				createVonNeumannTopology();
-			}
-			break;
 		}
 	}
 	//PARTICLES WERE REMOVED -- RECONNECT THE TOPOLOGY
 	else {
 		//Reconnect the swarm
-		switch (config->getTopology()) {
-		case TOP_FULLYCONNECTED:
-			//Clear old connections
-			for(unsigned int i=0; i<swarm.size(); i++){
-				swarm.at(i)->neighbours.clear();
-			}
-			//Create new fully connected topology
-			createFullyConnectedTopology();
-			break;
-		case TOP_HIERARCHICAL:
+		if (config->getTopology() == TOP_HIERARCHICAL){
 			//Clear old connections
 			for(unsigned int i=0; i<swarm.size(); i++){
 				swarm.at(i)->neighbours.clear();
@@ -766,40 +542,24 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 			createHierarchical(config->getBranchingDegree(), config->getFinalPopSize());
 			for (int j=0; j<=lastLevelComplete; j++)
 				updateTree(config->getBranchingDegree());
-			break;
-		case TOP_RING:
-			//Clear old connections
-			for(unsigned int i=0; i<swarm.size(); i++){
-				swarm.at(i)->neighbours.clear();
-			}
-			//Create new ring topology
-			createRingTopology();
-			break;
-		case TOP_WHEEL:
+		}
+		if (config->getTopology() == TOP_WHEEL){
 			//Clear old connections
 			for(unsigned int i=0; i<swarm.size(); i++){
 				swarm.at(i)->neighbours.clear();
 			}
 			//Create new wheel topology
 			createWheelTopology();
-			break;
-		case TOP_RANDOM:
+		}
+		if (config->getTopology() == TOP_RANDOM){
 			//Clear old connections
 			for(unsigned int i=0; i<swarm.size(); i++){
 				swarm.at(i)->neighbours.clear();
 			}
 			//Create new random edge topology
 			createRandomEdge();
-			break;
-		case TOP_VONNEUMANN:
-			//Clear old connections
-			for(unsigned int i=0; i<swarm.size(); i++){
-				swarm.at(i)->neighbours.clear();
-			}
-			//Create new Von Neumann
-			createVonNeumannTopology();
-			break;
-		case TOP_TIMEVARYING:
+		}
+		if (config->getTopology() == TOP_TIMEVARYING){
 			if (iteration < config->getTopologySchedule()){
 				//We connect a particle randomly with swarm ensuring that the particle is connected to the adjacent neighbors (RING)
 				//Get average connections number of the swarm.
@@ -808,17 +568,14 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 					averageConnections += swarm.at(i)->neighbours.size();
 				}
 				averageConnections = (int)floor((double)averageConnections/swarm.size()-1);
-				//cout << "\tvar::averageConnections: " << averageConnections << endl;
-				//cout << "\tvar::previous_size: " << previous_size << endl;
 
 				//Clear old connections
 				for(unsigned int i=0; i<swarm.size(); i++){
 					swarm.at(i)->neighbours.clear();
 				}
 
-				//swarm.at(0)->eraseNeighborbyID(previous_size-1);
-				//swarm.at(previous_size-1)->eraseNeighborbyID(0);
-				unsigned int a,b;
+				unsigned int a;
+				unsigned int b;
 				for(unsigned int i=0; i<swarm.size(); i++){
 					//First connect the new particles in RING
 					a=i-1;
@@ -835,7 +592,6 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 					bool noAdd = false;
 					//After connect the new particles with #averageConnections random neighbors
 					for(int j=0; j<averageConnections-3; j++){
-						//unsigned int randomEdge = RNG::getPermutationElement(j);
 						unsigned int randomEdge = (unsigned int)floor(RNG::randVal(0.0,(double)swarm.size()));
 						if (randomEdge != a && randomEdge != b && randomEdge !=i){
 							for(unsigned int j=0; j<swarm.at(i)->neighbours.size(); j++){
@@ -857,7 +613,6 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 				}
 				createRingTopology();
 			}
-			break;
 		}
 	}
 }
@@ -904,9 +659,6 @@ void Swarm::removeOneParticle(Configuration* config){
 		if(childsInLastLevel == 1)
 			lastLevelComplete--;
 
-		//		if (config->verboseMode())
-		//			printTree(config->getBranchingDegree(),swarm.size());
-
 	}
 	//Find worst particle
 	else {
@@ -921,21 +673,13 @@ void Swarm::removeOneParticle(Configuration* config){
 	for (unsigned int i=0;i<swarm.size();i++){
 		swarm.at(i)->eraseNeighborbyID(pID);
 	}
-	if (config->verboseMode())
-		cout << "\tnotice::p[" << pID << "] erased from the neighborhood set of all other particles" << endl;
-	if (config->verboseMode())
-		cout << "\tnotice::previous swarm.size() = " << swarm.size() << endl;
 	//Remove particle from the swarm
 	for(unsigned int i=0;i<swarm.size();i++){
 		if(pID == swarm.at(i)->getID()){
 			swarm.erase(swarm.begin()+i);
-			if (config->verboseMode())
-				cout << "\tnotice::p[" << pID << "] removed from the swarm" << endl;
 			break;
 		}
 	}
-	if (config->verboseMode())
-		cout << "\tnotice::new swarm.size() = " << swarm.size() << endl;
 	//Update variable size
 	config->setSwarmSize(swarm.size()); //long int particles
 
@@ -943,7 +687,6 @@ void Swarm::removeOneParticle(Configuration* config){
 	for (unsigned int i=0;i<swarm.size();i++){
 		swarm.at(i)->setID(i);
 	}
-	//updateIDinTree(config->getBranchingDegree(), swarm.size(), OldAndNewIDs);
 }
 
 
@@ -989,28 +732,13 @@ void Swarm::reinitializeParticlePosition(Configuration* config){
 					}
 				}
 				//Compute similarity between particle and gBest
-				for (unsigned int j=0;j<config->getProblemDimension();j++){
+				for (int j=0;j<config->getProblemDimension();j++){
 					similarity +=  particlePos[j] / gBestPos[j];
 				}
 				similarity = similarity/config->getProblemDimension();
 				if (fabs(1-similarity) < REINIT_PRECISION){
-					if (config->verboseMode()){
-						cout << "\tparticle:: [" << i << "] pos: [ ";
-						for(unsigned int h=0;h<config->getProblemDimension();h++){
-							cout << gBestPos[h] << " ";
-						}
-						cout << "]" << endl;
-						cout << "\tgBest::pos: [";
-						for(unsigned int k=0;k<config->getProblemDimension();k++){
-							cout << particlePos[k] << " ";
-						}
-						cout << "]" << endl;
-					}
 					//Reinitialize particle to a random position and set v=0
-					swarm.at(i)->reInitPosUniform(config);
-					if (config->verboseMode()) {
-						cout << "\t\tnotice::Particle [" << i << "] was reinitialized to a random position"; //<< endl; //remove
-					}
+					swarm.at(i)->initializePosition(config,100, false);
 				}
 			}
 		}
@@ -1036,7 +764,7 @@ void Swarm::printGbest(unsigned int dimensions){
 
 
 Solution Swarm::getGlobalBest(){
-	return global_best;
+	return (global_best);
 }
 
 void Swarm::decomposePhi2(int modelOfInflu, int part_id, int numInformants){
@@ -1058,8 +786,8 @@ void Swarm::computeAccelerationCoefficients(Configuration* config, long int iter
 	//Random values within bounds
 	case AC_RANDOM:{
 		for (unsigned int i=0; i<swarm.size(); i++){
-			swarm.at(i)->setPhi1(problem->getRandomX(config->getInitialPhi1(),config->getFinalPhi1()));
-			swarm.at(i)->setPhi2(problem->getRandomX(config->getInitialPhi2(),config->getFinalPhi2()));
+			swarm.at(i)->setPhi1(RNG::randVal(config->getInitialPhi1(),config->getFinalPhi1()));
+			swarm.at(i)->setPhi2(RNG::randVal(config->getInitialPhi2(),config->getFinalPhi2()));
 		}
 	} break;
 	case AC_EXTRAPOLATED:{
@@ -1131,12 +859,6 @@ void Swarm::updatePerturbationVariables(Configuration* config, double previousGb
 				config->setMagnitude2(config->getMagnitude2()*0.5);
 		}
 	}
-
-	//	if (config->getMagnitude2CS() == MAGNITUDE_CONSTANT){
-	//		config->setPert2_alpha(config->getMagnitude2());
-	//		config->setPert2_delta(config->getMagnitude2());
-	//	}
-
 }
 
 /* Topologies */
@@ -1150,7 +872,8 @@ void Swarm::createFullyConnectedTopology(){       //All particles are neighbor a
 
 void Swarm::createRingTopology(){       //Every particle is neighbor of the adjacent particles
 	if (swarm.size() > 2){
-		int a,b;
+		int a;
+		int b;
 		for(unsigned int i=0;i<swarm.size();i++){
 			a=i-1;
 			b=i+1;
@@ -1167,15 +890,16 @@ void Swarm::createRingTopology(){       //Every particle is neighbor of the adja
 	else {
 		for(unsigned int i=0;i<swarm.size();i++){
 			for(unsigned int j=0;j<swarm.size();j++){
-				if (i != j)
-					swarm.at(i)->addNeighbour(swarm.at(j));
+				swarm.at(i)->addNeighbour(swarm.at(j));
 			}
 		}
 	}
 }
 
 void Swarm::createWheelTopology(){        //Particles are neighbors of one central particle
+	swarm.at(0)->addNeighbour(swarm.at(0));
 	for(unsigned int i=1;i<swarm.size();i++){
+		swarm.at(i)->addNeighbour(swarm.at(i));
 		swarm.at(i)->addNeighbour(swarm.at(0));
 		swarm.at(0)->addNeighbour(swarm.at(i));
 	}
@@ -1183,21 +907,32 @@ void Swarm::createWheelTopology(){        //Particles are neighbors of one centr
 
 void Swarm::createRandomEdge(){			//Or random edge topology
 	long int randomEdge;
-	for(unsigned int i=0;i<swarm.size();i++){
-		randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
-		//randomEdge = RNG::getPermutationElement(i);
-		if (randomEdge == i){
+
+	//First: make all particles neighbors of themselves
+	for(unsigned int i=0; i<swarm.size(); i++)
+		swarm.at(i)->addNeighbour(swarm.at(i));
+
+	//Second: Add a random neighbor
+	for(unsigned int i=0; i<swarm.size(); i++){
+		for(unsigned int j=0;j<swarm.size();j++){
 			randomEdge = (int)floor(RNG::randVal(0.0,(double)swarm.size()));
-			swarm.at(i)->addNeighbour(swarm.at(randomEdge));
+
+			if (randomEdge == i){
+				continue;
+			}
+			else{
+				swarm.at(i)->addNeighbour(swarm.at(randomEdge));
+				break;
+			}
 		}
-		else
-			swarm.at(i)->addNeighbour(swarm.at(randomEdge));
 	}
 }
 
 void Swarm::createVonNeumannTopology(){
 	if (swarm.size() > 3){
-		int a,b,c;
+		int a;
+		int b;
+		int c;
 		for(unsigned int i=0;i<swarm.size();i++){
 			a=i-1;
 			b=a-1;
@@ -1212,7 +947,7 @@ void Swarm::createVonNeumannTopology(){
 			}
 			if(i==(swarm.size()-1))
 				c=0;
-
+			swarm.at(i)->addNeighbour(swarm.at(i));
 			swarm.at(i)->addNeighbour(swarm.at(a));
 			swarm.at(i)->addNeighbour(swarm.at(b));
 			swarm.at(i)->addNeighbour(swarm.at(c));
@@ -1221,8 +956,7 @@ void Swarm::createVonNeumannTopology(){
 	else {
 		for(unsigned int i=0;i<swarm.size();i++){
 			for(unsigned int j=0;j<swarm.size();j++){
-				if (i != j)
-					swarm.at(i)->addNeighbour(swarm.at(j));
+				swarm.at(i)->addNeighbour(swarm.at(j));
 			}
 		}
 	}
@@ -1232,8 +966,6 @@ void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations
 	long int swarm_size;
 	bool emergyExit = false;
 	(config->getPopulationCS() == POP_CONSTANT) ? swarm_size = swarm.size() : swarm_size = config->getFinalPopSize();
-	//	cout << "\t\tvar::topologyUpdatePeriod:  " <<config->getTopologyUpdatePeriod() << endl;
-	//	cout << "\t\tvar::tschedule: " << config->getTopologySchedule() << endl;
 
 	if (config->getTopologyUpdatePeriod() == 0) //Swarm too small
 		return;
@@ -1253,95 +985,14 @@ void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations
 		}
 		averageConnections = averageConnections/swarm.size();
 
-		if (config->verboseMode()){
-			cout << "\n\t\tvar::averageConnections: " << averageConnections << endl;
-			cout << "\t\tvar::esteps: " << config->getEsteps() << endl;
-			cout << "\t\tvar::iteration: " << iterations << endl;
-			cout << "\t\tvar::target: " << swarm_size-(2+config->getEsteps()) << endl;
-			cout << "\t\tvar::swarm_size: " << swarm_size << endl << endl;
-		}
 		while(removals < target && averageConnections > 3 && emergyExit == false){
-		//while(removals < target && averageConnections > 4){
 			try {// vector::at throws an out-of-range
 				for(unsigned int i=0;i<swarm.size();i++){
 					int particleIndex = RNG::getPermutationElement(i);
 					int neighborID = -1;
-					//bool idFound = false;
-					//					if (config->verboseMode()){
-					//						cout << "\t\tvar::particleIndex: " << particleIndex << endl;
-					//						cout << "\t\tvar::neighbours.size(): " << swarm.at(particleIndex)->neighbours.size() << endl;
-					//					}
 
 					if (swarm.at(particleIndex)->neighbours.size() > 3 ){ //3 because a particle is a neighbor to itself
-						//if (config->getPopulationCS() != POP_TIME_VARYING)
-						//						if (config->getPopulationCS() == POP_CONSTANT || config->getPopulationCS() == POP_INCREMENTAL){
 						neighborID = swarm.at(particleIndex)->getRandomNonAdjacentNeighborID(config);
-						//							if (config->verboseMode()){
-						//								cout << "\t\tvar::particleID: " << swarm.at(particleIndex)->getID() << endl;
-						//								cout << "\t\tvar::neighborID: " << neighborID << endl;
-						//							}
-						//						}
-						//						else {
-						//							//Look for a neighbor based on the position of the particles in the swarm
-						//							if (particleIndex == 0){ //Particle in the FIRST position of swarm
-						//								for(unsigned int k=2; k<swarm.size()-1; k++){
-						//									for (unsigned int j=0; j<swarm.at(particleIndex)->neighbours.size(); j++){
-						//										if (swarm.at(k)->getID() == swarm.at(particleIndex)->neighbours.at(j)->getID()){
-						//											neighborID = swarm.at(k)->getID();
-						//											idFound = true;
-						//											break;
-						//										}
-						//									}
-						//									if (idFound == true) break;
-						//								}
-						//							}
-						//							else if ((long unsigned) particleIndex == swarm.size()-1){//Particle in the LAST position of swarm
-						//								for(unsigned int k=1; k<swarm.size()-2; k++){
-						//									for (unsigned int j=0; j<swarm.at(particleIndex)->neighbours.size(); j++){
-						//										if (swarm.at(k)->getID() == swarm.at(particleIndex)->neighbours.at(j)->getID()){
-						//											neighborID = swarm.at(k)->getID();
-						//											idFound = true;
-						//											break;
-						//										}
-						//									}
-						//									if (idFound == true) break;
-						//								}
-						//							}
-						//							else{
-						//								for(unsigned int k=0; k<swarm.size(); k++){
-						//									for (unsigned int j=0; j<swarm.at(particleIndex)->neighbours.size(); j++){
-						//										if (swarm.at(k)->getID() == swarm.at(particleIndex)->neighbours.at(j)->getID()){
-						//											//Check left-side
-						//											for (unsigned int l=0; l<swarm.at(particleIndex)->neighbours.size(); l++){
-						//												if (swarm.at(k-1)->getID() != swarm.at(particleIndex)->neighbours.at(l)->getID()){
-						//													//Check right-side
-						//													for (unsigned int r=0; r<swarm.at(particleIndex)->neighbours.size(); r++){
-						//														if (swarm.at(k+1)->getID() != swarm.at(particleIndex)->neighbours.at(r)->getID()){
-						//															neighborID = swarm.at(k)->getID();
-						//															idFound = true;
-						//															break;
-						//														}
-						//													}
-						//												}
-						//												if (idFound == true) break;
-						//											}
-						//										}
-						//										if (idFound == true) break;
-						//									}
-						//									if (idFound == true) break;
-						//								}
-						//							}
-						//						}
-						//Prevent an infinite loop
-						//						if (neighborID == -1){
-						//							removals++;
-						//							break;
-						//						}
-						//						if (config->verboseMode()){
-						//							cout << "\t\tvar::neighborID: " << neighborID << endl;
-						//							cout << "\t\tvar::removals: " << removals << endl;
-						//						}
-
 						swarm.at(particleIndex)->eraseNeighborbyID(neighborID);
 						swarm.at(neighborID)->eraseNeighborbyID(particleIndex);
 						removals++;
@@ -1358,8 +1009,6 @@ void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations
 		}
 
 		(config->getPopulationCS() == POP_CONSTANT || config->getPopulationCS() == POP_TIME_VARYING) ? config->setEsteps(config->getEsteps()+1) : config->setEsteps(config->getEsteps()-1);
-		if (config->verboseMode())
-			cout << "\t\tfunc::updateTimeVaryingTopology().status() -> correct" << endl;
 	}
 }
 
@@ -1409,11 +1058,6 @@ void Swarm::createHierarchical(int branching, int finalPopSize){
 		}
 		maxWidth = pow(branching,temp_LastLevelComplete+1);
 	}
-	//cout << "Last level complete: \t" << lastLevelComplete << endl;
-	//cout << "Actual space: \t\t" << actualSpace << endl;
-	//cout << "First part: \t\t" << firstPart << endl;
-	//cout << "Max width: \t\t" << maxWidth << endl;
-	//cout << "Branching degree: \t" << branching << endl << endl;
 
 	//Create a fully connected topology first
 	for(unsigned int i=0;i<swarm.size()	;i++){
@@ -1424,17 +1068,14 @@ void Swarm::createHierarchical(int branching, int finalPopSize){
 
 	//Initialize tree structure
 	//Note that even when the population is dynamic, hierarchy already has the right size to allocate all
-	//the population size
+	//the particles in the population
 	//temp_LastLevelComplete+1 indicates the levels (depth of the tree)
 	//maxWidth indicates maximum number of nodes in a level (max width of the tree)
-	//	hierarchy = new int*[(temp_LastLevelComplete+1)];	//these are the level (depth of the tree)
-	//		for (int i=0; i<=temp_LastLevelComplete+1; i++)
-	//			hierarchy[i] = new int[maxWidth];		//these are the nodes in a level (max width of the tree)
 	hierarchy.resize(temp_LastLevelComplete+2, vector<int>(maxWidth));
 
 	for (int i=0; i<=temp_LastLevelComplete+1; i++){
 		for (int j=0; j<maxWidth; j++)
-			hierarchy.at(i).at(j) = -2;				//-2 indicates that the position is not in use
+			hierarchy.at(i).at(j) = -2;				//-2 indicates that the position is not being used
 	}
 
 	//tree variables
@@ -1445,7 +1086,7 @@ void Swarm::createHierarchical(int branching, int finalPopSize){
 
 	//root node
 	int parent = hierarchy.at(0).at(0) = swarm.at(0)->getID();
-	swarm.at(0)->setParent(-1); //the parent of root is NULL
+	swarm.at(0)->setParent(-1); //the root particle has parent -1
 	//We first fill all the levels that will be complete, i.e., the levels with maximum width
 	for(unsigned int i=1;i<firstPart;i++){
 		if (width < pow(branching,h)) {
@@ -1494,22 +1135,17 @@ void Swarm::updateHierarchical(int branching, long previous_size){
 	int childsInLastLevel = 0;
 	int nodesToAdd = swarm.size()-previous_size;
 
-	//printTree(branching,previous_size);
-
 	//Get the number of particles in the last level complete
 	for (int i=0; i<pow(branching,lastLevelComplete+1); i++){
 		if (hierarchy.at(lastLevelComplete+1).at(i) != -2) {
 			childsInLastLevel++;
 		}
 	}
-	//cout << "\n\tThere are " << childsInLastLevel << " particle(s) in lastLevelComplete-->" << lastLevelComplete << endl; //remove
 	//If the new set of particles to be added fits in lastLevelComplete
 	if (pow(branching,lastLevelComplete+1)-childsInLastLevel >= nodesToAdd){
-		//cout << "\n\t" << nodesToAdd << " new particle(s) will be added in lastLevelComplete+1... " << endl; //remove
 		addParticlesInLastLevel(previous_size, swarm.size(), branching);
 		if (nodesToAdd+childsInLastLevel == pow(branching,lastLevelComplete+1)){
 			lastLevelComplete++;
-			//cout << "\n\tlastLevelComplete+1 is now full [" << nodesToAdd+childsInLastLevel << "] particles, a new level will be added to the tree" << endl; //remove
 		}
 	}
 	//If the number of particles to add is larger that the space in lastLevelComplete
@@ -1517,10 +1153,9 @@ void Swarm::updateHierarchical(int branching, long previous_size){
 		//Add the first part of the particles that fit in the last level
 		long firstPart = (pow(branching,lastLevelComplete+1)-childsInLastLevel);
 		addParticlesInLastLevel(previous_size, previous_size+firstPart, branching);
-		//cout << "\n\t" << firstPart << " new particle(s) were added in lastLevelComplete+1... " << endl; //remove
 		lastLevelComplete++;
 
-		//Compute the number of nodes that still need to be added
+		//Compute the number of nodes that still have to be added
 		nodesToAdd = nodesToAdd-firstPart;
 		int newLastLevel = lastLevelComplete;
 
@@ -1528,10 +1163,10 @@ void Swarm::updateHierarchical(int branching, long previous_size){
 		while (nodesToAdd - pow(branching,newLastLevel) >= pow(branching,newLastLevel+1)) {
 			newLastLevel++;
 		}
-		//cout << "\n\t" << newLastLevel-lastLevelComplete << " lastLevelComplete will be created" << endl; //remove
 
 		//first and last are the ids of the particles that are going to be added in the level
-		long first = previous_size+firstPart, last = 0;
+		long first = previous_size+firstPart;
+		long last = 0;
 		if (nodesToAdd < pow(branching,lastLevelComplete+1))
 			last = first+nodesToAdd;
 		else
@@ -1552,12 +1187,9 @@ void Swarm::updateHierarchical(int branching, long previous_size){
 		}
 		lastLevelComplete = newLastLevel;
 	}
-	//updateTree(branching);
-	//printTree(branching,swarm.size());
-	//printAllParentNodes();
 }
 
-void Swarm::addParticlesInLastLevel(int first, int last, int branching){ //first = previous_size, last =
+void Swarm::addParticlesInLastLevel(int first, int last, int branching){
 	//tree variables
 	int width = 0;
 	int nodesCounter=0;
@@ -1602,13 +1234,11 @@ void Swarm::getParticleParentsIDs(int particleID, int *ParentsArray1D){
 			break;
 		}
 	}
-	//cout << "\nParticle " << swarm.at(index)->getID() << ": " ;
 
 	//Get direct parentNode ID
 	int aParent = swarm.at(index)->getParent();
+	//This is the case of the particle in the root node
 	if (aParent==-1){
-		//cout << "Root node";
-		//ParentsArray1D[0] = swarm.at(index)->getRandomNeighbor();
 		ParentsArray1D[0] = swarm.at(index)->getID();
 		swarm.at(particleID)->setgBestID(swarm.at(index)->getID());
 	}
@@ -1616,13 +1246,10 @@ void Swarm::getParticleParentsIDs(int particleID, int *ParentsArray1D){
 		int pos = 0;
 		while (aParent != -1){
 			ParentsArray1D[pos] = aParent;
-			//cout << ParentsArray1D[pos] << " ";
 			pos++;
 			aParent = swarm.at(aParent)->getParent();
 		}
 	}
-	//cout << endl ;
-	//return ParentsArray1D;
 }
 
 int Swarm::getParticleNumParents(int particleID){
@@ -1642,15 +1269,13 @@ int Swarm::getParticleNumParents(int particleID){
 		partents_counter++;
 		aParent = swarm.at(aParent)->getParent();
 	}
-	//cout << endl ;
-	return partents_counter;
+	return (partents_counter);
 }
 
 
 void Swarm::updateTree(int branching){
 	//Traverse the tree and update the position of the particles
 	//reset indexes to traverse the entire tree
-	//cout << endl << "Traversing the tree: " << endl;
 	int h = 1;
 	int width = 0;
 	int iterCount = 0;
@@ -1666,11 +1291,9 @@ void Swarm::updateTree(int branching){
 			if (width < pow(branching,h)){ //max level width
 				if (parentNode!=swarm.at(hierarchy.at(h).at(width))->getParent()){
 					parentNode=swarm.at(hierarchy.at(h).at(width))->getParent();
-					//cout << "Parent: " << parentNode << endl;	//Parent coordinates
 					parentH = h-1;
 					parentWidth++;
 				}
-				//cout << "\t\t" << hierarchy[h][width] << "->" << swarm.at(hierarchy[h][width])->getParent() << endl;
 				if (swarm.at(hierarchy.at(h).at(width))->getCurrentEvaluation() < swarm.at(parentNode)->getCurrentEvaluation()){
 					newParent = swarm.at(hierarchy.at(h).at(width))->getID();	//newParent coordinates (this is the child that becomes parent)
 					newH = h;
@@ -1690,7 +1313,6 @@ void Swarm::updateTree(int branching){
 				width=0;
 				parentWidth=-1;
 				parentNode=-1;
-				//cout << endl << "Level " << h << ": " << endl;
 			}
 		}
 		else {
@@ -1698,12 +1320,10 @@ void Swarm::updateTree(int branching){
 			parentH = h-1;
 			parentWidth++;
 			newParent = parentNode;
-			//cout << "Parent: " << parentNode << endl;
 
 			for(int j=iterCount*branching;j<(iterCount*branching)+branching;j++){
 				try{
 					if (swarm.at(hierarchy.at(h).at(j))->getParent() == parentNode) {
-						//cout << "\t\t" << hierarchy[h][j] << "->" << swarm.at(hierarchy[h][j])->getParent() << endl;
 						childCounter++;
 					}
 					//Check if there is a new parent
@@ -1723,15 +1343,12 @@ void Swarm::updateTree(int branching){
 			}
 			iterCount++;
 		}
-		if ((long unsigned)childCounter==swarm.size())
+		if ((unsigned int)childCounter==swarm.size())
 			break;
 	}
 }
 
 void Swarm::swapNodes(int newParent, int newH, int newWidth, int parentNode, int parentH, int parentWidth, int branching, int h, int width, int iterCount){
-	//cout << "\t\t New parent: " << newParent << " coordinates: "  << newH << " "<< newWidth << endl;
-	//cout << "\t\t Replaces: " << parentNode << " coordinates: "  << parentH << " "<< parentWidth << endl;
-
 	//Swap child and parent IDs
 	swarm.at(hierarchy.at(newH).at(newWidth))->setParent(swarm.at(hierarchy.at(parentH).at(parentWidth))->getParent());
 	swarm.at(hierarchy.at(parentH).at(parentWidth))->setParent(newParent); //parent
@@ -1740,21 +1357,15 @@ void Swarm::swapNodes(int newParent, int newH, int newWidth, int parentNode, int
 	hierarchy.at(parentH).at(parentWidth) = newParent;
 	hierarchy.at(newH).at(newWidth) = parentNode;
 
-	//cout << "\t\t s" << hierarchy[newH][newWidth] << "->" << swarm.at(hierarchy[newH][newWidth])->getParent() << endl;
-	//cout << "\t\t s" << hierarchy[parentH][parentWidth] << "->" << swarm.at(hierarchy[parentH][parentWidth])->getParent() << endl;
-
 	if (h <= lastLevelComplete) {
 		//Update brothers parentID
 		for (int k=width-(branching-1); k<=width; k++){
 			swarm.at(hierarchy.at(h).at(k))->setParent(newParent);
-			//cout << "\t\t b" << hierarchy[h][k] << "->" << swarm.at(hierarchy[h][k])->getParent() << endl;
-
 		}
 		//Update any children that the old child (now parent) may have had
 		for (int k=branching*width; k<(branching*width)+branching; k++){
 			try {
 				swarm.at(hierarchy.at(h+1).at(k))->setParent(parentNode);
-				//cout << "\t\t c" << hierarchy[h+1][k] << "->" << swarm.at(hierarchy[h+1][k])->getParent() << endl;
 			}
 			catch (const std::exception& e) {
 				break;
@@ -1766,7 +1377,6 @@ void Swarm::swapNodes(int newParent, int newH, int newWidth, int parentNode, int
 		for(int k=iterCount*branching;k<(iterCount*branching)+branching;k++){
 			try{
 				swarm.at(hierarchy.at(h).at(k))->setParent(newParent);
-				//cout << "\t\t b" << hierarchy[h][k] << "->" << swarm.at(hierarchy[h][k])->getParent() << endl;
 			}
 			catch (const std::exception& e) {
 				break;
@@ -1841,9 +1451,7 @@ void Swarm::printTree(int branching, long swarm_size) {
 						childCounter++;
 					}
 				}
-				//This exception is thrown when hierarchy[][] = -2 and we try to access a position of swarm.at(-2), which does not exist
 				catch (const std::exception& e) {
-					//cout << "h[" << h << "] j[" << j << "] iter " << iterCount << endl;
 					break;
 				}
 			}
@@ -1855,14 +1463,6 @@ void Swarm::printTree(int branching, long swarm_size) {
 }
 
 void Swarm::clearResizeSimpSwarm(Configuration* config, long int iteration){
-	//	if ((iteration > 1 &&
-	//			((config->getOmega1CS() == IW_SUCCESS_BASED || config->getOmega1CS() == IW_CONVERGE_BASED) ||
-	//					(config->getAngleCS() == ANGLE_ADAPTIVE &&
-	//							(config->getRandomMatrix() == MATRIX_RRM_EXP_MAP || config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ONE ||
-	//									config->getRandomMatrix() == MATRIX_RRM_EUCLIDEAN_ALL)
-	//					)
-	//			)
-	//	) || (iteration == 1 && (config->getOmega1CS() == IW_CONVERGE_BASED || config->getOmega1CS() == IW_SUCCESS_BASED)) ){
 	//Copy particle's id and evaluation in simpSwarm for the next iteration
 	simpSwarm.clear();
 	simpSwarm.resize(swarm.size());
@@ -1874,6 +1474,21 @@ void Swarm::clearResizeSimpSwarm(Configuration* config, long int iteration){
 
 // This function computes the inertia weight (omega1 in the GVU formula) according to the selected strategy
 double Swarm::computeOmega1(Configuration* config, long int iteration, long int posIndex, bool newIteration){
+	/*Some of these variable could become parameters of the framework and be optimized with irace*/
+	static double alpha = 1/pow(M_PI,2); 			//small positive constant 		IW_NONL_DEC - 4
+	static double omega = 0.3;						//value between [0,1] 			IW_NONL_DEC_IMP - 5
+	static double u = 1.0002;						//value between [1.0001,1.0005] IW_NONL_DEC_IMP - 5
+	static double omegaXu = omega * u;				//								IW_NONL_DEC_IMP - 5
+	static double zFunction;						//								IW_CHAOTIC_DEC - 7
+	static int    k = 7;							//positive integer constant		IW_OSCILLATING - 9 This should be a configurable parameter (
+	static double simNumOfCos = 2.0*M_PI*((4*k)+6);	//								IW_OSCILLATING - 9
+	static double a = 1;							//small positive constant		IW_LOG_DEC - 10
+	static double omega_2 = 0;						//								IW_SELF_REGULATING - 11
+	static double deltaOmega = (((double)config->getFinalIW()) - config->getInitialIW())/config->getMaxIterations(); //IW_SELF_REGULATING - 11 - Self-regulating
+	static double T_0_95 = 95*config->getMaxIterations()/100; //iteration at which 95% of search process is completed IW_VELOCITY_BASED - 12 - Based on velocity information
+
+	double OmegaToReturn = 0;
+
 	//If all particle use the same inertia value, it is more efficient
 	//to compute it once at the beginning of the iteration
 	if (newIteration) {
@@ -1882,6 +1497,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		if (config->getOmega1CS() == IW_CONSTANT){
 			if (config->getOmega1() < -1 || config->getOmega1() > 1) //check convergence bounds
 				config->setOmega1(CONSTRICTION_COEFFICIENT);
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_L_INC - 1 - Linear increasing
 		else if (config->getOmega1CS() == IW_L_INC) {
@@ -1902,6 +1518,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 								(config->getInitialIW()-config->getFinalIW()))
 				);
 			}
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_L_DEC - 2 - Linear decreasing
 		else if (config->getOmega1CS() == IW_L_DEC) {
@@ -1922,10 +1539,12 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 								(config->getFinalIW()-config->getInitialIW()))
 				);
 			}
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_RANDOM - 3 - Random
 		else if (config->getOmega1CS() == IW_RANDOM) {
-			config->setOmega1( 0.5 * (problem->getRandom01()/2.0));
+			config->setOmega1( 0.5 * (RNG::randVal(0,1)/2.0));
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_NONL_DEC - 4 - Nonlinear decreasing
 		else if (config->getOmega1CS() == IW_NONL_DEC) {
@@ -1933,26 +1552,30 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					config->getFinalIW() + ((config->getInitialIW()-config->getFinalIW())*
 							pow((double)(iteration)/config->getMaxIterations(),alpha))
 			);
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_NONL_DEC_IMP - 5 - Nonlinear decreasing improved
 		else if (config->getOmega1CS() == IW_NONL_DEC_IMP) {
 			config->setOmega1(
 					pow(omegaXu, iteration)
 			);
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_NONL_DEC_TIME - 6 - Nonlinear decreasing time-dependent
 		else if (config->getOmega1CS() == IW_NONL_DEC_TIME) {
 			config->setOmega1(
 					pow((2.0/iteration), 0.3)
 			);
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_CHAOTIC_DEC - 7 Chaotic decreasing
 		else if (config->getOmega1CS() == IW_CHAOTIC_DEC) {
-			iteration == 1 ? zFunction = problem->getRandom01() : zFunction = 4*zFunction*(1-zFunction);
+			iteration == 1 ? zFunction = RNG::randVal(0,1) : zFunction = 4*zFunction*(1-zFunction);
 			config->setOmega1(
 					(zFunction*config->getInitialIW()) + (config->getFinalIW()-config->getInitialIW()) *
 					((double)(config->getMaxIterations())-iteration)/config->getMaxIterations()
 			);
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_EXP_DEC - 8 - Natural exponential decreasing
 		else if (config->getOmega1CS() == IW_EXP_DEC) {
@@ -1960,6 +1583,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					config->getInitialIW() + (config->getFinalIW()-config->getInitialIW())*
 					exp((-10.0*iteration)/config->getMaxIterations())
 			);
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_OSCILLATING - 9 - Oscillating
 		else if (config->getOmega1CS() == IW_OSCILLATING) {
@@ -1971,6 +1595,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				);
 			else
 				config->setOmega1(config->getInitialIW());
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_LOG_DEC - 10 - Logarithm decreasing
 		else if (config->getOmega1CS() == IW_LOG_DEC) {
@@ -1978,6 +1603,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					config->getFinalIW() + (config->getInitialIW()-config->getFinalIW())*
 					log10(((10.0*iteration)/config->getMaxIterations())+ a )
 			);
+			OmegaToReturn =config->getOmega1();
 		}
 
 		/* ****************************************************************************************************************/
@@ -1986,13 +1612,14 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		/* Adaptive strategies */
 		//IW_SELF_REGULATING - 11 - Self-regulating
 		else if (config->getOmega1CS() == IW_SELF_REGULATING) {
-			static double deltaOmega = (((double)config->getFinalIW()) - config->getInitialIW())/config->getMaxIterations();
 			iteration == 1 ? omega_2 = config->getFinalIW() : omega_2 = omega_2-deltaOmega;
 			config->setOmega1(omega_2);
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_VELOCITY_BASED - 12 - Based on velocity information
 		else if (config->getOmega1CS() == IW_VELOCITY_BASED) {
-			static double T_0_95 = 95*config->getMaxIterations()/100; //iteration at which 95% of search process is completed
+			double idealVelocity;
+			double avVel;
 			double lambda = config->get_iw_par_deltaOmega();
 			if (iteration == 1)
 				config->setOmega1(config->getFinalIW());
@@ -2008,10 +1635,12 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 				(config->getOmega1()+lambda) >= config->getFinalIW() ?
 						config->setOmega1(config->getFinalIW()) : config->setOmega1(config->getOmega1()+lambda);
 			}
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_RANKS_BASED - 14 - Rank-based
 		else if (config->getOmega1CS() == IW_RANKS_BASED) {
 			rankParticles(simpSwarm);
+			OmegaToReturn = 0;
 		}
 		//IW_SUCCESS_BASED - 15 Success-based
 		else if (config->getOmega1CS() == IW_SUCCESS_BASED) {
@@ -2038,185 +1667,156 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 						((double)S_i/swarm.size()))
 				);
 			}
+			OmegaToReturn =config->getOmega1();
 		}
 		//IW_CONVERGE_BASED - 16 Convergence-based
 		else if (config->getOmega1CS() == IW_CONVERGE_BASED) {
 			if (iteration == 1 ){
 				double alpha_2 = config->get_iw_par_alpha_2();
 				double beta_2 = config->get_iw_par_beta_2();
-				if (config->getPopulationCS() == POP_CONSTANT)
-					config->setOmega1(1 - fabs(alpha_2/(1+beta_2)));
+				//				if (config->getPopulationCS() == POP_CONSTANT)
+				config->setOmega1(1 - fabs(alpha_2/(1+beta_2)));
 			}
+			OmegaToReturn =config->getOmega1();
 		}
 		//Keep inertia constant during the execution
 		else {
-			config->setOmega1(config->getOmega1()); //kind of unnecessary, but ensures integrity
-			//cout << inertia << endl;
-			//return inertia;
+			config->setOmega1(CONSTRICTION_COEFFICIENT);
+			OmegaToReturn =config->getOmega1();
 		}
-		//if (config->verboseMode()) cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
 	}
-	else {
-		//These are the strategies that need to compute a independent inertia value for each particle
-		//Note that the variables used here are computed/allocated when (newIteration == true).
-		if (posIndex != -1){
-			double temp_Omega = 0;
-
-			switch (config->getOmega1CS()) {
-			//IW_L_INC - 1 - Linear increasing
-			case IW_L_INC:{
-				if (config->getTopology() == TOP_HIERARCHICAL){
-					//From Hierarchical PSO
-					double k=((double)getParticleNumParents(posIndex));
-					config->setOmega1( config->getFinalIW() +
-							( ((config->getInitialIW()-config->getFinalIW()) * k) / (lastLevelComplete+1))
-					);
-					if (config->verboseMode()) cout << "\tvar:w_max: " << config->getInitialIW() << "\n";
-					if (config->verboseMode()) cout << "\tvar:w_min: " << config->getFinalIW() << "\n";
-					if (config->verboseMode()) cout << "\tvar::(k)partents_counter: " << k << "\n";
-					if (config->verboseMode()) cout << "\tvar::(h)lastLevelComplete: " << lastLevelComplete << "\n";
-					temp_Omega = config->getOmega1();
-				}
-				else
-					temp_Omega = config->getOmega1();
-			}
-			break;
-			//IW_L_DEC - 2 - Linear decreasing
-			case IW_L_DEC: {
-				if (config->getTopology() == TOP_HIERARCHICAL){
-					//From Hierarchical PSO
-					double k=((double)getParticleNumParents(posIndex));
-					config->setOmega1( config->getInitialIW() +
-							( ((config->getFinalIW()-config->getInitialIW()) * k)/(lastLevelComplete+1))
-					);
-					if (config->verboseMode()) cout << "\tvar:w_max: " << config->getInitialIW() << "\n";
-					if (config->verboseMode()) cout << "\tvar:w_min: " << config->getFinalIW() << "\n";
-					if (config->verboseMode()) cout << "\tvar::(k)partents_counter: " << k << "\n";
-					if (config->verboseMode()) cout << "\tvar::(h)lastLevelComplete: " << lastLevelComplete << "\n";
-				}
-				else
-					temp_Omega = config->getOmega1();
-			}
-			break;
-			//IW_SELF_REGULATING - 11 - Self-regulating
-			case IW_SELF_REGULATING:{
-				double eta = config->get_iw_par_eta();
-				//The best particle has a special inertia value
-				if (posIndex == best_particle->getID())
-					temp_Omega = omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations());
-				else
-					temp_Omega = config->getOmega1();
-			}
-			break;
-			//IW_DOUBLE_EXP - 13 - Double exponential self-adaptive
-			case IW_DOUBLE_EXP:{
-				double R =0.0;
-				if (iteration == 1){
-					config->setOmega1(config->getFinalIW());
-					//cout << id << endl;
-				}
-				else {
-					R = swarm.at(posIndex)->computeDistPbestGbest()*((((double)config->getMaxIterations())-iteration)/config->getMaxIterations());
-					config->setOmega1( exp(-1*exp((R*-1))));
-					//cout << id << endl;
-				}
-				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-				temp_Omega = config->getOmega1();
-			}
-			break;
-			//IW_RANKS_BASED - 14 - Rank-based
-			case IW_RANKS_BASED:{
-				config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
-						((double) swarm.at(posIndex)->getRanking()/swarm.size()))
+	//These are the strategies that need to compute a independent inertia value for each particle
+	if (posIndex != -1){
+		//IW_L_INC - 1 - Linear increasing
+		if (config->getOmega1CS() == IW_L_INC){
+			if (config->getTopology() == TOP_HIERARCHICAL){
+				//From Hierarchical PSO
+				double k=((double)getParticleNumParents(posIndex));
+				config->setOmega1( config->getFinalIW() +
+						( ((config->getInitialIW()-config->getFinalIW()) * k) / (lastLevelComplete+1))
 				);
-				//cout << id << endl;
-				//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-				temp_Omega = config->getOmega1();
+				OmegaToReturn = config->getOmega1();
 			}
-			break;
-			//IW_CONVERGE_BASED - 16 Convergence-based
-			case IW_CONVERGE_BASED:{
-				if (iteration > 1) {
-					double alpha_2 = config->get_iw_par_alpha_2();
-					double beta_2 = config->get_iw_par_beta_2();
+			else
+				OmegaToReturn = config->getOmega1();
+		}
+		//IW_L_DEC - 2 - Linear decreasing
+		else if (config->getOmega1CS() ==  IW_L_DEC) {
+			if (config->getTopology() == TOP_HIERARCHICAL){
+				//From Hierarchical PSO
+				double k=((double)getParticleNumParents(posIndex));
+				config->setOmega1( config->getInitialIW() +
+						( ((config->getFinalIW()-config->getInitialIW()) * k)/(lastLevelComplete+1))
+				);
+				OmegaToReturn = config->getOmega1();
+			}
+			else
+				OmegaToReturn = config->getOmega1();
+		}
+		//IW_SELF_REGULATING - 11 - Self-regulating
+		else if (config->getOmega1CS() ==  IW_SELF_REGULATING){
+			double eta = config->get_iw_par_eta();
+			//The best particle has a special inertia value
+			if (posIndex == best_particle->getID())
+				OmegaToReturn = omega_2 + eta * ((config->getFinalIW() - config->getInitialIW()) / config->getMaxIterations());
+			else
+				OmegaToReturn = config->getOmega1();
+		}
+		//IW_DOUBLE_EXP - 13 - Double exponential self-adaptive
+		else if (config->getOmega1CS() ==  IW_DOUBLE_EXP){
+			double R =0.0;
+			if (iteration == 1){
+				config->setOmega1(config->getFinalIW());
+			}
+			else {
+				R = swarm.at(posIndex)->computeDistPbestGbest()*((((double)config->getMaxIterations())-iteration)/config->getMaxIterations());
+				config->setOmega1( exp(-1*exp((R*-1))));
+			}
+			OmegaToReturn = config->getOmega1();
+		}
+		//IW_RANKS_BASED - 14 - Rank-based
+		else if (config->getOmega1CS() ==  IW_RANKS_BASED){
+			config->setOmega1( config->getInitialIW() + ((config->getFinalIW()-config->getInitialIW()) *
+					((double) swarm.at(posIndex)->getRanking()/swarm.size()))
+			);
+			OmegaToReturn = config->getOmega1();
+		}
+		//IW_CONVERGE_BASED - 16 Convergence-based
+		else if (config->getOmega1CS() ==  IW_CONVERGE_BASED){
+			if (iteration > 1) {
+				double alpha_2 = config->get_iw_par_alpha_2();
+				double beta_2 = config->get_iw_par_beta_2();
 
-					//Find the particle in simpSwarm
-					for (unsigned int j=0; j<simpSwarm.size(); j++){
-						if (simpSwarm.at(j).id == swarm.at(posIndex)->getID()){
-							//convergence factor
-							long double c_i = fabs(simpSwarm.at(j).eval - swarm.at(posIndex)->getCurrentEvaluation())/
-									(simpSwarm.at(j).eval + swarm.at(posIndex)->getCurrentEvaluation());
-							//diffusion factor
-							long double d_i = fabs(swarm.at(posIndex)->getCurrentEvaluation() - global_best.eval) /
-									(swarm.at(posIndex)->getCurrentEvaluation() + global_best.eval);
-							//set the inertia weight
-							config->setOmega1(1 - fabs(alpha_2*(1-c_i)) / (1+d_i)*(1+beta_2));
-							break;
-						}
+				//Find the particle in simpSwarm
+				for (unsigned int j=0; j<simpSwarm.size(); j++){
+					if (simpSwarm.at(j).id == swarm.at(posIndex)->getID()){
+						//convergence factor
+						long double c_i = fabs(simpSwarm.at(j).eval - swarm.at(posIndex)->getCurrentEvaluation())/
+								(simpSwarm.at(j).eval + swarm.at(posIndex)->getCurrentEvaluation());
+						//diffusion factor
+						long double d_i = fabs(swarm.at(posIndex)->getCurrentEvaluation() - global_best.eval) /
+								(swarm.at(posIndex)->getCurrentEvaluation() + global_best.eval);
+						//set the inertia weight
+						config->setOmega1(1 - fabs(alpha_2*(1-c_i)) / (1+d_i)*(1+beta_2));
+						break;
 					}
-					//cout << id << endl;
-					//cout << "\tvar::Omega1: " << config->getOmega1() << "\n";
-					temp_Omega = config->getOmega1();
 				}
+				OmegaToReturn = config->getOmega1();
 			}
-			break;
-			default:
-				temp_Omega = config->getOmega1();
-				break;
-			}
-			if (config->verboseMode()) cout << "\t\tvar::Omega1: " << config->getOmega1() << " \n";
-			return temp_Omega;
 		}
 		else{
-			cerr << "Unexpected error while computing the value of inertia: id=-1 is not valid" << endl;
-			exit (-1);
+			OmegaToReturn = config->getOmega1();
 		}
 	}
-	return config->getOmega1();
+	return (OmegaToReturn);
 }
 
 
 double Swarm::computeOmega2(Configuration* config){
-	switch(config->getOmega2CS()){
-	case O2_EQUAL_TO_O1:
-		return config->getOmega1();
-	case O2_RANDOM:
-		return 0.5 + (problem->getRandom01()/2.0);
-	case O2_ZERO:
-		return 0.0; //the component is not used
-	case O2_CONSTANT:
-		return config->getOmega2();
-	default :
-		return 1.0; //no strategy, set the value to one
+	if(config->getOmega2CS() == O2_EQUAL_TO_O1){
+		return (config->getOmega1());
+	}
+	else if(config->getOmega2CS() ==  O2_RANDOM){
+		return (0.5 + (RNG::randVal(0,1)/2.0));
+	}
+	else if(config->getOmega2CS() == O2_ZERO){
+		return (0.0); //the component is not used
+	}
+	else if(config->getOmega2CS() == O2_CONSTANT){
+		return (config->getOmega2());
+	}
+	else{
+		return (1.0); //no strategy, set the value to one
 	}
 }
 
 double Swarm::computeOmega3(Configuration* config){
 	//Same as Omega1
-	if (config->getOmega3CS() == O3_EQUAL_TO_O1)
-		return config->getOmega1();
+	if (config->getOmega3CS() == O3_EQUAL_TO_O1){
+		return (config->getOmega1());
+	}
 	//Random value
-	else if (config->getOmega3CS() == O3_RANDOM)
-		return 0.5 + (problem->getRandom01()/2.0);
+	else if (config->getOmega3CS() == O3_RANDOM){
+		return (0.5 + (RNG::randVal(0,1)/2.0));
+	}
 	//Zero -- component is not being used
-	else if (config->getOmega3CS() == O3_ZERO)
-		return 0.0;
+	else if (config->getOmega3CS() == O3_ZERO){
+		return (0.0);
+	}
 	//Constant
-	else if (config->getOmega3CS() == O3_CONSTANT)
-		return config->getOmega3();
+	else if (config->getOmega3CS() == O3_CONSTANT){
+		return (config->getOmega3());
+	}
 	//One -- no strategy in particular
-	else
-		return 1.0;
-}
-
-bool Swarm::isHierarchical(){
-	return hierarchical;
+	else{
+		return (1.0);
+	}
 }
 
 double Swarm::computeAvgVelocity(Configuration* config){
 	double sumVelocity = 0.0;
 	for (unsigned int i=0;i<swarm.size();i++){
-		for (unsigned int j=0;j<config->getProblemDimension();j++){
+		for (int j=0;j<config->getProblemDimension();j++){
 			sumVelocity = sumVelocity + fabs(swarm.at(i)->getCurrentVelocity()[j]);
 		}
 	}
@@ -2231,11 +1831,9 @@ void Swarm::rankParticles(vector<SimplifySwarm> &sSwarm){
 	sS.eval = new long double [sSwarm.size()];
 
 	//Copy particle's id and evaluation in simpSwarm
-	//cout << "\n\tSwarm before ranks:" << endl;
 	for (unsigned int i=0;i<sSwarm.size();i++){
 		sS.id[i] = swarm.at(i)->getID();
 		sS.eval[i] = swarm.at(i)->getCurrentEvaluation();
-		//cout << "ID: " << sS.id[i] << " eval: " << sS.eval[i] << " rank: " << swarm.at(i)->getRanking() << endl;
 	}
 	//Sort simpSwarm by the value of particles' evaluation
 	mergeSort(&sS, 0, sSwarm.size()-1); //mergeSort(array, left(LOWER) index, right (UPPER) index);
@@ -2250,10 +1848,6 @@ void Swarm::rankParticles(vector<SimplifySwarm> &sSwarm){
 				sSwarm.at(i).eval = swarm.at(j)->getCurrentEvaluation();
 			}
 	}
-	//for (unsigned int i=0;i<swarm.size();i++){
-	//cout << "ID: " << sSwarm.at(i).id << " eval: " << sSwarm.at(i).eval << " rank: " << swarm.at(i)->getRanking() << endl;
-	//}
-
 	delete [] sS.id;
 	delete [] sS.eval;
 }
@@ -2275,7 +1869,9 @@ void Swarm::mergeSort(ssArray* arr, int l, int r){
 // First subarray is arr[l..m]
 // Second subarray is arr[m+1..r]
 void Swarm::merge(ssArray* arr, int l, int m, int r){
-	int i, j, k;
+	int i;
+	int j;
+	int k;
 	int n1 = m - l + 1;
 	int n2 =  r - m;
 

@@ -1,8 +1,8 @@
 /*
  * problem.cpp
  *
- *  Created on: Jun 1, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 
 #include "gsl/gsl_rng.h"
@@ -50,124 +50,38 @@ void Problem::printProblem(){
 			<< "  oldResult:          " << scientific << oldResult << "\n"
 			<< "  firstEvaluation:    " << firstEvaluation << "\n"
 			<< "  bestSolutionValue:  " << getBestSolutionValue() << "\n"
-			<< "  bestSoFarSolution:  " << getBestSoFarSolution() << "\n"
 			<< "  hasBounds:          " << hasBoundConstraint() << "\n"
 			<< "  vID:                " << vID << "\n"
 			<< "  lowerBound:         " << config->getMinInitBound() << "\n"
-			<< "  upperBound:         " << config->getMaxInitBound() << "\n"
-			<< "  random# in bounds:  " << getRandomX() << "\n";
+			<< "  upperBound:         " << config->getMaxInitBound() << "\n";
 }
 
 double* Problem::getShift_vector(){
-	return shift_vector;
+	return (shift_vector);
 }
 
 double** Problem::getRotation_matrix(){
-	return rotation_matrix;
+	return (rotation_matrix);
 }
 
 void Problem::printProblem_results(){
-
 	cout << "Optimum:\t" << scientific << getProblemOptimum() << endl;
-//	if(config->getCompetitionID() == CEC05) {
-//		if (config->getProblemID() < 14){
-//			//cout << "Optimum solution vector:" << endl;
-//			cout << "[ " ;
-//			for(long int i=0; i<config->getProblemDimension(); i++){
-//				cout << scientific << shift_vector[i] << "  ";
-//			}
-//			cout << " ]" << endl;
-//		}
-//		else {
-//			switch(config->getProblemID()){
-//			case BASIC_HYBRIDCOMPOSITION1:
-//			case ROTATED_HYBRIDCOMPOSITION1:
-//			case NOISE_ROTATED_HYBRIDCOMPOSITION1:
-//				printShift_vector2D();
-//				break;
-//			case ROTATED_HYBRIDCOMPOSITION2:
-//			case ROTATED_HYBRIDCOMPOSITION2_NBGO:
-//			case ROTATED_HYBRIDCOMPOSITION2_GOOB:
-//				break;
-//			case ROTATED_HYBRIDCOMPOSITION3:
-//			case ROTATED_HYBRIDCOMPOSITION3_HCNM:
-//			case NONCONTINUOUS_ROTATED_HYBRIDCOMPOSITION3:
-//				break;
-//			case ROTATED_HYBRIDCOMPOSITION4:
-//			case ROTATED_HYBRIDCOMPOSITION4_NO_BOUNDS:
-//				break;
-//			default: cout<<"There is no function such that !!"<< endl;
-//			exit(0);
-//			break;
-//			}
-//		}
-//	}
-//	else if (config->getCompetitionID() == CEC14) {
-//		//cout << "Optimum solution vector:" << endl;
-//		cout << "[ " ;
-//		for(long int i=0; i<config->getProblemDimension(); i++){
-//			cout << scientific << shift_vector[i] << "  ";
-//		}
-//		cout << " ]" << endl;
-//	}
-//	else if (config->getCompetitionID() == SOFT_COMPUTING && vID != BASIC) {
-//		//cout << "Optimum solution vector:" << endl;
-//		cout << "[ " ;
-//		for(long int i=0; i<config->getProblemDimension(); i++){
-//			cout << scientific << shift_vector[i] << "  ";
-//		}
-//		cout << " ]" << endl;
-//	}
-//	else if (config->getCompetitionID() == MIXTURE){
-//		if (config->getProblemID() < 40){
-//			//cout << "Optimum solution vector:" << endl;
-//			cout << "[ " ;
-//			for(long int i=0; i<config->getProblemDimension(); i++){
-//				cout << scientific << shift_vector[i] << "  ";
-//			}
-//			cout << " ]" << endl;
-//		}
-//	}
 }
 
-/* get a random number in the range [lower_bound, upper_bound] */
-double Problem::getRandomX(){
-	double rr = RNG::randVal(config->getMinInitBound(),config->getMaxInitBound());
-	return(rr);
-};
-
-/* get a random number in the range [lower_bound, upper_bound] */
-double Problem::getRandomX(double lowerBound, double upperBound){
-	double rr = RNG::randVal(lowerBound,upperBound);;
-	return(rr);
-};
-
-/* random function for values in [0,1] */
-double Problem::getRandom01(){
-	double rr = RNG::randVal(0,1);
-	return(rr);
-};
-
-///* random function for values in [0,1] */
-//double Problem::getRandom01(){
-//	double rr = (double) rand()/RAND_MAX;
-//	return(rr);
-//};
-
 bool Problem::hasBoundConstraint(){
-	return hasBounds;
+	return (hasBounds);
 }
 
 int Problem::getProblemDimension() {
-	return dimension;
+	return (dimension);
 }
 
 double Problem::getProblemOptimum() {
-	return optimum;
+	return (optimum);
 }
 
 unsigned int Problem::getFunctionEvaluations(){
-	return evaluations;
+	return (evaluations);
 }
 
 void Problem::setFunctionEvaluations(unsigned int evals){
@@ -175,15 +89,15 @@ void Problem::setFunctionEvaluations(unsigned int evals){
 }
 
 long double Problem::getBestSolutionValue(){
-	return bestSolutionValue;
+	return (bestSolutionValue);
 }
 
 double* Problem::getBestSoFarSolution(){
-	return bestSoFarSolution;
+	return (bestSoFarSolution);
 }
 
 void Problem::setBestSoFarSolution(const double* solution){
-	for(unsigned int i = 0; i < config->getProblemDimension(); i++)
+	for(int i = 0; i < config->getProblemDimension(); i++)
 		bestSoFarSolution[i] = solution[i];
 }
 
@@ -197,23 +111,21 @@ long double Problem::getFunctionValue(const double* x) {
 	if(evaluations < maxEvaluations){
 
 		result = evaluate(dimension, x);
-		//cout<<"result: "<<result<<" old: "<<oldResult<<endl;
 		//Update number of function evaluations
 		evaluations++;
 
-		oldResult  = result;
+		oldResult = result;
 
 		//Update and print best solution value
 		if( bestSolutionValue > result){
 			bestSolutionValue = result;
 			setBestSoFarSolution(x);
-			//printProgress();
 		}
 
-		return result;
+		return (result);
 	}
 	else
-		return oldResult;
+		return (oldResult);
 
 }
 
@@ -231,7 +143,9 @@ void Problem::printProgress(){
 
 void Problem::divideFunctions(const double *s, double *part1, double *part2, double m, int *psize1, int *psize2) {
 	int shared;
-	int rest, i, total;
+	int rest;
+	int i;
+	int total;
 	double *partrest;
 
 	if (m <= 0.5) {
@@ -291,8 +205,20 @@ double ** Problem::allocateMemory2D(unsigned int w, unsigned int h){
 	for (unsigned int i = 0; i < h; ++i)
 		array2D[i] = new double[w];
 
-	return array2D;
+	return (array2D);
 }
+
+void Problem::printMatrix(unsigned int dimensions, double** rotation_matrix){
+	cout << "\n\nRotationMatrix::\n[ " << endl;
+	for (unsigned int i=0; i<dimensions; ++i) {
+		for (unsigned int j=0; j<dimensions; ++j) {
+			cout << " " << rotation_matrix[i][j];
+		}
+		cout << endl;
+	}
+	cout << " ]" << endl;
+}
+
 
 double *** Problem::allocateMemory3D(unsigned int w, unsigned int h, unsigned int d){
 	double ***array3D;
@@ -304,7 +230,7 @@ double *** Problem::allocateMemory3D(unsigned int w, unsigned int h, unsigned in
 		for (unsigned int j = 0; j < w; ++j)
 			array3D[i][j] = new double[d];
 	}
-	return array3D;
+	return (array3D);
 
 }
 
@@ -329,8 +255,11 @@ void Problem::deallocateMemory3D(double *** array3D, unsigned int h, unsigned in
 
 void Problem::oszfunc (double *x, double *xosz, int dim)
 {
-	int i,sx;
-	double c1,c2,xx=0;
+	int i;
+	int sx;
+	double c1;
+	double c2;
+	double xx=0;
 	for (i=0; i<dim; i++)
 	{
 		if (i==0||i==dim-1)
@@ -374,9 +303,9 @@ double Problem::roundVal(double x){
 }
 
 double Problem::signnum(double x){
-	if (x > 0) return 1;
-	if (x < 0) return -1;
-	return 0;
+	if (x > 0) return (1);
+	if (x < 0) return (-1);
+	return (0);
 }
 
 void Problem::multiplyMatrix(double* result, double* vector, double** matrix){

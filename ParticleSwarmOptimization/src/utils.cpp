@@ -1,8 +1,8 @@
 /*
  * utils.cpp
  *
- *  Created on: Jun 4, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 #include "utils.h"
 
@@ -15,7 +15,8 @@ using namespace std;
 void Utils::loadRowVector(ifstream & fs, int columns, double * row){
 
 	//string to storage on line read from the file
-	string aline, arow;
+	string aline;
+	string arow;
 
 	/* The function std::getline takes a stream that it will extract a line
 	 * from as its first argument. The second argument is a std::string
@@ -104,17 +105,3 @@ void Utils::loadMatrix(ifstream & fs, int rows, int columns, double ** matrix){
 	}
 }
 
-// Utility function to create a new tree node
-Node* Utils::newNode(Node* parent, int numSubNodos, int id, long double valor) {
-	Node *node = new Node;
-	node->id = valor;
-	node->function_eval = valor;
-	node->parent= parent;
-	node->numSubNodos = numSubNodos; // <<--- AQUI
-	if (numSubNodos > 0)
-		//node->hijo =  malloc( numSubNodos * sizeof(Nodo*) );
-		node->child = new Node*;
-	else
-		node->child = NULL;
-	return node;
-}

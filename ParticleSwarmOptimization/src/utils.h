@@ -1,8 +1,8 @@
 /*
  * utils.h
  *
- *  Created on: May 31, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 
 #ifndef UTILS_H_
@@ -14,31 +14,10 @@
 
 using namespace std;
 
-///* Simplified swarm structure */
-//struct SimplifySwarm {
-//	long double* eval;  /* value of the solution */
-//	int* id;  			/* particle id */
-//};
-
 /* Simplified swarm structure */
 struct SimplifySwarm {
 	long double eval;  /* value of the solution */
 	int id;  		   /* particle id */
-};
-
-///* Simplified swarm structure */
-//struct SimplifySwarmArray {
-//	long double* eval;  /* value of the solution */
-//	int* id;  		   /* particle id */
-//};
-
-/* Data structure to organize particle hierarchically */
-struct Node { // Represents a node of an n-ary tree
-	int id;
-	long double function_eval;
-	int numSubNodos;
-	struct Node *parent;
-	struct Node **child;
 };
 
 class Utils{
@@ -53,7 +32,6 @@ public:
 	static void loadMatrix(ifstream & fs, int rows, int columns, double ** matrix);
 	static void mergeSort(SimplifySwarm* arr, int l, int r);
 	static void merge(SimplifySwarm* arr, int l, int m, int r);
-	static Node* newNode(Node* parent, int numSubNodos, int id, long double valor);
 };
 
 

@@ -1,10 +1,9 @@
 /*
  * particle.cpp
  *
- *  Created on: May 31, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
-//cout << "\n So far, so good" << endl; //remove
 
 #include "float.h"
 #include "particle.h"
@@ -19,22 +18,22 @@ using namespace std;
 
 /* Default constructor*/
 Particle::Particle(){
-	id = 0;
+	problem = NULL;
+	size =-1;
+	id = -1;
+	ranking = -1;
+	parent =-1;
+	stereotype = -1;
+	gBestID = -1;
+	velocity = NULL;
+	hasVelocitybounds = false;
+	minVelLimit = 0;					//minimum velocity -v_max = (x_max-x_min)/2
+	maxVelLimit = 0;					//maximum velocity  v_max
 	phi_1 = 0;
 	phi_2 = 0;
 	inertia = 0;
-	//velocity = {0};
-	velocity = 0;
-	size = 0;
-	problem = 0;
-	init=false;
-	hasVelocitybounds = false;
-	minVelLimit = -100;					//minimum velocity -v_max = (x_max-x_min)/2
-	maxVelLimit = 100;					//maximum velocity  v_max
-	ranking = 0;
-	parent =0;
-	stereotype = 0;
-	gBestID = -1;
+
+	init = false;
 }
 
 /* Constructor*/
@@ -48,9 +47,6 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier, lon
 	stereotype = 0;
 	gBestID = -1;
 
-	hasVelocitybounds = config->useVelocityClamping();
-	setVelocityLimits(config); //Set velocity clamping limits
-
 	current.x = new double[size];
 	pbest.x = new double[size];
 	gbest.x = new double[size];
@@ -59,31 +55,28 @@ Particle::Particle (Problem* problem, Configuration* config, int identifier, lon
 	gbest.eval = LDBL_MAX;
 
 	velocity = new double[size];
-
-	phi_1 = config->getPhi1();
-	phi_2 = config->getPhi1();
+	hasVelocitybounds = config->useVelocityClamping();
+	setVelocityLimits(config); //Set velocity clamping limits
 	inertia = config->getOmega1();
+	phi_1 = config->getPhi1();
+	phi_2 = config->getPhi2();
 
-	//cout << "Particle " << id << " : [ ";
-	initializePosition(config, iteration);
+	initializePosition(config, iteration, true);
 
-	//printPosition();
 	init = true;
 }
 
 /* Copy constructor */
 Particle::Particle (const Particle &p){
+
 	problem = p.problem;
+
 	size = p.size;
 	id = p.id;
 	ranking = p.ranking;
 	parent = p.parent;
 	stereotype = p.stereotype;
 	gBestID = p.gBestID;
-
-	hasVelocitybounds = p.hasVelocitybounds;
-	minVelLimit = p.minVelLimit;
-	maxVelLimit = p.maxVelLimit;
 
 	if(!init){
 		current.x = new double[size];
@@ -97,14 +90,16 @@ Particle::Particle (const Particle &p){
 		gbest.x[i] = p.gbest.x[i];
 		velocity[i] = p.velocity[i];
 	}
-
 	current.eval = p.current.eval;
 	pbest.eval = p.pbest.eval;
 	gbest.eval = p.gbest.eval;
 
+	hasVelocitybounds = p.hasVelocitybounds;
+	minVelLimit = p.minVelLimit;
+	maxVelLimit = p.maxVelLimit;
+	inertia=p.inertia;
 	phi_1 = p.phi_1;
 	phi_2 = p.phi_2;
-	inertia=p.inertia;
 
 	init = true;
 
@@ -115,6 +110,7 @@ Particle::Particle (const Particle &p){
 Particle& Particle::operator= (const Particle& p){
 	if (this != &p) {
 		problem = p.problem;
+
 		size = p.size;
 		id = p.id;
 		ranking = p.ranking;
@@ -122,35 +118,32 @@ Particle& Particle::operator= (const Particle& p){
 		stereotype = p.stereotype;
 		gBestID = p.gBestID;
 
-		hasVelocitybounds = p.hasVelocitybounds;
-		minVelLimit = p.minVelLimit;
-		maxVelLimit = p.maxVelLimit;
-
 		if(!init){
 			current.x = new double[size];
 			pbest.x = new double[size];
 			gbest.x = new double[size];
 			velocity = new double[size];
 		}
-
 		for(int i=0; i<size;i++){
 			current.x[i] = p.current.x[i];
 			pbest.x[i] = p.pbest.x[i];
 			gbest.x[i] = p.gbest.x[i];
 			velocity[i] = p.velocity[i];
 		}
-
 		current.eval = p.current.eval;
 		pbest.eval = p.pbest.eval;
 		gbest.eval = p.gbest.eval;
 
+		hasVelocitybounds = p.hasVelocitybounds;
+		minVelLimit = p.minVelLimit;
+		maxVelLimit = p.maxVelLimit;
+		inertia=p.inertia;
 		phi_1 = p.phi_1;
 		phi_2 = p.phi_2;
-		inertia=p.inertia;
 
 		init = true;
 	}
-	return *this;
+	return (*this);
 }
 
 /* destructor */
@@ -167,63 +160,47 @@ Particle::~Particle(){
 
 /* Initialize particle using uniformly random values */
 void Particle::initUniform(Configuration* config){
-	if (config->verboseMode()) cout << "\tvector::(initial)::[ " ;
+	//	if (config->verboseMode()) cout << "\tvec::current.x(t=0)::[ " ;
 	for(int i=0; i<size; i++){
 		if(config->getCompetitionID() == CEC05 && config->getProblemID() == SHIFTED_ROTATED_GRIEWANK_CEC05)
-			current.x[i] = problem->getRandomX(0.0,600.0);
+			current.x[i] = RNG::randVal(0.0,600.0);
 		else if(config->getCompetitionID() == CEC05 && config->getProblemID() == ROTATED_HYBRIDCOMPOSITION4_NO_BOUNDS)
-			current.x[i] = problem->getRandomX(2.0,5.0);
+			current.x[i] = RNG::randVal(2.0,5.0);
 		else
-			current.x[i] = problem->getRandomX(); //random values within the bounds of the function
-		pbest.x[i]=current.x[i];
+			current.x[i] = RNG::randVal(config->getMinInitBound(),config->getMaxInitBound()); //random values within the bounds of the function
 		velocity[i]=0;
-		if (config->verboseMode()) cout << current.x[i] << " ";
 	}
-	if (config->verboseMode()) cout << "]" << endl;
-	evaluateSolution();
-}
-
-/* Initialize particle using uniformly random values */
-void Particle::reInitPosUniform(Configuration* config){
-	if (config->verboseMode()) cout << "\tvector::(re-init)::[ " ;
-	for(int i=0; i<size; i++){
-		if(config->getCompetitionID() == CEC05 && config->getProblemID() == SHIFTED_ROTATED_GRIEWANK_CEC05)
-			current.x[i] = problem->getRandomX(0.0,600.0);
-		else if(config->getCompetitionID() == CEC05 && config->getProblemID() == ROTATED_HYBRIDCOMPOSITION4_NO_BOUNDS)
-			current.x[i] = problem->getRandomX(2.0,5.0);
-		else
-			current.x[i] = problem->getRandomX(); //random values within the bounds of the function
-		velocity[i]=0;
-		if (config->verboseMode()) cout << current.x[i] << " ";
-	}
-	if (config->verboseMode()) cout << "]" << endl;
-	//evaluateSolution();
 }
 
 /* Initialize particle using a model (as in Incremental PSO) */
 void Particle::initToModel(){
 	for (int i=0; i<size; i++){
-		current.x[i] = current.x[i] + problem->getRandom01()*(gbest.x[i]-current.x[i]);
+		current.x[i] = current.x[i] + RNG::randVal(0,1)*(gbest.x[i]-current.x[i]);
+	}
+
+}
+
+void Particle::initializePosition(Configuration* config, long int iteration, bool updatePbest){
+	if(config->getParticleInitType() == PARTICLE_INIT_RANDOM){
+		initUniform(config);
+	}
+	if(config->getParticleInitType() == PARTICLE_INIT_MODEL){ //Only available for dynamic PopCS and after the first iteration
+		initUniform(config);
+		if ((config->getPopulationCS() != POP_CONSTANT) && (iteration > 0))
+			initToModel();
+	}
+	if(updatePbest){
+		for(int i=0; i<size; i++)
+			pbest.x[i]=current.x[i];
 	}
 	evaluateSolution();
 }
 
-void Particle::initializePosition(Configuration* config, long int iteration){
-	switch (config->getParticleInitType()) {
-	case PARTICLE_INIT_RANDOM:
-		initUniform(config);
-		break;
-	case PARTICLE_INIT_MODEL:{ //Only available for dynamic PopCS and after the first iteration
-		initUniform(config);
-		if (config->getPopulationCS() != POP_CONSTANT && iteration > 0)
-			initToModel();
-	}
-	break;
-	default:
-		initUniform(config);
-		break;
-	}
+void Particle::initializeVelocity(Configuration* config){
+	for(int i=0; i<size; i++)
+		velocity[i]=RNG::randVal(minVelLimit,maxVelLimit);
 }
+
 
 void Particle::setVelocityLimits(Configuration* config){
 	minVelLimit=((config->getMaxInitRange()-config->getMinInitRange())/2.0)*-1;
@@ -231,15 +208,15 @@ void Particle::setVelocityLimits(Configuration* config){
 }
 
 double Particle::getMinVelLimit(){
-	return minVelLimit;
+	return (minVelLimit);
 }
 
 double Particle::getMaxVelLimit(){
-	return maxVelLimit;
+	return (maxVelLimit);
 }
 
 int Particle::getRanking(){
-	return ranking;
+	return (ranking);
 }
 
 void Particle::setPhi1(double new_phi_1){
@@ -249,17 +226,17 @@ void Particle::setPhi2(double new_phi_2){
 	phi_2 = new_phi_2;
 }
 double Particle::getPhi1(){
-	return phi_1;
+	return (phi_1);
 }
 double Particle::getPhi2(){
-	return phi_2;
+	return (phi_2);
 }
 void Particle::setRanking(int rank){
 	ranking = rank;
 }
 
 int Particle::getParent(){
-	return parent;
+	return (parent);
 }
 
 void Particle::setParent(int node){
@@ -271,7 +248,7 @@ bool Particle::ispBestIntheInformants(int numInformants){
 	for (unsigned int j=0; j<InformantsPos.size(); j++)
 		if (this->id == neighbours.at(InformantsPos[j])->getID() )
 			result = true;
-	return result;
+	return (result);
 }
 
 /* Generate a new solution by updating the particle's position */
@@ -282,75 +259,81 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	double vect_distribution[size];
 	double vect_perturbation[size];
 
-	bool pBestIntheInformants = ispBestIntheInformants(numInformants);
-	//Since we are putting everything in one single structure we need to check if pBest is in the Informants or not
-	//to avoid including it twice.
-	if (!pBestIntheInformants)
-		numInformants = numInformants+1;
-	if (config->verboseMode()) cout << "\t\tvar::numInformants (including pbest): " << numInformants << " ";
-	vector<vector< double> > vect_PbestMinusPosition;
-	vect_PbestMinusPosition.resize(numInformants, vector<double>(size));
-
-	/*** PERTURBATION 1 (distribution-based)	--->	It has to be computed per Informant and/or per Dimension depending on the strategy
-	 *** 						this component is applied directly in the DNNP members of DNPP  ***/
-	/*** PERTURBATION 2	(additive)	--->	It has to be computed per dimension, but only once per particle  ***/
-	getRandomAdditivePerturbation(config, vect_perturbation); //Random additive perturbation
-
-
-	/*** DISTRIBUTION VECTOR (DNNPs)***/
-	switch (config->getDistributionNPP()) {
-	case DIST_RECTANGULAR:{
-		computeSubtractionPerturbationRotation(
-				config,
-				vect_PbestMinusPosition,
-				numInformants,
-				pBestIntheInformants,
-				iteration,
-				solImproved);
-		getRectangularDNPP(
-				config,
-				vect_distribution,
-				numInformants,
-				pBestIntheInformants,
-				vect_PbestMinusPosition );
-		break;
+	if (config->getPerturbation2CS() == PERT2_NONE){
+		for (int i=0; i<size; i++){
+			vect_perturbation[i]=0;
+		}
 	}
-	case DIST_SPHERICAL:{
-		computeSubtractionPerturbationRotation(
-				config,
-				vect_PbestMinusPosition,
-				numInformants,
-				pBestIntheInformants,
-				iteration,
-				solImproved);
-		getSphericalDNPP(
-				config,
-				vect_distribution,
-				numInformants,
-				pBestIntheInformants,
-				vect_PbestMinusPosition);
-		break;
-	}
-	case DIST_ADD_STOCH:{
-		computeSubtractionPerturbationRotation(
-				config,
-				vect_PbestMinusPosition,
-				numInformants,
-				pBestIntheInformants,
-				iteration,
-				solImproved);
-		getAdditiveStochasticDNPP(
-				vect_distribution,
-				numInformants,
-				pBestIntheInformants,
-				vect_PbestMinusPosition,
-				config->getRandNeighbor(),
-				config->getOperator_q(),
-				config->getOperatorCG_parm_r());
-		break;
-	}
+	else{
+		/*** PERTURBATION 2	(additive)	--->	It has to be computed per dimension, but only once per particle  ***/
+		getRandomAdditivePerturbation(config, vect_perturbation); //Random additive perturbation
 	}
 
+	if (config->getOmega2CS() == O2_ZERO){
+		for (int i=0; i<size; i++){
+			vect_distribution[i]=0;
+		}
+	}
+	else {
+		bool pBestIntheInformants = ispBestIntheInformants(numInformants);
+		//Since we are putting everything in one single structure we need to check if pBest is in the Informants or not
+		//to avoid including it twice.
+		if (!pBestIntheInformants)
+			numInformants = numInformants+1;
+		vector<vector< double> > vect_PbestMinusPosition;
+		vect_PbestMinusPosition.resize(numInformants, vector<double>(size));
+
+
+
+		/*** DISTRIBUTION VECTOR (DNNPs)***/
+		if (config->getDistributionNPP() == DIST_RECTANGULAR) {
+			computeSubtractionPerturbationRotation(
+					config,
+					vect_PbestMinusPosition,
+					numInformants,
+					pBestIntheInformants,
+					iteration,
+					solImproved);
+			getRectangularDNPP(
+					config,
+					vect_distribution,
+					numInformants,
+					pBestIntheInformants,
+					vect_PbestMinusPosition );
+		}
+		if (config->getDistributionNPP() == DIST_SPHERICAL){
+			computeSubtractionPerturbationRotation(
+					config,
+					vect_PbestMinusPosition,
+					numInformants,
+					pBestIntheInformants,
+					iteration,
+					solImproved);
+			getSphericalDNPP(
+					config,
+					vect_distribution,
+					numInformants,
+					pBestIntheInformants,
+					vect_PbestMinusPosition);
+		}
+		if (config->getDistributionNPP() == DIST_ADD_STOCH){
+			computeSubtractionPerturbationRotation(
+					config,
+					vect_PbestMinusPosition,
+					numInformants,
+					pBestIntheInformants,
+					iteration,
+					solImproved);
+			getAdditiveStochasticDNPP(
+					vect_distribution,
+					numInformants,
+					pBestIntheInformants,
+					vect_PbestMinusPosition,
+					config->getRandNeighbor(),
+					config->getOperator_q(),
+					config->getOperatorCG_parm_r());
+		}
+	}
 	//Compute new position
 	for (int i=0;i<size;i++) {
 		velocity[i] = (omega1 *  velocity[i]) +
@@ -358,7 +341,6 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 				(omega3 * vect_perturbation[i]);
 
 		//Clamp velocity
-		//if (hasVelocitybounds && config->useIndStrategies()) {
 		if (hasVelocitybounds) {
 			if (velocity[i] > maxVelLimit)
 				current.x[i] = current.x[i] + maxVelLimit;
@@ -377,14 +359,14 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 			current.x[i]= maxBound;
 	}
 
-	if (config->useIndStrategies())
+
+	if (config->useIndStrategies()){
 		//Detect stagnation and introduce perturbation using Schmitt and Wanka technique
 		detectStagnation(config, minBound, maxBound);
+	}
 
 	//Evaluate the objective function and update pbest if a new one has been found
 	evaluateSolution();
-	if (config->verboseMode()) cout << "\n\tParticle with ID:[" << this->id << "].status::MOVED" << endl;
-	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
 }
 
 void Particle::detectStagnation(Configuration* config, double minBound, double maxBound){
@@ -404,7 +386,7 @@ void Particle::detectStagnation(Configuration* config, double minBound, double m
 	if((vel_norm + gBestpPos_norm) < STAGNATION_PRECISION){
 		//Compute new position
 		for (int i=0;i<size;i++) {
-			velocity[i] = ((2*problem->getRandom01())-1)*STAGNATION_PRECISION;
+			velocity[i] = ((2*RNG::randVal(0,1))-1)*STAGNATION_PRECISION;
 
 			//Clamp velocity
 			if (hasVelocitybounds){
@@ -424,8 +406,6 @@ void Particle::detectStagnation(Configuration* config, double minBound, double m
 			if(current.x[i] > maxBound)
 				current.x[i]= maxBound;
 		}
-		if (config->verboseMode())
-			cout << "\t\tnotice::stagnation detected in particle :[" << this->id << "] using a randomly generated velocity" << endl;
 	}
 }
 
@@ -438,189 +418,54 @@ void Particle::computeSubtractionPerturbationRotation(
 		int solImprov) {
 
 	double l[size]; //particle's lbest
-	double pb[size];
 	double pert_vrand[size];
-	//bool increase_numInformants = false;
 	int pertubType = config->getPerturbation1CS();
 
-//	if (config->verboseMode()){
-//		(pBestIntheInformants) ?
-//				cout << "\n\t\tvar::pBestIntheInformants: TRUE"
-//				<< " \n\t\tvar::DNPP: " << config->getDistributionNPP() << endl :
-//				cout << "\n\t\tvar::pBestIntheInformants: FALSE"
-//				<< " \n\t\tvar::DNPP: " << config->getDistributionNPP() << endl;
-//	}
 
 	//1.1- Check if the particle is pBest == gBest and create a perturbed l position
-	if (this->id == this->gBestID && pBestIntheInformants){
+	if (id == gBestID){
 		if (config->useIndStrategies()) {
-//			if (config->verboseMode()) cout << "\t\tnotice::using reinitialization to model for particle "
-//					<< this->id << " -The new position (l[]) is somewhere around gBest)-" << endl;
 			for (int i=0; i<size; i++)
-				l[i] = problem->getRandomX() + problem->getRandom01()*(gbest.x[i]-current.x[i]);
+				l[i] = RNG::randVal(config->getMinInitBound(),config->getMaxInitBound()) + RNG::randVal(0,1)*(gbest.x[i]-current.x[i]);
 		}
 		else
 			for (int i=0; i<size; i++)
 				l[i] = gbest.x[i];
 	}
 
-	//1.2- Check if the particle's current.x == pBest and create a perturbed pbest position
-	bool isStagnated=true;
-	for (int i=0; i<size; i++)
-		if (current.x[i] != pbest.x[i]){
-			isStagnated = false;
-			break;
+	//2.- Get the p^k-x^i of all Informants
+	for (int j=0; j<numInformants; j++){ //Copy the informants in a temporary structure
+		if ((neighbours.at(InformantsPos[j])->getID() == gBestID) && (id == gBestID)){
+
+			setPerturbation1Magnitude(config, pert_vrand, current.x, l); //informant-wise perturbation magnitude
+
+			for (int i=0; i<size; i++){
+				config->getDistributionNPP() != DIST_ADD_STOCH ?
+						vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, l[i], i)-current.x[i]):
+						vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, l[i], i));
+			}
 		}
-	if (isStagnated && config->useIndStrategies()) {
-//		if (config->verboseMode()) cout << "\t\tnotice::applying perturbation to pbest of particle "
-//				<< this->id << endl;
-		for (int i=0; i<size; i++)
-			//pb[i] = RNG::randGaussWithMean(0.01,pbest.x[i]);
-			pb[i] = pbest.x[i]+RNG::randVal(-1,1)*pbest.x[i];
-	}
-	else
-		for (int i=0; i<size; i++)
-			pb[i] = pbest.x[i];
+		else{
 
-
-	//2.- Get the p^k-x^i of all Informants and then add pBest as the end of the Array
-	if (!pBestIntheInformants){
-//		if (config->verboseMode()){
-//			cout << "\n\tvec::p[" << id << "].x:  [ ";
-//			for(int i=0;i<size;i++){
-//				cout << fixed << current.x[i] << " ";
-//			}
-//			cout << "]" << endl;
-//			cout << "\tvec::p[" << id << "].pb: [ ";
-//			for(int i=0;i<size;i++){
-//				cout << fixed << pb[i] << " ";
-//			}
-//			cout << "]\n" << endl;
-//		}
-		for (int j=0; j<numInformants-1; j++){
-//			if (config->verboseMode()){
-//				cout << "\tvec::inf.p[" << neighbours[InformantsPos[j]]->getID() << "].pb:    [ ";
-//				for(int i=0;i<size;i++){
-//					cout << fixed << neighbours[InformantsPos[j]]->pbest.x[i] << " ";
-//				}
-//				cout << "]" << endl;
-//			}
-
-			//Copy the informants in a temporary structure
 			setPerturbation1Magnitude(config, pert_vrand, current.x, neighbours[InformantsPos[j]]->pbest.x); //informant-wise
 
 			for (int i=0; i<size; i++){
 				config->getDistributionNPP() != DIST_ADD_STOCH ?
-						vect_PbestMinusPosition.at(j).at(i) = applyInformedPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)-current.x[i] : //vector to be rotated
-						vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)); //vector to be rotated
-			}
-//			if (config->verboseMode()){
-//				config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::p[" << neighbours[InformantsPos[j]]->getID() << "].pb-p[" << id <<"].x: [ " :
-//						cout << "\tvec::p[" << neighbours[InformantsPos[j]]->getID() << "].pb: [ ";
-//				for(int i=0;i<size;i++){
-//					cout << fixed << vect_PbestMinusPosition.at(j).at(i) << " ";
-//				}
-//				cout << "]\n" << endl;
-//			}
-		}
-		//Add pBest at the end of the Array
-		setPerturbation1Magnitude(config, pert_vrand, current.x, pb); //informant-wise
-
-		for (int i=0; i<size; i++){
-			config->getDistributionNPP() != DIST_ADD_STOCH ?
-					vect_PbestMinusPosition.at(numInformants-1).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, pb[i], i)-current.x[i]): //vector to be rotated
-					vect_PbestMinusPosition.at(numInformants-1).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, pb[i], i)); //vector to be rotated
-		}
-//		if (config->verboseMode()){
-//			config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::p[" << id << "].pb-p[" << id <<"].x: [ " :
-//					cout << "\tvec::p[" << id << "].pb: [ ";
-//			for(int i=0;i<size;i++){
-//				cout << fixed << vect_PbestMinusPosition.at(numInformants-1).at(i) << " ";
-//			}
-//			cout << "]\n" << endl;
-//		}
-	}
-	//2.- Get the p^k-x^i of all Informants
-	else {
-//		if (config->verboseMode()){
-//			cout << "\n\tvec::p[" << id << "].x:  [ ";
-//			for(int i=0;i<size;i++){
-//				cout << fixed << current.x[i] << " ";
-//			}
-//			cout << "]" << endl;
-//			cout << "\tvec::p[" << id << "].pb: [ ";
-//			for(int i=0;i<size;i++){
-//				cout << fixed << pb[i] << " ";
-//			}
-//			cout << "]\n" << endl;
-//		}
-		for (int j=0; j<numInformants; j++){ //Copy the informants in a temporary structure
-			//When gbest = pbest, we will use l[] instead gbest, where l[] can either be gbest of the particle or a position close to gbest
-			//created using the method propose in Incremental PSO. In the former case, the resulting vector will contain only zeros.
-			if ((neighbours.at(InformantsPos[j])->getID() == this->gBestID) && (this->id == this->gBestID)){
-
-//				if (config->verboseMode()){
-//					cout << "\tvec::inf.l[" << gBestID << "].pb:    [ ";
-//					for(int i=0;i<size;i++){
-//						cout << fixed << l[i] << " ";
-//					}
-//					cout << "]" << endl;
-//				}
-				//use pbest in the form of l[]
-				setPerturbation1Magnitude(config, pert_vrand, current.x, l); //informant-wise perturbation magnitude
-
-				for (int i=0; i<size; i++){
-					config->getDistributionNPP() != DIST_ADD_STOCH ?
-							vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, l[i], i)-current.x[i]):  //vector to be rotated
-							vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, l[i], i));  //vector to be rotated
-				}
-//				if (config->verboseMode()){
-//					config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::l[" << gBestID << "].pb-p[" << id <<"].x: [ " :
-//							cout << "\tvec::l[" << id << "].pb: [ ";
-//					for(int i=0;i<size;i++){
-//						cout << fixed << vect_PbestMinusPosition.at(j).at(i) << " ";
-//					}
-//					cout << "]\n" << endl;
-//				}
-			}
-			else{
-//				if (config->verboseMode()){
-//					cout << "\tvec::inf.p[" << neighbours[InformantsPos[j]]->getID() << "].pb:    [ ";
-//					for(int i=0;i<size;i++){
-//						cout << fixed << neighbours[InformantsPos[j]]->pbest.x[i] << " ";
-//					}
-//					cout << "]" << endl;
-//				}
-
-				setPerturbation1Magnitude(config, pert_vrand, current.x, neighbours[InformantsPos[j]]->pbest.x); //informant-wise
-
-				for (int i=0; i<size; i++){
-					config->getDistributionNPP() != DIST_ADD_STOCH ?
-							vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)-current.x[i]):  //vector to be rotated
-							vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i));  //vector to be rotated
-				}
-//				if (config->verboseMode()){
-//					config->getDistributionNPP() != DIST_ADD_STOCH ? cout << "\tvec::p[" << neighbours.at(InformantsPos[j])->getID() << "].pb-p[" << id <<"].x: [ " :
-//							cout << "\tvec::p[" << neighbours.at(InformantsPos[j])->getID() << "].pb: [ ";
-//					for(int i=0;i<size;i++){
-//						cout << fixed << vect_PbestMinusPosition.at(j).at(i) << " ";
-//					}
-//					cout << "]\n" << endl;
-//				}
+						vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i)-current.x[i]):
+						vect_PbestMinusPosition.at(j).at(i) = (applyInformedPerturbation(pertubType, pert_vrand, neighbours.at(InformantsPos[j])->pbest.x[i], i));
 			}
 		}
 	}
 	if (config->getDistributionNPP() != DIST_ADD_STOCH) {
 		//3.- Rotate each vector
-		/*** ROTATION MATRICES	--->	has to be computed per Informant ***/
-		//int numMatrices =(int)floor(((size*(size-1))/2)); //number of rotation matrices to rotate in all possible planes
 		double ** rndMatrix = new double*[size];
+
 		//Allocate memory to be used
 		for(int i=0; i<size; i++){
 			rndMatrix[i] = new double[size];
 		}
 		for (int j=0; j<numInformants; j++){ //the rest of informants
-			computeRndMatrix(config, rndMatrix, config->getRandomMatrix(), getAnAngle(config, solImprov, iteration)); //we need to compute this for each informant
+			computeRndMatrix(config, rndMatrix, config->getRandomMatrix(), getAnAngle(config, solImprov, iteration));
 			multiplyVectorByRndMatrix(config, vect_PbestMinusPosition, j, rndMatrix, config->getRandomMatrix(), solImprov, iteration);
 		}
 		//Deallocate memory used
@@ -653,7 +498,7 @@ int Particle::getRandomInformantPosition(int numInformants, bool pBestIntheInfor
 			randomIndex = (int)floor(RNG::randVal(0.0,(double)numInformants-1));
 		}
 	}
-	return randomIndex;
+	return (randomIndex);
 }
 
 //This function returns the position of the particle's pBest in theInformants array
@@ -676,7 +521,7 @@ int Particle::getPositionOfpBest(int numInformants, bool pBestIntheInformants){
 	else
 		pBestIndex = numInformants-1;
 
-	return pBestIndex;
+	return (pBestIndex);
 }
 
 void Particle::getAdditiveStochasticDNPP(double vect_distribution[], int numInformants, bool pBestIntheInformants,
@@ -689,8 +534,6 @@ void Particle::getAdditiveStochasticDNPP(double vect_distribution[], int numInfo
 		p2Index = getRandomInformantPosition(numInformants, pBestIntheInformants);
 	else
 		p2Index = 0;
-
-	//cout << "\t\tnotice:simply dynamic PSO, p1 : [" << p1Index << "]" << "\t p2 : [" << p2Index << "]" <<endl;
 
 	switch (operatorQ) {
 	case Q_STANDARD:
@@ -719,7 +562,7 @@ void Particle::getAdditiveStochasticDNPP(double vect_distribution[], int numInfo
 		break;
 	case Q_CAUCHY_NORMAL:
 		for (int i=0; i<size; i++){
-			if (problem->getRandom01() <= CG_parm_r){
+			if (RNG::randVal(0,1) <= CG_parm_r){
 				vect_distribution[i] = vect_PbestMinusPosition[p1Index][i] - current.x[i]; //we need to discount current.x[i] because it will be added later in the GVU formula
 				vect_distribution[i] += (RNG::randCauchy(1.0) * fabs(vect_PbestMinusPosition[p1Index][i] -
 						vect_PbestMinusPosition[p2Index][i]));
@@ -763,9 +606,8 @@ void Particle::computeAC(Configuration* config, double &c1, double &c2, int numI
 void Particle::getRectangularDNPP(Configuration* config, double vect_distribution[], int numInformants, bool pBestIntheInformants,
 		vector<vector< double> > &vect_PbestMinusPosition){
 
-	//double varPhi2 = phi_2;
-	double varPhi1, varPhi2;
-//	double Phi1Array[numInformants], Phi2Array[numInformants];
+	double varPhi1= 0;
+	double varPhi2= 0;
 
 	//Compute vect_distribution
 	for (int i=0; i<size; i++){
@@ -775,48 +617,17 @@ void Particle::getRectangularDNPP(Configuration* config, double vect_distributio
 
 		for (int j=0; j<numInformants; j++){
 
-//			Phi1Array[j] = varPhi1; //COMMENT
-
-			if (pBestIntheInformants && (this->id != this->gBestID)) { //we look for pBest in the Array
-				if (this->id == neighbours.at(InformantsPos[j])->getID())
-					vect_distribution[i] += (varPhi1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
-				else {
-					if (j==0 && config->getModelOfInfluence() == MOI_RANKED_FI)
-						varPhi2 = phi_2*((double)(numInformants-1)/numInformants);
-					if (j>0 && config->getModelOfInfluence() == MOI_RANKED_FI)
-						varPhi2 = varPhi2/2.0;
-					vect_distribution[i] += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
-				}
-//				Phi2Array[j] = varPhi2;//COMMENT
-			}
-			else{
-				if (j == numInformants-1) //pBest is at the end of the Array
-					vect_distribution[i] += (varPhi1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
-				else {
-					if (j==0 && config->getModelOfInfluence() == MOI_RANKED_FI)
-						varPhi2 = phi_2*((double)(numInformants-1)/numInformants);
-					if (j>0 && config->getModelOfInfluence() == MOI_RANKED_FI)
-						varPhi2 = varPhi2/2.0;
-					vect_distribution[i] += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
-				}
-//				Phi2Array[j] = varPhi2;//COMMENT
+			if (id == neighbours.at(InformantsPos[j])->getID())
+				vect_distribution[i] += (varPhi1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
+			else {
+				if (j==0 && config->getModelOfInfluence() == MOI_RANKED_FI)
+					varPhi2 = phi_2*((double)(numInformants-1)/numInformants);
+				if (j>0 && config->getModelOfInfluence() == MOI_RANKED_FI)
+					varPhi2 = varPhi2/2;
+				vect_distribution[i] += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
 			}
 		}
 	}
-
-
-//	if (config->verboseMode()){
-//		//Print Phi values vector of first and last informant
-//		cout << "\tvar::phi1Array: [";
-//		for (int j=0; j<numInformants; j++)
-//			cout << fixed << Phi1Array[j] << " ";
-//		cout << "]" << endl;
-//
-//		cout << "\tvar::phi2Array: [";
-//		for (int j=0; j<numInformants; j++)
-//			cout << fixed << Phi2Array[j] << " ";
-//		cout << "]" << endl;
-//	}
 }
 
 // The computation of the radius and the random point in the HyperSphere
@@ -824,17 +635,18 @@ void Particle::getRectangularDNPP(Configuration* config, double vect_distributio
 // https://www.particleswarm.info/Programs.html
 void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[], int numInformants, bool pBestIntheInformants,
 		vector<vector< double> > &vect_PbestMinusPosition){
-	double V2[size], V1[size]; //working space arrays
+	double V2[size];
+	double V1[size]; //working space arrays
 	double G[size];	//center of the sphere
 	double radius = 0.0;	//radius G-X
 	double pw=1./(double)size;
 
 	//Compute G (center of the sphere) and V1 (radius of each dimension)
 	//double varPhi2 = phi_2;
-	double varPhi1, varPhi2;
+	double varPhi1=0;
+	double varPhi2=0;
 
 	for (int i=0; i<size; i++){
-		//		if (i==0) cout << "\tPhi2 values: [ ";
 		//Compute the value of varphi1 and varph2 according to the model of influence
 		computeAC(config, varPhi1, varPhi2, numInformants);
 
@@ -848,7 +660,6 @@ void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[
 						varPhi2 = phi_2*((double)(numInformants-1)/numInformants);
 					if (j>0 && config->getModelOfInfluence() == MOI_RANKED_FI)
 						varPhi2 = varPhi2/2.0;
-					//R += current.x[i] + (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
 					R += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
 				}
 			}
@@ -860,7 +671,6 @@ void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[
 						varPhi2 = phi_2*((double)(numInformants-1)/numInformants);
 					if (j>0 && config->getModelOfInfluence() == MOI_RANKED_FI)
 						varPhi2 = varPhi2/2.0;
-					//R += current.x[i] + (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
 					R += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
 				}
 			}
@@ -901,7 +711,7 @@ double Particle::applyInformedPerturbation(int pertubType, double pert_vrand[], 
 
 	if(pertubType == PERT1_GAUSSIAN){
 		//Gaussian distribution
-		returnVal = pos_xi + RNG::randGauss(1.0)*pert_vrand[index];
+		returnVal = pos_xi + RNG::randGauss(pert_vrand[index]);
 	}
 	else if(pertubType == PERT1_LEVY){
 
@@ -936,15 +746,11 @@ double Particle::applyInformedPerturbation(int pertubType, double pert_vrand[], 
 		//Cauchy distribution
 		returnVal = pos_xi + (RNG::randVal(-1,1)*pert_vrand[index]*pos_xi);
 	}
-	//	else if(pertubType == PERT1_BETA){
-	//		//Beta distribution
-	//		returnVal = pos_xi + (RNG::randBeta(1.0,3.0)*pert_vrand[index]);
-	//	}
 	else
 		returnVal = pos_xi;
 
 
-	return returnVal;
+	return (returnVal);
 }
 
 //Perturbation 1
@@ -953,7 +759,7 @@ void Particle::setPerturbation1Magnitude(Configuration* config, double pert_vran
 		double distance = 0.0;
 		//Compute the norm of pos_x - pbest_x
 		for(int i=0;i<size;i++){
-			distance += pow((pos_x[i] - pbest_x[i]),2);
+			distance += pow(pos_x[i]-pbest_x[i],2);
 		}
 		distance = sqrt(distance);
 
@@ -1103,7 +909,7 @@ void Particle::multiplyVectorByRndMatrix(Configuration* config, vector<vector< d
 		//Get two random planes
 		int plane1 = (int)floor(RNG::randVal(0.0,(double)size-1));
 		int plane2 = 0;
-		for (unsigned int i=0; i<size; i++) {
+		for (int i=0; i<size; i++) {
 			plane2 = (int)floor(RNG::randVal(0.0,(double)size-1));
 			if (plane2 == plane1)
 				continue;
@@ -1138,18 +944,6 @@ void Particle::multiplyVectorByRndMatrix(Configuration* config, vector<vector< d
 		}
 	}
 
-//	if (config->verboseMode()){
-//		cout << "\tvec::Pb-Pos[" << informant << "]:[ " ;
-//		for (int i=0; i<size; i++){
-//			cout << vect_PbestMinusPosition[informant][i] << " ";
-//		}
-//		cout << "]" << endl;
-//		cout << "\tvec::rndMtx (Pb-Pos[" << informant << "]:[ " ;
-//		for (int i=0; i<size; i++){
-//			cout << resultvxM[i] << " ";
-//		}
-//		cout << "]\n" << endl;
-//	}
 	//Copy the perturbed vector in the distribution vector
 	for (int i=0; i<size; i++){
 		vect_PbestMinusPosition[informant][i] = resultvxM[i];
@@ -1161,10 +955,10 @@ void Particle::computeRndMatrix(Configuration* config, double ** rndMatrix, int 
 
 	if (RmatrixType == MATRIX_DIAGONAL){//Random diagonal matrix
 		for (int i=0; i<size; i++)
-			rndMatrix[i][i] = problem->getRandom01();
+			rndMatrix[i][i] = RNG::randVal(0,1);
 	}
 	if (RmatrixType == MATRIX_LINEAR){ //Random linear matrix
-		double rndVal = problem->getRandom01();
+		double rndVal = RNG::randVal(0,1);
 		for (int i=0; i<size; i++)
 			rndMatrix[i][i] = rndVal;
 	}
@@ -1172,7 +966,7 @@ void Particle::computeRndMatrix(Configuration* config, double ** rndMatrix, int 
 		//1.- Generate a random matrix
 		for (int i=0; i<size; i++){
 			for (int j=0; j<size; j++)
-				rndMatrix[i][j] = problem->getRandomX(-0.5,0.5);
+				rndMatrix[i][j] = RNG::randVal(-0.5,0.5);
 		}
 		//2.- Generate the transpose of the rndMatrix
 		double trans_rndMatrix[size][size];
@@ -1205,14 +999,6 @@ void Particle::computeRndMatrix(Configuration* config, double ** rndMatrix, int 
 		for (int i=0; i<size; i++)
 			rndMatrix[i][i] = 1.0;
 	}
-
-//	if (config->verboseMode()){
-//		cout << "\tmtx::rndMatrix: [";
-//		for (int i=0; i<size; i++)
-//			cout << fixed << rndMatrix[i][i] << " ";
-//		cout << "]" << endl;
-//	}
-
 }
 
 //This function returns an angle in radian
@@ -1237,11 +1023,7 @@ double Particle::getAnAngle(Configuration* config, int solImprov, long int itera
 			angle =  RNG::randGauss(std_dev)*PI/180;
 		}
 	}
-
-	//	if (config->verboseMode())
-	//		cout << "\tvar::rotation_angle: " << angle << endl;
-
-	return angle;
+	return (angle);
 }
 
 
@@ -1273,37 +1055,7 @@ double Particle::computeDistPbestGbest(){
 	for(int i=0;i<size;i++){
 		sumDistSqr += pow((this->gbest.x[i]-this->pbest.x[i]),2);
 	}
-	return sqrt(sumDistSqr);
-}
-
-double Particle::EuclideanDistance(Configuration* config, double * x, double * p, int &countNan){
-	double returnVal = 0;
-	double diff = 0;
-	for(int i=0;i<size;i++){
-		diff = x[i]-p[i];
-		returnVal += pow(diff,2);
-	}
-
-	if (isnan(sqrt(returnVal))){
-		countNan++;
-		returnVal = 0;
-		diff = 0;
-		for(int i=0;i<size;i++){
-			if (isnan(x[i]))
-				diff = RNG::randVal(config->getMinInitBound(),config->getMaxInitBound())-p[i];
-			else if (isnan(p[i]))
-				diff = p[i]-RNG::randVal(config->getMinInitBound(),config->getMaxInitBound());
-			else
-				diff = RNG::randVal(config->getMinInitBound(),config->getMaxInitBound()) - RNG::randVal(config->getMinInitBound(),config->getMaxInitBound());
-
-			returnVal += pow(diff,2);
-			//cout << "\tvar::x[" << i << "]: " << fixed << x[i] << " -- p[" << i << "]: " << fixed << p[i] << endl;
-			//cout << "\tvar::diff: " << diff << endl;
-		}
-
-		//cout << "\tvar::returnVal: " << sqrt(returnVal) << endl;
-	}
-	return sqrt(returnVal);
+	return (sqrt(sumDistSqr));
 }
 
 double* Particle::getCurrentPosition() {
@@ -1315,11 +1067,11 @@ long double Particle::getCurrentEvaluation(){
 }
 
 double* Particle::getCurrentVelocity(){
-	return velocity;
+	return (velocity);
 }
 
 int Particle::getgBestID(){
-	return gBestID;
+	return (gBestID);
 }
 
 double* Particle::getPbestPosition() {
@@ -1350,50 +1102,10 @@ void Particle::setgBestID(int gB_ID){
 	gBestID = gB_ID;
 }
 
-///*Check the neighborhood for the best particle */
-//int Particle::getBestOfNeibourhood(){
-//	//double aux_eval=gbest.eval;
-//	double aux_eval=LDBL_MAX;
-//	int best=-1;
-//	bool pBestIsNeighbor = false;
-//	int pos = -1;
-//
-//	//Check if the particle is its own neighbor
-//	for(unsigned int i=0; i<neighbours.size(); i++){
-//		if (neighbours.at(i)->getID() == id)
-//			pBestIsNeighbor = true;
-//	}
-//	//If the particles is its own neighbor check personal best
-//	if(pbest.eval < gbest.eval && pBestIsNeighbor == true){
-//		updateGbestParticle(pbest.x, pbest.eval);
-//		gBestID = id;
-//		//aux_eval = LDBL_MAX;
-//		aux_eval = pbest.eval;
-//	}
-//	//Check after the rest of the neighborhood
-//	for(unsigned int i=0; i<neighbours.size();i++){
-//		if(neighbours.at(i)->getPbestEvaluation() < aux_eval){
-//			best = neighbours.at(i)->getID();
-//			pos = i;
-//		}
-//	}
-//	//New best particle in the neighborhood
-//	if(best!=-1){
-//		updateGbestParticle(neighbours[pos]->getPbestPosition(), neighbours[pos]->getPbestEvaluation());
-//		gBestID = best;
-//	}
-//	//if (prev_gBestID != best)
-//	//cout << "New gBestID for particle -- " << this->id << endl;//remove
-//
-//	return best;
-//}
-
 /*Check the neighborhood for the best particle */
 int Particle::getBestOfNeibourhood(){
-	//double aux_eval=gbest.eval;
 	double aux_eval=neighbours.at(0)->getPbestEvaluation();
 	int pos = 0;
-//	cout << "\tvar::neighbours.size() :" << neighbours.size() << "\t";
 
 	//Look for best particle in the neighborhood
 	for(unsigned int i=0; i<neighbours.size();i++){
@@ -1406,30 +1118,10 @@ int Particle::getBestOfNeibourhood(){
 	if(gBestID != neighbours.at(pos)->getID()){
 		updateGbestParticle(neighbours[pos]->getPbestPosition(), neighbours[pos]->getPbestEvaluation());
 		gBestID = neighbours.at(pos)->getID();
-		return neighbours.at(pos)->getID();
+		return (neighbours.at(pos)->getID());
 	}
 	else
-		return gBestID;
-}
-
-int Particle::getRandomNeighbor(){
-	int randomIndex = -1;
-	for (unsigned int i=0; i<neighbours.size(); i++) {
-		randomIndex = (int)floor(RNG::randVal(0.0,(double)neighbours.size()));
-
-		//Distinct of itself
-		if (neighbours.at(randomIndex)->id != id)
-			break;
-		else
-			continue;
-	}
-	if (randomIndex == -1){
-		//cout << "Couldn't find any :/" << endl;
-		exit (EXIT_FAILURE);
-		return id;
-	}
-	else
-		return randomIndex;
+		return (gBestID);
 }
 
 void Particle::addNeighbour(Particle* p){
@@ -1438,11 +1130,11 @@ void Particle::addNeighbour(Particle* p){
 
 //From Frankesntein's PSO
 unsigned int Particle::getNeighborhoodSize(){
-	return neighbours.size();
+	return (neighbours.size());
 }
 
 int Particle::getID(){
-	return id;
+	return (id);
 }
 
 void Particle::setID(int newID){
@@ -1459,24 +1151,19 @@ void Particle::eraseNeighborbyID(int nid){
 }
 
 int Particle::getRandomNonAdjacentNeighborID(Configuration* config){
-	int randomIndex,randomID;
+	int randomIndex;
+	int randomID;
 	if(neighbours.size()>3){
 		while(true){
 			randomIndex = (int)floor(RNG::randVal(0.0,(double)neighbours.size()));
 			//One random neighbor
 			randomID = neighbours.at(randomIndex)->id;
 
-			if (config->verboseMode()){
-				cout << "\t\tvar::randomIndex: " << randomIndex << endl;
-				cout << "\t\tvar::particleID: " << id << endl;
-			}
 			//First position of the vector
 			if(id==0){
 				//Distinct of itself, the right-side neighbor and the last neighbor
 				if(randomID != id && randomID != id+1 && randomID != config->getSwarmSize()-1){
-					if (config->verboseMode())
-						cout << "\t\tvar::randomID: " << randomID << endl;
-					return randomID;
+					return (randomID);
 				}
 				else
 					continue;
@@ -1486,9 +1173,7 @@ int Particle::getRandomNonAdjacentNeighborID(Configuration* config){
 				if(id == config->getSwarmSize()-1){
 					//Distinct of itself, the first neighbor and the left-side neighbor
 					if(randomID != id && randomID != 0 && randomID != id-1){
-						if (config->verboseMode())
-							cout << "\t\tvar::randomID: " << randomID << endl;
-						return randomID;
+						return (randomID);
 					}
 					else
 						continue;
@@ -1496,9 +1181,7 @@ int Particle::getRandomNonAdjacentNeighborID(Configuration* config){
 				else{
 					//Some position in within the bounds just check right- and left-side neighbors
 					if(randomID != id && randomID != id+1 && randomID != id-1){
-						if (config->verboseMode())
-							cout << "\t\tvar::randomID: " << randomID << endl;
-						return randomID;
+						return (randomID);
 					}
 					else
 						continue;
@@ -1508,100 +1191,5 @@ int Particle::getRandomNonAdjacentNeighborID(Configuration* config){
 		}
 	}
 	else
-		return -1;
+		return (-1);
 }
-
-//double Particle::computeNewVelocity(Configuration* config, double vel, double u1, double u2, double perInf, double socInf, double pos, double additionalVal){
-//	double new_vel = 0.0;
-//
-//	//Original PSO
-//	if (config->getVelocityRule() == VEL_BASIC){
-//		new_vel = vel +
-//				(phi_1 * problem->getRandom01() * perInf) +
-//				(phi_2 * problem->getRandom01() * socInf);
-//	}
-//	//Standard PSO
-//	else if (config->getVelocityRule() == VEL_STANDARD){
-//		new_vel = (inertia * vel) +
-//				(phi_1 * problem->getRandom01() * perInf) +
-//				(phi_2 * problem->getRandom01() * socInf);
-//
-//	}
-//	//Linear PSO
-//	else if (config->getVelocityRule() == VEL_LINEAR){
-//		new_vel = (inertia * vel) +
-//				(phi_1 * u1 * perInf) +
-//				(phi_2 * u2 * socInf);
-//	}
-//	//Constriction coefficient PSO
-//	else if (config->getVelocityRule() == VEL_CONSTRICTED){
-//		new_vel = CONSTRICTION_COEFFICIENT * (vel +
-//				(phi_1 * problem->getRandom01() * perInf) +
-//				(phi_2 * problem->getRandom01() * socInf));
-//	}
-//	else if (config->getVelocityRule() == VEL_GUARAN_CONVERG){
-//		//if (pbest.eval == gbest.eval)
-//	}
-//	//Standard 2011 PSO - Uses a Hypersphere distribution to generate new points
-//	else if (config->getVelocityRule() == VEL_STANDARD2011){
-//		//in this case additionalVal = (H(G||G-X||) - G-X) -> see StandarPSO Maurice Clerc for details
-//		new_vel = (inertia * vel) + additionalVal;
-//	}
-//	//Use standard PSO
-//	else
-//		new_vel = (inertia * vel) +
-//		(phi_1 * problem->getRandom01() * perInf) +
-//		(phi_2 * problem->getRandom01() * socInf);
-//
-//
-//	return new_vel;
-//}
-
-
-//// The computation of the radius and the random point in the HyperSphere
-//// was taken from the publicly available from Maurice Clerc - Standard PSO 2011
-//// https://www.particleswarm.info/Programs.html
-//void Particle::getHypersphericalVector(double V2[], double V1[]){
-//	double G[size];	//center of the sphere
-//	double l[size]; //particle's Gbest
-//	double radius = 0.0;	//radius G-X
-//	double pw=1./(double)size;
-//
-//	//check that Pbest != Gbest
-//	if (pbest.eval == gbest.eval){
-//		//use a random neighbor as Gbest
-//		int randNeighbor = getRandomNeighbor();
-//		for (int i=0; i<size; i++)
-//			l[i] = neighbours.at(randNeighbor)->current.x[i];
-//	}
-//	else
-//		for (int i=0; i<size; i++)
-//			l[i] = gbest.x[i];
-//
-//	//Compute G (center of the sphere) and V1 (radius of each dimension)
-//	for (int i=0; i<size; i++){
-//		double P = current.x[i] + (phi_1 * (pbest.x[i]-current.x[i]));
-//		double L = current.x[i] + (phi_2 * (l[i]-current.x[i]));
-//		G[i] = (current.x[i] + P + L)/3.0;
-//		radius += pow(fabs(current.x[i] - G[i]), 2);
-//		V1[i] = G[i] - current.x[i];
-//	}
-//	radius = sqrt(radius); //this is the actual radius of the hyper-sphere
-//
-//	// Get a random vector in the hyper-sphere H(G||G-X||)
-//	// ----------------------------------- Step 1.  Direction
-//	double length=0.0;
-//	for (int i=0;i<size;i++) {
-//		V2[i] = RNG::randGauss(1.0);
-//		length += pow(V2[i],2);
-//	}
-//	length=sqrt(length);
-//	//----------------------------------- Step 2. Random radius
-//	// Random uniform distribution on the sphere
-//	double r = pow(RNG::randVal(0.0,1.0),pw);
-//
-//	//----------------------------------- Step 3. Random vector
-//	for (int i=0;i<size;i++) {
-//		V2[i] = radius*r*V2[i]/length;
-//	}
-//}

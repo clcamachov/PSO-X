@@ -1,8 +1,8 @@
 /*
  * config.cpp
  *
- *  Created on: Jun 1, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 
 #include "config.h"
@@ -21,11 +21,6 @@
 
 using namespace std;
 
-void printer(char *name, int value) {
-	printf("name: %s\tvalue: %d\n", name, value);
-}
-
-
 Configuration::~Configuration(){}
 
 /* Read arguments from command line */
@@ -33,12 +28,7 @@ Configuration::Configuration(){
 	Configuration::setDefaultParameters();
 }
 
-//TODO: Update with all the parameters
-//TODO: Check the integrity of all the parameters here (values and combination with other parameters)
 bool Configuration::getConfig(int argc, char *argv[]){
-	bool maxIter_received = false;
-	bool maxFES_received = false;
-
 	for(int i=1; i<argc; i++){
 		if(strcmp(argv[i], "--competition") == 0){
 			competitionID = atoi(argv[i+1]);
@@ -58,12 +48,10 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			//cout << "\n random seed has been received \n";
 		} else if (strcmp(argv[i], "--evaluations") == 0){
 			maxFES = atoi(argv[i+1]);
-			maxFES_received = true;
 			i++;
 			//cout << "\n number of evaluations has been received \n";
 		} else if (strcmp(argv[i], "--iterations") == 0){
 			max_iterations = atol(argv[i+1]);
-			maxIter_received = true;
 			i++;
 			//cout << "\n number of iterations has been received \n";
 		} else if (strcmp(argv[i], "--particles") == 0){
@@ -326,10 +314,6 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		} else if (strcmp(argv[i], "--verbose") == 0) {
 			verbose = true;
 			//cout << "\n no logs - suppress logs \n";
-		} else if (strcmp(argv[i], "--vRule") == 0) {
-			vRule = atol(argv[i+1]);
-			i++;
-			//cout << "\n velocity rule has been received \n";
 		} else if (strcmp(argv[i], "--output-path") == 0) {
 			outputPath = argv[i+1];
 			i++;
@@ -358,6 +342,12 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			cerr << "\nError: Parameter " << argv[i] << "not recognized.\n";
 			return(false);
 		}
+	}
+
+	//Check the random seed
+	if(rngSeed == 0){
+		cerr << "\nError: Parameter rngSeed has to be and positive integer, the value received was (" << rngSeed << ")\n";
+		return(false);
 	}
 
 	//Check problems and competitions range
@@ -401,10 +391,18 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	// > <
 	if (accelCoeffCS == AC_TIME_VARYING){
 		//Check order
-		if (initialPhi1 < finalPhi1)
-			swap(initialPhi1, finalPhi1);
-		if (initialPhi2 > finalPhi2)
-			swap(initialPhi2,finalPhi2);
+		if (initialPhi1 < finalPhi1){
+			double tmp = initialPhi1;
+			initialPhi1 = finalPhi1;
+			finalPhi1 = tmp;
+			//swap(initialPhi1, finalPhi1);
+		}
+		if (initialPhi2 > finalPhi2){
+			double tmp = initialPhi2;
+			initialPhi2 = finalPhi2;
+			finalPhi2 = tmp;
+			//			swap(initialPhi2,finalPhi2);
+		}
 		//Check they are different, otherwise use default values
 		if (initialPhi1 == finalPhi1){
 			initialPhi1 = 2.5;
@@ -417,8 +415,12 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	}
 	if (accelCoeffCS == AC_RANDOM){
 		//In this case initialPhi1 is the lower bound and finalPhi1 the upper bound
-		if (finalPhi1 < initialPhi1)
-			swap(initialPhi1, finalPhi1);
+		if (finalPhi1 < initialPhi1){
+			double tmp = initialPhi1;
+			initialPhi1 = finalPhi1;
+			finalPhi1 = tmp;
+			//			swap(initialPhi1, finalPhi1);
+		}
 		if (initialPhi1 == finalPhi1){
 			initialPhi1 = 0.5;
 			finalPhi1 = 2.5;
@@ -504,20 +506,16 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	}
 
 	//Termination criteria
-	if ((int)maxFES == -1)	//Use a small budget for the number of FEs
+	if (maxFES == -1)	//Use a small budget for the number of FEs
 		maxFES = 1000 * problemDimension;
-	else if ((int)maxFES == -2)	//Use the budget of CEC competitions for the number of FEs
+	if (maxFES == -2)	//Use the budget of CEC competitions for the number of FEs
 		maxFES = 10000 * problemDimension;
-	else if ((int)maxFES == -3)	//Use half the budget of CEC competitions for the number of FEs
+	if (maxFES == -3)	//Use half the budget of CEC competitions for the number of FEs
 		maxFES = 5000 * problemDimension;
-	else {
-		if (! maxIter_received && ! maxFES_received)
-			maxFES = 100;
-	}
 
 	if (max_iterations == -1)
 		max_iterations = maxFES;
-	else if (max_iterations == -2)
+	if (max_iterations == -2)
 		max_iterations = maxFES/particles;
 
 	//Check parameters value
@@ -597,17 +595,16 @@ void Configuration::printUsage(){
 /*Default parameters (KISS)*/
 void Configuration::setDefaultParameters(){
 	/** General parameters **/
-	srand (time(NULL));
-	rngSeed =  rand();						//seed for random numbers
-	maxFES = -1;							//max function evaluation
-	max_iterations = -1;					//max iterations
-	indStrategies = false;
 	/** Problem parameters **/
 	competitionID = CEC05;					//CEC05, CEC14, SOFT_COMPUTING, MIXTURE
-	problemID = 18;							//25, 19, 19 and 50, respectively
-	problemDimension = 2; 					//dimensions
+	problemID = 0;							//25, 19, 19 and 50, respectively
+	problemDimension = 10; 					//dimensions
 	minInitRange = -100;					//lower bound of the function
 	maxInitRange = 100;						//upper bound of the function
+	//srand (time(NULL));
+	maxFES = 5000*problemDimension;							//max function evaluation
+	max_iterations = maxFES;					//max iterations
+	indStrategies = false;
 
 	/** Population **/
 	particles = 10;							//particles (swarm size)
@@ -635,7 +632,7 @@ void Configuration::setDefaultParameters(){
 	esteps = 0;
 
 	/** Model of influence **/
-	modelOfInfluence = MOI_FI;				//self-explanatory
+	modelOfInfluence = MOI_BEST_OF_N;		//self-explanatory
 
 	/** Inertia control parameters (omega1 in the GVU) **/
 	omega1CS = IW_RANDOM;					//inertia control strategy
@@ -646,10 +643,10 @@ void Configuration::setDefaultParameters(){
 	useVelClamping = true;					//clamp velocity (step size)
 	omega2CS = O2_EQUAL_TO_O1;				//omega2 control strategy (see GVU formula)
 	omega2 = 1.0;							//omega2 value when used constant
-	omega3CS = O3_EQUAL_TO_O1;				//omega3 control strategy (see GVU formula)
+	omega3CS = O3_ZERO;						//omega3 control strategy (see GVU formula)
 	omega3 = 1.0;							//omega2 value when used constant
 	iw_par_eta = 1;							//from 0.1 to 1 in IW_SELF_REGULATING - 11
-	iw_par_lambda = 0.1;				//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
+	iw_par_lambda = 0.1;					//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
 	iw_par_alpha_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
 	iw_par_beta_2 = 0.5;					//from 0 to  1 in IW_CONVERGE_BASED - 16
 
@@ -691,12 +688,9 @@ void Configuration::setDefaultParameters(){
 	randNeighbor = false;					//chose a random neighbor as p2 in operator_q
 	operatorCG_parm_r = 0.5;				//probability for the Cauchy distribution
 
-	/** Velocity rules **/
-	vRule = VEL_STANDARD;					//use to select a specific velocity update formula
-
 	/** Logs **/
-	useLogs = true;							//create a folder an log the execution of the algorithm
-	verbose = false;
+//	useLogs = true;							//create a folder an log the execution of the algorithm
+//	verbose = true;
 	outputPath = "../";
 	//When the maxInitRange and minInitRange are different from 100
 	//the range is updated after instantiating the problem.
@@ -708,7 +702,7 @@ void Configuration::setDefaultParameters(){
 /*Print parameters */
 void Configuration::printParameters(){
 
-	cout << "\nPSO parameters:\n";
+	cout << "\nPSO-X parameters:\n";
 	//cout	<< "  competition:     " << getCompetitionID() << "\n"
 	switch (getCompetitionID()){
 	case CEC05: 			cout	<< "  competition:       CEC05\n"; break;
@@ -888,7 +882,11 @@ void Configuration::printParameters(){
 			<< "  initialPhi2:       " << getInitialPhi2() << "\n"
 			<< "  finalPhi2:         " << getFinalPhi2() << "\n"; break;
 	case AC_EXTRAPOLATED:	cout << "  accelCoeffCS:      EXTRAPOLATED\n"; break;
-	case AC_RANDOM:			cout << "  accelCoeffCS:      RANDOM\n"; break;
+	case AC_RANDOM:			cout << "  accelCoeffCS:      RANDOM\n"
+			<< "  initialPhi1:       " << getInitialPhi1() << "\n"
+			<< "  finalPhi1:         " << getFinalPhi1() << "\n"
+			<< "  initialPhi2:       " << getInitialPhi2() << "\n"
+			<< "  finalPhi2:         " << getFinalPhi2() << "\n"; break;
 	}
 	//<< "  perturbation1     " << getPerturbation1() << "\n"
 	switch (getPerturbation1CS()){
@@ -1009,141 +1007,141 @@ void Configuration::printParameters(){
 	cout << endl;
 }
 bool Configuration::logOutput(){
-	return useLogs;
+	return (useLogs);
 }
 bool Configuration::verboseMode(){
-	return verbose;
+	return (verbose);
 }
 std::string Configuration::getOutputPath(){
-	return outputPath;
+	return (outputPath);
 }
 
 //Problem
-unsigned int Configuration::getCompetitionID(){
-	return competitionID;
+int Configuration::getCompetitionID(){
+	return (competitionID);
 }
-unsigned int Configuration::getProblemID(){
-	return problemID;
+int Configuration::getProblemID(){
+	return (problemID);
 }
-unsigned int Configuration::getProblemDimension(){
-	return problemDimension;
+int Configuration::getProblemDimension(){
+	return (problemDimension);
 }
 unsigned long Configuration::getRNGSeed(){
-	return rngSeed;
+	return (rngSeed);
 }
-unsigned int Configuration::getMaxFES(){
-	return maxFES;
+long int Configuration::getMaxFES(){
+	return (maxFES);
 }
-unsigned int Configuration::getMaxIterations(){
-	return max_iterations;
+long int Configuration::getMaxIterations(){
+	return (max_iterations);
 }
 void Configuration::setMinInitRange(double lowerlimit) {
 	minInitRange = lowerlimit;
 }
 double Configuration::getMinInitRange(){
-	return minInitRange;
+	return (minInitRange);
 }
 double Configuration::getMinInitBound(){
-	return minInitRange;
+	return (minInitRange);
 }
 void Configuration::setMaxInitRange(double upperlimit){
 	maxInitRange = upperlimit;
 }
 double Configuration::getMaxInitRange(){
-	return maxInitRange;
+	return (maxInitRange);
 }
 double Configuration::getMaxInitBound(){
-	return maxInitRange;
+	return (maxInitRange);
 }
 
 //PSO
 bool Configuration::useVelocityClamping(){
-	return useVelClamping;
+	return (useVelClamping);
 }
 long int Configuration::getSwarmSize(){
-	return particles;
+	return (particles);
 }
 void Configuration::setSwarmSize(long int new_size){
 	particles = new_size;
 }
 int Configuration::getPopulationCS(){
-	return populationCS;
+	return (populationCS);
 }
 long int Configuration::getInitialPopSize(){
-	return initialPopSize;
+	return (initialPopSize);
 }
 long int Configuration::getFinalPopSize(){
-	return finalPopSize;
+	return (finalPopSize);
 }
 void Configuration::setParticlesToAdd(int new_pool_size){
 	particlesToAdd = new_pool_size;
 }
 int Configuration::getParticlesToAdd(){
-	return particlesToAdd;
+	return (particlesToAdd);
 }
 int Configuration::getParticleInitType(){
-	return p_intitType;
+	return (p_intitType);
 }
 int Configuration::getPopTViterations(){
-	return popTViterations;
+	return (popTViterations);
 }
 short Configuration::getOmega1CS(){
-	return omega1CS;
+	return (omega1CS);
 }
 short Configuration::getOmega2CS(){
-	return omega2CS;
+	return (omega2CS);
 }
 short Configuration::getOmega3CS(){
-	return omega3CS;
+	return (omega3CS);
 }
 double Configuration::getOmega1(){
-	return inertia;
+	return (inertia);
 }
 void Configuration::setOmega1(double new_inertia){
 	inertia = new_inertia;
 }
 double Configuration::getInitialIW(){
-	return initialIW;
+	return (initialIW);
 }
 double Configuration::getFinalIW(){
-	return finalIW;
+	return (finalIW);
 }
 unsigned int Configuration::getIWSchedule(){
-	return iwSchedule;
+	return (iwSchedule);
 }
 double Configuration::get_iw_par_eta(){
-	return iw_par_eta;
+	return (iw_par_eta);
 }
 double Configuration::get_iw_par_deltaOmega(){
-	return iw_par_lambda;
+	return (iw_par_lambda);
 }
 double Configuration::get_iw_par_alpha_2(){
-	return iw_par_alpha_2;
+	return (iw_par_alpha_2);
 }
 double Configuration::get_iw_par_beta_2(){
-	return iw_par_beta_2;
+	return (iw_par_beta_2);
 }
 double Configuration::getOmega2(){
-	return omega2;
+	return (omega2);
 }
 void Configuration::setOmega2(double new_omega2){
 	omega2 = new_omega2;
 }
 double Configuration::getOmega3(){
-	return omega3;
+	return (omega3);
 }
 void Configuration::setOmega3(double new_omega3){
 	omega3 = new_omega3;
 }
 bool Configuration::isVelocityClamped(){
-	return useVelClamping;
+	return (useVelClamping);
 }
 bool Configuration::useIndStrategies(){
-	return indStrategies;
+	return (indStrategies);
 }
 //Position
 bool Configuration::useReinitialization(){
-	return reinitializePosition;
+	return (reinitializePosition);
 }
 void Configuration::setReinitialization(bool reinit){
 	reinitializePosition = reinit;
@@ -1152,57 +1150,45 @@ void Configuration::setVelocityClamped(bool clamping){
 	useVelClamping = clamping;
 }
 short Configuration::getModelOfInfluence(){
-	return modelOfInfluence;
+	return (modelOfInfluence);
 }
 //Perturbation and Magnitudes Control strategies
 short Configuration::getPerturbation1CS(){
-	return perturbation1CS;
+	return (perturbation1CS);
 }
 short Configuration::getPerturbation2CS(){
-	return perturbation2CS;
+	return (perturbation2CS);
 }
-//void Configuration::setPert2_delta(double delta){
-//	pert2_delta = delta;
-//}
-//double Configuration::getPert2_delta(){
-//	return pert2_delta;
-//}
-//void Configuration::setPert2_alpha(double alpha){
-//	pert2_alpha=alpha;
-//}
-//double Configuration::getPert2_alpha(){
-//	return pert2_alpha;
-//}
 short Configuration::getMagnitude1CS(){
-	return magnitude1CS;
+	return (magnitude1CS);
 }
 short Configuration::getMagnitude2CS(){
-	return magnitude2CS;
+	return (magnitude2CS);
 }
 //Parameters Magnitude1
 double Configuration::getMagnitude1(){
-	return magnitude1;
+	return (magnitude1);
 }
 void Configuration::setMagnitude1(double mag_1){
 	magnitude1 = mag_1;
 }
 short Configuration::getMagnitude1_parm_l_CS(){
-	return mag1_parm_l_CS;
+	return (mag1_parm_l_CS);
 }
 double Configuration::getMag1_parm_l(){
-	return mag1_parm_l;
+	return (mag1_parm_l);
 }
 double Configuration::getMag1_parm_m(){
-	return mag1_parm_m;
+	return (mag1_parm_m);
 }
 int Configuration::getMag1_parm_success(){
-	return mag1_parm_success;
+	return (mag1_parm_success);
 }
 void Configuration::setMag1_parm_success(int new_mag1_succ){
 	mag1_parm_success = new_mag1_succ;
 }
 int Configuration::getMag1_parm_failure(){
-	return mag1_parm_failure;
+	return (mag1_parm_failure);
 }
 void Configuration::setMag1_parm_failure(int new_mag1_fail){
 	mag1_parm_failure = new_mag1_fail;
@@ -1215,33 +1201,33 @@ void Configuration::set_mag1_fc(int fc){
 	mag1_fc=fc;
 }
 int Configuration::get_mag1_sc(){
-	return mag1_sc;
+	return (mag1_sc);
 }
 int Configuration::get_mag1_fc(){
-	return mag1_fc;
+	return (mag1_fc);
 }
 
 //Parameters Magnitude2
 double Configuration::getMagnitude2(){
-	return magnitude2;
+	return (magnitude2);
 }
 void Configuration::setMagnitude2(double mag_2){
 	magnitude2 = mag_2;
 }
 short Configuration::getMagnitude2_parm_l_CS(){
-	return mag2_parm_l_CS;
+	return (mag2_parm_l_CS);
 }
 double Configuration::getMag2_parm_l(){
-	return mag2_parm_l;
+	return (mag2_parm_l);
 }
 double Configuration::getMag2_parm_m(){
-	return mag2_parm_m;
+	return (mag2_parm_m);
 }
 int Configuration::getMag2_parm_success(){
-	return mag2_parm_success;
+	return (mag2_parm_success);
 }
 int Configuration::getMag2_parm_failure(){
-	return mag2_parm_failure;
+	return (mag2_parm_failure);
 }
 
 //Setters/Getters variables magnitude2
@@ -1252,106 +1238,96 @@ void Configuration::set_mag2_fc(int fc){
 	mag2_fc = fc;
 }
 int Configuration::get_mag2_sc(){
-	return mag2_sc;
+	return (mag2_sc);
 }
 int Configuration::get_mag2_fc(){
-	return mag2_fc;
+	return (mag2_fc);
 }
 //Random matrices
 short Configuration::getRandomMatrix(){
-	return randomMatrix;
+	return (randomMatrix);
 }
 short Configuration::getAngleCS(){
-	return angleCS;
+	return (angleCS);
 }
 double Configuration::getAngleSD(){
-	return angleSD;
+	return (angleSD);
 }
 void Configuration::setAngleSD(double angle_sd){
 	angleSD = angle_sd;
 }
 double Configuration::get_angle_par_alpha(){
-	return angle_par_alpha;
+	return (angle_par_alpha);
 }
 double Configuration::get_angle_par_beta(){
-	return angle_par_beta;
+	return (angle_par_beta);
 }
 
 double Configuration::getRotationAgle(){
-	return rotation_angle;
+	return (rotation_angle);
 }
 void Configuration::setRotationAgle(double angle){
 	rotation_angle = angle;
 }
 short Configuration::getDistributionNPP(){
-	return distributionNPP;
+	return (distributionNPP);
 }
 short Configuration::getOperator_q(){
-	return operator_q;
+	return (operator_q);
 }
 bool Configuration::getRandNeighbor(){
-	return randNeighbor;
+	return (randNeighbor);
 }
 double Configuration::getOperatorCG_parm_r(){
-	return operatorCG_parm_r;
+	return (operatorCG_parm_r);
 }
 short Configuration::getTopology(){
-	return topology;
+	return (topology);
 }
 unsigned int Configuration::getTopologySchedule(){
-	return tSchedule;
+	return (tSchedule);
 }
 int Configuration::getBranchingDegree(){
-	return branching;
+	return (branching);
 }
 short Configuration::getAccelCoeffCS(){
-	return accelCoeffCS;
+	return (accelCoeffCS);
 }
 double Configuration::getPhi1(){
-	return phi_1;
+	return (phi_1);
 }
 double Configuration::getPhi2(){
-	return phi_2;
+	return (phi_2);
 }
 double Configuration::getInitialPhi1(){
-	return initialPhi1;
+	return (initialPhi1);
 }
 double Configuration::getFinalPhi1(){
-	return finalPhi1;
+	return (finalPhi1);
 }
 double Configuration::getInitialPhi2(){
-	return initialPhi2;
+	return (initialPhi2);
 }
 double Configuration::getFinalPhi2(){
-	return finalPhi2;
+	return (finalPhi2);
 }
 void Configuration::setEsteps(unsigned int num_esteps){
 	esteps = num_esteps;
 }
 unsigned int Configuration::getEsteps(){
-	return esteps;
+	return (esteps);
 }
 void Configuration::setTopologyUpdatePeriod(int period){
 	topologyUpdatePeriod = period;
 }
 int Configuration::getTopologyUpdatePeriod(){
-	return topologyUpdatePeriod;
+	return (topologyUpdatePeriod);
 }
-
-//One can explore the possibility of changing the velocity rule
-//during the execution of the algorithm
-void Configuration::setVelocityRule(int rule){
-	vRule = rule;
-}
-int Configuration::getVelocityRule(){
-	return vRule;
-}
-
 void Configuration::setStartTime(double stime){
 	startTime = stime;
 }
 
 double Configuration::getStartTime(){
-	return startTime;
+	return (startTime);
 }
 

@@ -1,8 +1,8 @@
 /*
  * problem.h
  *
- *  Created on: May 31, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 
 #ifndef PROBLEM_H_
@@ -80,7 +80,6 @@ private:
 	double signnum(double x);
 
 public:
-
 	Problem(Configuration* config, int variantID);
 	virtual ~Problem();
 
@@ -90,7 +89,6 @@ public:
 	unsigned int getFunctionEvaluations();
 
 	void setFunctionEvaluations(unsigned int evals);
-	//virtual void printShift_vector2D();
 
 	//Evaluation call
 	virtual long double evaluate(int dim, const double* x) = 0;
@@ -113,13 +111,7 @@ public:
 	double** getRotation_matrix();
 	void printProblem_results();
 
-
-	/*
-	 * Function from Optim.h
-	 */
-	double getRandomX();
-	double getRandomX(double lowerBound, double upperBound);
-	double getRandom01();
+	void printMatrix(unsigned int dimensions, double** rotation_matrix);
 	void printProblem();
 };
 

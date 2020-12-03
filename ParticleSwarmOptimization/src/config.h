@@ -1,8 +1,8 @@
 /*
  * config.h
  *
- *  Created on: May 31, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 
 #ifndef CONFIG_H_
@@ -303,13 +303,14 @@ class Configuration {
 private:
 	//general parameters
 	unsigned long rngSeed;
-	unsigned int maxFES;
+	long dummySeed;
+	long int maxFES;
 	long int max_iterations;
 
 	//Problem parameters
-	unsigned int competitionID;
-	unsigned int problemID;
-	unsigned int problemDimension;
+	int competitionID;
+	int problemID;
+	int problemDimension;
 	double minInitRange;
 	double maxInitRange;
 
@@ -373,8 +374,6 @@ private:
 	//Perturbation
 	short perturbation1CS; 	//informed
 	short perturbation2CS; 	//random (additive)
-//	double pert2_alpha;	//side length of the rectangle for the random (additive) rectangular perturbation
-//	double pert2_delta;		//side length of the rectangle for the random (additive) noisy perturbation
 	//Magnitude1
 	short magnitude1CS;
 	double magnitude1;
@@ -411,9 +410,6 @@ private:
 	bool randNeighbor;
 	double operatorCG_parm_r;
 
-	//Velocity rules
-	int vRule;
-
 public:
 
 	Configuration();
@@ -433,13 +429,13 @@ public:
 
 	//Problem
 	unsigned long getRNGSeed();
-	unsigned int getMaxFES();
-	unsigned int getMaxIterations();
+	long int getMaxFES();
+	long int getMaxIterations();
 
 	void setDefaultParameters();
-	unsigned int getCompetitionID();
-	unsigned int getProblemID();
-	unsigned int getProblemDimension();
+	int getCompetitionID();
+	int getProblemID();
+	int getProblemDimension();
 	double getMinInitRange();
 	double getMaxInitRange();
 

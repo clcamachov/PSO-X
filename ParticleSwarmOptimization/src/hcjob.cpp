@@ -1,8 +1,8 @@
 /*
  * hcjob.cpp
  *
- *  Created on: Jun 4, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 
 #include "hcjob.h"

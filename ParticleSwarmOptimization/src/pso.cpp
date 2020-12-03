@@ -1,10 +1,9 @@
-//============================================================================
-// Name        : Particle.cpp
-// Author      : Christian Leonardo Camacho Villalón
-// Version     :
-// Copyright   :
-// Description :
-//============================================================================
+/*
+ * pso.cpp
+ *
+ *  Created on: May 31, 2019
+ *      Author: christian
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,9 +98,6 @@ using namespace std;
 Configuration* config;
 Problem* problem;
 Swarm* swarm;
-
-long int iterations=0;			/* counter of iterations */
-long int evaluations=0;			/* counter of evaluations */
 
 // Benchmark functions
 Problem* initializeProblem() {
@@ -552,20 +548,20 @@ Problem* initializeProblem() {
 		}
 	}
 
-	return problem;
+	return (problem);
 }
 
 /* Termination condition */
-bool terminationCondition() {
+bool terminationCondition(long int iterations, long int evaluations, long int swarmSize) {
 	//Budget based on iterations
 	if (config->getMaxIterations() != 0 && iterations >= config->getMaxIterations()-2) {
-		return true;
+		return (true);
 	}
 	//Budget based on evaluations of the objective function
-	if (config->getMaxFES() != 0 && evaluations >= config->getMaxFES()) {
-		return true;
+	if (config->getMaxFES() != 0 && (evaluations + swarmSize) >= config->getMaxFES()) {
+		return (true);
 	}
-	return false;
+	return (false);
 }
 
 
@@ -574,15 +570,15 @@ int dirExists(const char *path) {
 
 	if(stat( path, &info ) != 0){
 		//printf( "cannot access %s\n", path );
-		return 0;
+		return (0);
 	}
 	else if(info.st_mode & S_IFDIR){
 		//printf( "%s is a directory\n", path );
-		return 1;
+		return (1);
 	}
 	else{
 		//printf( "%s is no directory\n", path );
-		return 0;
+		return (0);
 	}
 }
 
@@ -599,12 +595,14 @@ void openLogFile(Configuration* config, fstream &outfile){
 	string time(buffer);
 
 	//Compose file name
-	stringstream comp, prob, dim, seed, unique;
-	comp << config->getCompetitionID() ;
+	stringstream comp;
+	stringstream prob;
+	stringstream dim;
+	stringstream seed;
+	comp << config->getCompetitionID();
 	prob << config->getProblemID();
 	dim << config->getProblemDimension();
 	seed << config->getRNGSeed();
-	unique << (int)ceil(problem->getRandomX(1,INT_MAX));
 
 
 	//Remove last / if sent in the path
@@ -612,22 +610,12 @@ void openLogFile(Configuration* config, fstream &outfile){
 	string thePath = config->getOutputPath().substr(0,found);
 	if (config->getOutputPath().substr(found) != "/")
 		thePath = config->getOutputPath();
-	//	cout << " path0: " << config->getOutputPath().substr(0,found) << endl;
-	//	cout << " path1: " << config->getOutputPath().substr(found+1) << endl;
 	string path = thePath + "/OUTPUT_PSOX2020" + "/";		//path to the file
-	//string path = thePath + "/OUTPUT-ParticleSwarmOptimization" + "/";		//path to the file
-	//string log_file = path + "f" + prob.str() + "-d" + dim.str() + "-c" + comp.str() + "_" + seed.str() + "_" + time  + "_" + unique.str() + ".dat";	//name of the file
-	string log_file = path + "f" + prob.str() + "-d" + dim.str() + "-c" + comp.str() + "_" + seed.str() + "_" + unique.str() + ".dat";	//name of the file
+	string log_file = path + "f" + prob.str() + "-d" + dim.str() + "-c" + comp.str() + "_" + seed.str() + "_" + ".dat";	//name of the file
 	const char* pstr = path.c_str();
 	const char* cstr = log_file.c_str();
-	//	cout << " originalPath: " << config->getOutputPath() << endl;
-	//	cout << " thePath: " << thePath << endl;
-	//	cout << " pathUsed: " << pstr << endl;
-	//	cout << " file: " << cstr << endl;
-	//	cout << " file: " << cstr << endl;
-	//	exit(0);
 
-	if (dirExists(pstr) != 1) //1 exits, 0 otherwise
+	if (dirExists(pstr) != 1) //1 if it exits and can be accessed
 		if (mkdir(pstr, 0777) == -1){
 			cerr << "Error :  " << strerror(errno) << endl;
 			exit(-1);
@@ -638,7 +626,7 @@ void openLogFile(Configuration* config, fstream &outfile){
 	outfile.open(cstr, ios::in|ios::out);
 
 	if (outfile.is_open()) {
-		// Backup streambuffers of  cout
+		// Backup streambuffer of cout
 		streambuf* stream_buffer_cout = cout.rdbuf();
 
 		// Get the streambuffer of the file
@@ -676,52 +664,52 @@ void freeMemory(){
 
 bool printIteration(Configuration* config, long int iterations){
 	//Always print the first and last 10% of iterations
-	if (iterations < config->getMaxIterations()*0.1 || iterations > (config->getMaxIterations()-(config->getMaxIterations()*0.1))){
+	if (iterations < (config->getMaxIterations()*0.1) || iterations > (config->getMaxIterations()-(config->getMaxIterations()*0.1))){
 		if (iterations%4 == 0 || iterations  <= 10)
-			return true;
+			return (true);
 		else
-			return false;
+			return (false);
 	}
 	else {
 		//Print one other iterations
 		if (config->getSwarmSize() >= 100){
 			if (iterations%2 == 0)
-				return true;
+				return (true);
 			else
-				return false;
+				return (false);
 		}
 		//Print every 12 to 50 iterations depending on the swarm size
 		else if (config->getSwarmSize() <= 40){
 			if (iterations%(52-config->getSwarmSize()) == 0)
-				return true;
+				return (true);
 			else
-				return false;
+				return (false);
 		}
 		//Print every 8 iterations
 		else {
 			if (iterations%8 == 0)
-				return true;
+				return (true);
 			else
-				return false;
+				return (false);
 		}
 	}
 }
 
 int main(int argc, char *argv[] ){
-	//Start timer
-	double time_taken;
-	static struct timeval start, end;
-	gettimeofday( &start, NULL );
-	//ios_base::sync_with_stdio(false);
-	//stime =(double) tp.tv_sec + (double) tp.tv_usec/1000000.0;
-	//config->setStartTime(stime);
-	//cout.precision(20); //use to print more decimals, scientific's default is 6
+	long int iterations=0;			/* counter of iterations */
+	long int evaluations=0;			/* counter of function evaluations */
 
 	//Get the configuration parameters
 	config = new Configuration();
 	if(!config->getConfig(argc, argv)){
 		exit(-1);
 	}
+
+	//Start timer
+	double time_taken;
+	static struct timeval start;
+	static struct timeval end;
+	gettimeofday( &start, NULL );
 
 	//Random number generator
 	RNG::initializeRNG(config->getRNGSeed());
@@ -736,12 +724,11 @@ int main(int argc, char *argv[] ){
 	if (config->logOutput())
 		openLogFile(config, outfile);
 
-	if (config->verboseMode()){
-		config->printParameters();
-		problem->printProblem();
-		cout << "\n";
-	}
-	while(!terminationCondition()){
+	//		config->printParameters();
+	//		problem->printProblem();
+	//		cout << "\n";
+
+	while(!terminationCondition(iterations, evaluations, config->getSwarmSize())){
 		iterations++;
 
 		//Move swarm
@@ -754,17 +741,17 @@ int main(int argc, char *argv[] ){
 		}
 		if (config->getTopology() == TOP_HIERARCHICAL){
 			swarm->updateTree(config->getBranchingDegree());
-			//cout << "\n Hierarchical topology updated" << endl;
 		}
 		//Update dynamic population size
 		swarm->resizeSwarm(problem, config, iterations);
-		//problem->printProgress();
 
-		if(printIteration(config,iterations))
+		if(printIteration(config,iterations)){
 			outfile << "iteration: " << iterations << " func_evaluations: " << evaluations  << " best: " << scientific << swarm->getGlobalBest().eval << endl;
+		}
 	}
 	cout.precision(16);
 	cout << "Best " << scientific << swarm->getGlobalBest().eval << endl;
+	//cout << "Best solution vector: "; swarm->printGbest(config->getProblemDimension());
 
 	//Stop timer
 	gettimeofday(&end, NULL);
@@ -773,15 +760,12 @@ int main(int argc, char *argv[] ){
 	time_taken = (time_taken + (end.tv_usec - start.tv_usec)) * 1e-6;
 	outfile << "Total time: " << fixed << time_taken << setprecision(6) << " sec" << endl;
 
-	if (config->verboseMode()){
-		cout << "\n\n**************************************************\n"
-				<<  "            Execution ended correctly"
-				<< "\n**************************************************" << endl;
-		cout << "Best solution cost: " << fixed << swarm->getGlobalBest().eval << endl;
-		cout << "Best solution components: "; swarm->printGbest(config->getProblemDimension());
-		cout << "Total time: " << fixed << time_taken << setprecision(6) << " sec" << endl;
-		config->printParameters();
-	}
+	//		cout << "\n\n**************************************************\n"
+	//				<<  "            Execution ended correctly"
+	//				<< "\n**************************************************" << endl;
+	//		cout << "Best solution cost: " << fixed << swarm->getGlobalBest().eval << endl;
+	//		cout << "Best solution components: "; swarm->printGbest(config->getProblemDimension());
+	//		cout << "Total time: " << fixed << time_taken << setprecision(6) << " sec" << endl;
 
 	//close the file
 	if (config->logOutput())

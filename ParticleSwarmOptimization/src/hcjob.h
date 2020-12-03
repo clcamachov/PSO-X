@@ -1,8 +1,8 @@
 /*
  * hcjob.h
  *
- *  Created on: Jun 1, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 
 #ifndef HCJOB_H_

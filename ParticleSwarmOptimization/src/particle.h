@@ -1,8 +1,8 @@
 /*
  * particle.h
  *
- *  Created on: May 31, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 
 #ifndef PARTICLE_H_
@@ -15,7 +15,7 @@
 
 /* Solution structure */
 struct Solution {
-	double *x;    /* coefficients of each dimension */
+	double* x;    /* coefficients of each dimension */
 	long double eval;  /* value of the solution */
 };
 
@@ -25,12 +25,10 @@ class Particle {
 
 protected:
 
-	Problem* problem;		/* the optimization problem */
-	long int size; 			/* problem size: number of dimensions of the functions */
+	Problem* problem;	/* the optimization problem */
 
-	bool init;
-	int  id;
-	bool hasVelocitybounds;
+	int size; 			/* problem size: number of dimensions of the functions */
+	int id;
 	int ranking;
 	int parent;
 	int stereotype;
@@ -42,14 +40,16 @@ protected:
 	struct Solution pbest;    /* personal best solution */
 	struct Solution gbest;    /* global best solution (According to the topology) */
 
-	/*Velocity variables*/
-	double* velocity;         /* velocity */
-	double phi_1;
-	double phi_2;
-	double inertia; 		  /* parameters */
-
+	/*Velocity and acceleration coefficients variables*/
+	double* velocity;
+	bool hasVelocitybounds;
 	double minVelLimit;
 	double maxVelLimit;
+	double inertia;
+	double phi_1;
+	double phi_2;
+
+	bool init;
 
 public:
 
@@ -63,7 +63,6 @@ public:
 
 	void move(Configuration* config, double minBound, double maxBound, long int iteration,
 			double omega1, double omega2, double omega3, int numInformants, int lastLevelComplete, int solImproved);
-	double computeNewVelocity(Configuration* config, double vel, double rand1, double rand2,double perInf, double socInf, double pos, double additionalVal);
 
 	double* getCurrentPosition();
 	long double getCurrentEvaluation();
@@ -79,9 +78,7 @@ public:
 
 	void updateGbestParticle(double* x, double eval);
 	unsigned int getNeighborhoodSize();
-
 	double computeDistPbestGbest();
-	double EuclideanDistance(Configuration* config, double * x, double * p, int &countNan);
 
 	bool ispBestIntheInformants(int numInformants);
 
@@ -92,9 +89,9 @@ public:
 
 	//Initial position
 	void initUniform(Configuration* config);
-	void reInitPosUniform(Configuration* config);
 	void initToModel();
-	void initializePosition(Configuration* config, long int initialPopSize);
+	void initializePosition(Configuration* config, long int initialPopSize, bool updatePbest);
+	void initializeVelocity(Configuration* config);
 	void printPosition();
 	void printNeighborByID(int id);
 
@@ -109,7 +106,6 @@ public:
 			vector< vector< double> > &vect_PbestMinusPosition, bool randNeighbor, int operatorQ, double CG_parm_r);
 
 	void computeAC(Configuration* config, double &c1, double &c2, int numInformants);
-	int getRandomNeighbor();
 	int getRandomInformantPosition(int numInformants, bool pBestIntheInformants);
 	int getPositionOfpBest(int numInformants, bool pBestIntheInformants);
 	void detectStagnation(Configuration* config, double minBound, double maxBound);

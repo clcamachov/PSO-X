@@ -53,7 +53,7 @@ Elliptic::Elliptic(Configuration* config, int variantID):Problem(config, variant
 				file_m = "../supportData/input_data/M_1_D30.txt";
 			else if (dimension > 30 && dimension < 50)
 				file_m = "../supportData/input_data/M_1_D50.txt";
-			else if (dimension > 50 && dimension < 100)
+			else if (dimension > 50)
 				file_m = "../supportData/input_data/M_1_D100.txt";
 			else
 				file_m = "../supportData/input_data/M_1_D" + dim_name.str() + ".txt";
@@ -65,7 +65,6 @@ Elliptic::Elliptic(Configuration* config, int variantID):Problem(config, variant
 
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
-
 		}
 
 	}	

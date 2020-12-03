@@ -1,8 +1,8 @@
 /*
  * swarm.h
  *
- *  Created on: Jun 20, 2018
- *      Author: leonardo
+ *  Created on: May 31, 2019
+ *      Author: christian
  */
 
 #ifndef SWARM_H_
@@ -18,23 +18,26 @@
 
 /* Simplified swarm structure */
 struct ssArray {
-	long double* eval;   /* value of the solution */
-	int* id;  		     /* particle id */
+	long double* eval = NULL;   /* value of the solution */
+	int* id = NULL;  		     /* particle id */
 };
 
 class Swarm {
 
 protected:
 
-	Problem* problem;				/* the optimization problem */
-	vector<Particle*> swarm;		/* the swarm */
-	long int size;					/* number of particles*/
+	Problem* problem;				  /* the optimization problem */
 
-	struct Solution global_best;    /* best solution in the swarm*/
-	Particle *best_particle;        /* best particle */
+	vector<Particle*> swarm;		  /* the swarm */
+	vector<SimplifySwarm> simpSwarm;  /* a vector containing only ids and eval values*/
+	vector<vector< int > > hierarchy; /* the hierarchical topology is implemented as a vector*/
+
+	struct Solution global_best;      /* best solution in the swarm*/
+	Particle *best_particle;          /* best particle */
+
+	long int size;					  /* number of particles*/
 	bool init;
-	bool ranked;					/* implement particle rankings */
-	bool hierarchical;				/* hierarchical topology flag */
+	int lastLevelComplete;			  /* global variable for the hierarchy */
 
 public:
 
@@ -92,7 +95,6 @@ public:
 	void updateTopologyConnections(Configuration* config, long previous_size, long int iteration);
 	void addParticlesInLastLevel(int first, int last, int branching);
 	void updateHierarchical(int branching, long previous_size);
-	//void clearResizeSimpSwarm(vector<SimplifySwarm> &sSwarm);
 	void clearResizeSimpSwarm(Configuration* config, long int iteration);
 	void removeOneParticle(Configuration* config);
 
@@ -101,8 +103,6 @@ public:
 	void mergeSort(ssArray* arr, int l, int r);
 	void merge(ssArray* arr, int l, int m, int r);
 	void reinitializeParticlePosition(Configuration* config);
-
-
 };
 
 #endif /* SWARM_H_ */
