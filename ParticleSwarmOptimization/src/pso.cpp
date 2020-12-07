@@ -728,6 +728,8 @@ int main(int argc, char *argv[] ){
 	//		problem->printProblem();
 	//		cout << "\n";
 
+	long double prevgBestEval = swarm->getGlobalBest().eval;
+
 	while(!terminationCondition(iterations, evaluations, config->getSwarmSize())){
 		iterations++;
 
@@ -748,6 +750,18 @@ int main(int argc, char *argv[] ){
 		if(printIteration(config,iterations)){
 			outfile << "iteration: " << iterations << " func_evaluations: " << evaluations  << " best: " << scientific << swarm->getGlobalBest().eval << endl;
 		}
+
+		if (config->verboseMode() && swarm->getGlobalBest().eval < prevgBestEval){
+			cout << "iteration: " << iterations ;
+			//		cout << "\tvar::mean: " <<  mean << "\n";
+			//		cout << "\tvar::stdSwarm: " <<  stdSwarm << "\n";
+			//	cout << "\n\tvar::iterCounter: " <<  iterCounter << "\n";
+			//	cout << "\tvar::reinitSchedule: " << reinitSchedule << "\n";
+			cout.precision(10);
+			cout << " best solution found: " << scientific <<  swarm->getGlobalBest().eval << endl;
+			prevgBestEval = swarm->getGlobalBest().eval;
+		}
+
 	}
 	cout.precision(16);
 	cout << "Best " << scientific << swarm->getGlobalBest().eval << endl;

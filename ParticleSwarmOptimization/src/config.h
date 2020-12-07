@@ -181,6 +181,7 @@
 #define REINIT_PRECISION 0.001
 #define STAGNATION_PRECISION 0.001
 #define PERTURBATION_PRECISION  0.00001
+#define OBJECTIVE_FUNCTION_CHANGE_THRESHOLD 1E-8
 #define MAX_DIMENSION 	1000
 #define LINE_BUF_LEN    100
 #define TRACE( x )
@@ -303,7 +304,6 @@ class Configuration {
 private:
 	//general parameters
 	unsigned long rngSeed;
-	long dummySeed;
 	long int maxFES;
 	long int max_iterations;
 
@@ -319,7 +319,11 @@ private:
 	bool useLogs;
 	bool verbose;
 	std::string outputPath;
-	bool indStrategies;
+	bool perturbedlBest;
+	bool useVelClamping;
+	bool reinitializePosition;
+	bool detectStagnation;
+	double overallOFchange;
 
 	//Population
 	long int particles;
@@ -354,7 +358,7 @@ private:
 	double inertia;				// actual variable of inertia. If no inertiaCS is given, this value is fixed during the
 	double initialIW;
 	double finalIW;
-	unsigned int iwSchedule;	//n^2 , 2n^2 , 3n^2 , 4n^2, etc. (the lower the value the faster)
+	int iwSchedule;	//n^2 , 2n^2 , 3n^2 , 4n^2, etc. (the lower the value the faster)
 	short omega2CS;
 	double omega2;
 	short omega3CS;
@@ -364,12 +368,6 @@ private:
 	double iw_par_lambda;		//from 0.1 to 1 small positive constant in IW_VELOCITY_BASED - 12
 	double iw_par_alpha_2;		//from 0 to  1 in IW_CONVERGE_BASED - 16
 	double iw_par_beta_2;		//from 0 to  1 in IW_CONVERGE_BASED - 16
-
-	//Velocity
-	bool useVelClamping;
-
-	//Position
-	bool reinitializePosition;
 
 	//Perturbation
 	short perturbation1CS; 	//informed
@@ -454,7 +452,7 @@ public:
 	int getParticlesToAdd();
 	void setParticlesToAdd(int new_pool_size);
 	int getParticleInitType();
-	bool useIndStrategies();
+	bool usePerturbedlBest();
 	int getPopTViterations();
 
 
@@ -469,15 +467,16 @@ public:
 	void setOmega1(double new_inertia);
 	double getInitialIW();
 	double getFinalIW();
-	unsigned int getIWSchedule();
+	int getIWSchedule();
 
 	//Velocity
 	bool isVelocityClamped();
 	void setVelocityClamped(bool clamping);
-
-	//Position
 	bool useReinitialization();
 	void setReinitialization(bool reinitilized);
+	bool detectParticleStagnated();
+	void setOverallOFchange(double change);
+	double getOverallOFchange();
 
 	double get_iw_par_eta();
 	double get_iw_par_deltaOmega();
@@ -507,10 +506,6 @@ public:
 	//Perturbation
 	short getPerturbation1CS();
 	short getPerturbation2CS();
-//	double getPert2_delta();
-//	void setPert2_delta(double delta);
-//	double getPert2_alpha();
-//	void setPert2_alpha(double alpha);
 
 	//Getters parameters magnitude1
 	short getMagnitude1CS();

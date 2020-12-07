@@ -58,16 +58,19 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			particles = atol(argv[i+1]);
 			i++;
 			//cout << "\n number of particles has been received \n";
-		}
-		else if (strcmp(argv[i], "--reinitPositions") == 0){
+		} else if (strcmp(argv[i], "--clamped") == 0){
+			useVelClamping = true;
+			//cout << "\n velocity clamping has been set to true \n";
+		} else if (strcmp(argv[i], "--reinitialized") == 0){
 			reinitializePosition = true;
 			//cout << "\n reinitializePosition has been set to true \n";
-		}
-		else if (strcmp(argv[i], "--indStrategies") == 0){
-			indStrategies = true;
+		} else if (strcmp(argv[i], "--perturbed-lb") == 0){
+			perturbedlBest = true;
 			//cout << "\n use indStrategies has been set to true \n";
-		}
-		else if (strcmp(argv[i], "--populationCS") == 0) {
+		} else if (strcmp(argv[i], "--unstuck") == 0){
+			detectStagnation = true;
+			//cout << "\n use detectStagnation has been set to true \n";
+		} else if (strcmp(argv[i], "--populationCS") == 0) {
 			populationCS = atoi(argv[i+1]);
 			i++;
 			//cout << "\n populationCS has been received \n";
@@ -159,9 +162,6 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			branching = atoi(argv[i+1]);
 			i++;
 			//cout << "\n branching degree has been received \n";
-		} else if (strcmp(argv[i], "--clamped") == 0){
-			useVelClamping = true;
-			//cout << "\n velocity clamping has been set to true \n";
 		} else if (strcmp(argv[i], "--omega1CS") == 0) {
 			omega1CS = atoi(argv[i+1]);
 			i++;
@@ -382,8 +382,8 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	if (populationCS == POP_INCREMENTAL)
 		particles = initialPopSize;
 	if (populationCS == POP_TIME_VARYING){
-		if (particles  < initialPopSize) particles =  initialPopSize;
-		if (particles  > finalPopSize) particles =  finalPopSize;
+		if (particles < initialPopSize) particles =  initialPopSize;
+		if (particles > finalPopSize) particles =  finalPopSize;
 	}
 
 	//Check the bounds of the acceleration coefficients
@@ -461,6 +461,12 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		iwSchedule = 0;
 	populationCS == POP_CONSTANT ? iwSchedule = iwSchedule*pow(particles,2) : iwSchedule = iwSchedule*pow(finalPopSize,2);
 
+	if (initialIW > finalIW){
+		double tmp = initialIW;
+		initialIW = finalIW;
+		finalIW = tmp;
+	}
+
 	//Check DNPPs
 	if (distributionNPP == DIST_ADD_STOCH){
 		randomMatrix = MATRIX_NONE;
@@ -474,15 +480,21 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			magnitude1CS = MAGNITUDE_CONSTANT;
 			magnitude1 = 0.001;
 		}
+		if (magnitude1CS == MAGNITUDE_EUC_DISTANCE)
+			magnitude1 = 1;
 	}
 	//Check valid combinations of Perturbation2 and Magnitude2
-	if (perturbation2CS == PERT2_NONE)
+	if (perturbation2CS == PERT2_NONE){
+		omega3CS = O3_ZERO;
 		magnitude2CS = MAGNITUDE_NONE;
+	}
 	else{
 		if (magnitude2CS == MAGNITUDE_NONE){
 			magnitude2CS = MAGNITUDE_CONSTANT;
-			magnitude1 = 0.001;
+			magnitude2 = 0.001;
 		}
+		if (magnitude2CS == MAGNITUDE_NONE)
+			magnitude2 = 1;
 	}
 
 	//Check Perturbation magnitude
@@ -513,19 +525,22 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	if (maxFES == -3)	//Use half the budget of CEC competitions for the number of FEs
 		maxFES = 5000 * problemDimension;
 
-	if (max_iterations == -1)
-		max_iterations = maxFES;
-	if (max_iterations == -2)
-		max_iterations = maxFES/particles;
+	if (max_iterations < 0)
+		populationCS != POP_CONSTANT ? max_iterations = maxFES/initialPopSize : max_iterations = maxFES/particles;
 
 	//Check parameters value
-	if(mag1_parm_l_CS == MAG_PARAM_L_INDEPENDENT)
+	if(mag1_parm_l_CS == MAG_PARAM_L_INDEPENDENT){
 		//scaling factor for MAGNITUDE_EUC_DISTANCE a1=0.911, a2=0.21, a3=0.51, a4=0.58
 		mag1_parm_l = 0.911*0.51/(pow((particles/problemDimension),0.21)*pow(problemDimension,0.58));
-	if(mag2_parm_l_CS == MAG_PARAM_L_INDEPENDENT)
+		if (mag1_parm_l > 0.03) mag1_parm_l = 0.03;
+		if (mag1_parm_l < 1E-15) mag1_parm_l = 1E-15;
+	}
+	if(mag2_parm_l_CS == MAG_PARAM_L_INDEPENDENT){
 		//scaling factor for MAGNITUDE_EUC_DISTANCE a1=0.911, a2=0.21, a3=0.51, a4=0.58
 		mag2_parm_l = 0.911*0.51/(pow((particles/problemDimension),0.21)*pow(problemDimension,0.58));
-
+		if (mag2_parm_l > 0.03) mag2_parm_l = 0.03;
+		if (mag2_parm_l < 1E-15) mag2_parm_l = 1E-15;
+	}
 	return(true);
 }
 
@@ -602,9 +617,13 @@ void Configuration::setDefaultParameters(){
 	minInitRange = -100;					//lower bound of the function
 	maxInitRange = 100;						//upper bound of the function
 	//srand (time(NULL));
-	maxFES = 5000*problemDimension;							//max function evaluation
-	max_iterations = maxFES;					//max iterations
-	indStrategies = false;
+	maxFES = 5000*problemDimension;			//max function evaluation
+	max_iterations = maxFES;				//max iterations
+	useVelClamping = false;					//clamp velocity (step size)
+	perturbedlBest = false;
+	detectStagnation = false;
+	reinitializePosition = false;			//reinitialize particles' position with precision of 10^-5
+	overallOFchange = LDBL_MAX;
 
 	/** Population **/
 	particles = 10;							//particles (swarm size)
@@ -612,14 +631,13 @@ void Configuration::setDefaultParameters(){
 	initialPopSize = 2;						//initial population
 	finalPopSize= 1000;						//final or maximum number of individuals allowed
 	particlesToAdd = 1;						//number of particles added in a non-constant PopCS
-	p_intitType = PARTICLE_INIT_MODEL;      //type of initialization of particles in a non-constant PopCS
-	reinitializePosition = true;			//reinitialize particles' position with precision of 10^-5
+	p_intitType = PARTICLE_INIT_RANDOM;      //type of initialization of particles in a non-constant PopCS
 	popTViterations = 2;
 
 	/** Acceleration coefficients **/
 	accelCoeffCS = AC_CONSTANT;				//acceleration coefficients control strategy
-	phi_1 = 1.55;							//personal coefficient
-	phi_2 = 1.55;							//social coefficient
+	phi_1 = 1.496180;						//personal coefficient
+	phi_2 = 1.496180;						//social coefficient
 	initialPhi1 = 2.5;						//initial personal coefficient value
 	initialPhi2 = 0.5;						//initial social coefficient value
 	finalPhi1 = 0.5;						//final personal coefficient value
@@ -640,7 +658,6 @@ void Configuration::setDefaultParameters(){
 	initialIW =  0.9;						//initial inertia value
 	finalIW = 0.4;							//final inertia value
 	iwSchedule = 0;							//inertia weight schedule
-	useVelClamping = true;					//clamp velocity (step size)
 	omega2CS = O2_EQUAL_TO_O1;				//omega2 control strategy (see GVU formula)
 	omega2 = 1.0;							//omega2 value when used constant
 	omega3CS = O3_ZERO;						//omega3 control strategy (see GVU formula)
@@ -655,18 +672,20 @@ void Configuration::setDefaultParameters(){
 	perturbation2CS = PERT2_NONE;		//random (additive) perturbation
 	magnitude1CS = MAGNITUDE_CONSTANT;	//strategy to compute the magnitude of the "informed" perturbation
 	magnitude2CS = MAGNITUDE_CONSTANT;	//strategy to compute the magnitude of the "informed" perturbation
+
 	//Magnitude 1
-	magnitude1 = 0.00001;
+	magnitude1 = 0.01;
 	mag1_parm_l_CS = MAG_PARAM_L_INDEPENDENT;
-	mag1_parm_l = 0.00001;
-	mag1_parm_m = 0.00001;
+	mag1_parm_l = 0.085;
+	mag1_parm_m = 0.085;
 	mag1_parm_success = 15;
 	mag1_parm_failure = 5;
+
 	//Magnitude 2
-	magnitude2 = 1.0;
+	magnitude2 = 0.01;
 	mag2_parm_l_CS = MAG_PARAM_L_INDEPENDENT;
-	mag2_parm_l = 0.00001;
-	mag2_parm_m = 1.0;
+	mag2_parm_l = 0.085;
+	mag2_parm_m = 0.085;
 	mag2_parm_success = 15;
 	mag2_parm_failure = 5;
 
@@ -675,7 +694,7 @@ void Configuration::setDefaultParameters(){
 	mag2_sc = 0; mag2_fc = 0;	//success and failure counters
 
 	/** Matrix **/
-	randomMatrix = MATRIX_DIAGONAL;			//random matrix
+	randomMatrix = MATRIX_NONE;			//random matrix
 	angleCS = ANGLE_NORMAL;
 	rotation_angle = 5;						//rotation angle of RRMs
 	angleSD = 20;							//standard deviation of the angle
@@ -685,25 +704,19 @@ void Configuration::setDefaultParameters(){
 	/** DNPP **/
 	distributionNPP = DIST_RECTANGULAR;		//distribution of next possible positions
 	operator_q = Q_STANDARD;				//q_operator in simple dynamics PSO
-	randNeighbor = false;					//chose a random neighbor as p2 in operator_q
+	randNeighbor = true;					//chose a random neighbor as p2 in operator_q
 	operatorCG_parm_r = 0.5;				//probability for the Cauchy distribution
 
 	/** Logs **/
-//	useLogs = true;							//create a folder an log the execution of the algorithm
-//	verbose = true;
+	useLogs = true;							//create a folder an log the execution of the algorithm
+	verbose = false;
 	outputPath = "../";
-	//When the maxInitRange and minInitRange are different from 100
-	//the range is updated after instantiating the problem.
-	//Also for velocity clamping the bound depends on the function bounds
-	//the maxVelLimit and minVelLimit are updated after instantiating
-	//the problem.
 }
 
 /*Print parameters */
 void Configuration::printParameters(){
 
 	cout << "\nPSO-X parameters:\n";
-	//cout	<< "  competition:     " << getCompetitionID() << "\n"
 	switch (getCompetitionID()){
 	case CEC05: 			cout	<< "  competition:       CEC05\n"; break;
 	case CEC14: 			cout	<< "  competition:       CEC14\n"; break;
@@ -722,12 +735,14 @@ void Configuration::printParameters(){
 	case true:		cout	<< "  reinitilize_pos:   YES\n"; break;
 	case false:		cout	<< "  reinitilize_pos:   NO\n"; break;
 	}
-
-	switch(useIndStrategies()){
-	case true:		cout	<< "  useIndStrategies:  YES\n"; break;
-	case false:		cout	<< "  useIndStrategies:  NO\n"; break;
+	switch(detectParticleStagnated()){
+	case true:		cout	<< "  detect_stagnation: YES\n"; break;
+	case false:		cout	<< "  detect_stagnation: NO\n"; break;
 	}
-	//<< "  populationCS      " << getModelOfInfluence() << "\n"
+	switch(usePerturbedlBest()){
+	case true:		cout	<< "  perturbedlBest:    YES\n"; break;
+	case false:		cout	<< "  perturbedlBest:    NO\n"; break;
+	}
 	switch (getPopulationCS()){
 	case POP_CONSTANT: 		cout	<< "  populationCS:      POP_CONSTANT\n"; break;
 	case POP_TIME_VARYING: 		cout	<< "  populationCS:      POP_TIME_VARYING\n"
@@ -740,13 +755,11 @@ void Configuration::printParameters(){
 			<< "  particlesToAdd:    " << getParticlesToAdd() << "\n"
 			<< "  p_intitType:       " << getParticleInitType() << "\n"; break;
 	}
-	//<< "  modelOfInfluence  " << getModelOfInfluence() << "\n"
 	switch (getModelOfInfluence()){
 	case MOI_BEST_OF_N: 	cout	<< "  modelOfInfluence:  BEST_OF_NEIGHBORHOOD\n"; break;
 	case MOI_FI: 			cout	<< "  modelOfInfluence:  FI\n"; break;
 	case MOI_RANKED_FI:		cout	<< "  modelOfInfluence:  RANKED_FI\n"; break;
 	}
-	//		<< "  topology:          " << getTopology() << "\n"
 	switch (getTopology()){
 	case TOP_FULLYCONNECTED:	cout	<< "  topology:          TOP_FULLYCONNECTED\n";	break;
 	case TOP_RING: 				cout	<< "  topology:          TOP_RING\n"; break;
@@ -764,12 +777,14 @@ void Configuration::printParameters(){
 	case TOP_HIERARCHICAL:		cout	<< "  topology:          TOP_HIERARCHICAL\n"
 			<< "  branching          " << getBranchingDegree() << "\n"; break;
 	}
-	//<< "  useVelClamping:  " << useVelocityClamping() << "\n"
+	switch (getRandNeighbor()){
+	case true: cout <<  "  randNeighbor:      YES\n"; break;
+	case false: cout << "  randNeighbor:      NO\n"; break;
+	}
 	switch(useVelocityClamping()){
 	case true:		cout	<< "  velocity clamped:  YES\n"; break;
 	case false:		cout	<< "  velocity clamped:  NO\n"; break;
 	}
-	//cout	<< "  omega1CS:        " << getinertiaCS() << "\n"
 	switch(getOmega1CS()){
 	case IW_CONSTANT:
 		cout	<< "  omega1CS:          CONSTANT\n"
@@ -853,7 +868,6 @@ void Configuration::printParameters(){
 		<< "  iw_par_alpha_2     " << get_iw_par_alpha_2() << "\n"
 		<< "  iw_par_beta_2      " << get_iw_par_beta_2() << "\n"; break;
 	}
-	//<< "  omega2CS          " << getomega2CS() << "\n"
 	switch (getOmega2CS()){
 	case O2_EQUAL_TO_O1: 	cout	<< "  omega2CS:          EQUAL_TO_omega1\n"; break;
 	case O2_ZERO: 			cout	<< "  omega2CS:          ZERO (no DNNP)\n"; break;
@@ -862,7 +876,6 @@ void Configuration::printParameters(){
 	case O2_CONSTANT: 		cout	<< "  omega2CS:          CONSTANT\n"
 			<< "  omega2:            " << getOmega2() << "\n"; break;
 	}
-	//<< "  omega3CS          " << getomega3CS() << "\n"
 	switch (getOmega3CS()){
 	case O3_EQUAL_TO_O1: 	cout	<< "  omega3CS:          EQUAL_TO_omega1\n"; break;
 	case O3_ZERO:			cout	<< "  omega3CS:          ZERO (no additive perturbation)\n"; break;
@@ -871,7 +884,6 @@ void Configuration::printParameters(){
 	case O3_CONSTANT: 		cout	<< "  omega3CS:          CONSTANT\n"
 			<< "  omega3:            " << getOmega3() << "\n"; break;
 	}
-	//<< "  accelCoeffCS:     " << getAccelCoeffCS() << "\n"
 	switch (getAccelCoeffCS()){
 	case AC_CONSTANT:		cout << "  accelCoeffCS:      CONSTANT\n"
 			<< "  phi_1:             " << getPhi1() << "\n"
@@ -888,14 +900,12 @@ void Configuration::printParameters(){
 			<< "  initialPhi2:       " << getInitialPhi2() << "\n"
 			<< "  finalPhi2:         " << getFinalPhi2() << "\n"; break;
 	}
-	//<< "  perturbation1     " << getPerturbation1() << "\n"
 	switch (getPerturbation1CS()){
 	case PERT1_NONE: 		cout	<< "  perturbation1CS:   NONE\n"; break;
 	case PERT1_GAUSSIAN:	cout	<< "  perturbation1CS:   GAUSSIAN\n"; break;
 	case PERT1_LEVY: 		cout	<< "  perturbation1CS:   CAUCHY\n"; break;
 	case PERT1_UNIFORM: 	cout	<< "  perturbation1CS:   UNIFORM\n"; break;
 	}
-	//<< "  magnitude1CS     " << getPerturbation2() << "\n"
 	switch (getMagnitude1CS()){
 	case MAGNITUDE_CONSTANT: 		cout 	<< "  magnitude1CS:      CONSTANT\n"
 			<< "  magnitude1:        " << getMagnitude1() << "\n"; break;
@@ -915,9 +925,7 @@ void Configuration::printParameters(){
 	switch (getPerturbation2CS()){
 	case PERT2_NONE: 	 	 cout	<< "  perturbation2CS:   NONE\n"; break;
 	case PERT2_RECTANGULAR:	 cout	<< "  perturbation2CS:   RECTANGULAR\n"; break;
-	//<< "  pert2_alpha_t:     " << getPert2_alpha() << "\n";
 	case PERT2_NOISY:	 	 cout	<< "  perturbation2CS:   NOISY\n"; break;
-	//<< "  pert2_delta:       " << getPert2_delta() << "\n"
 	}
 	switch (getMagnitude2CS()){
 	case MAGNITUDE_CONSTANT: 		cout 	<< "  magnitude2CS:      CONSTANT\n"
@@ -935,7 +943,6 @@ void Configuration::printParameters(){
 			<< "  mag2_parm_success: " << getMag2_parm_success() << "\n"
 			<< "  mag2_parm_failure: " << getMag2_parm_failure() << "\n"; break;
 	}
-	//<< "  randomMatrix      " << getRandomMatrix() << "\n"
 	switch (getRandomMatrix()){
 	case MATRIX_NONE:				cout	<< "  randomMatrix:      NONE\n"; break;
 	case MATRIX_DIAGONAL: 			cout	<< "  randomMatrix:      DIAGONAL\n"; break;
@@ -977,12 +984,10 @@ void Configuration::printParameters(){
 	}
 	break;
 	}
-	//<< "  DistributionNPP    " << getDistributionNPP() << "\n"
 	switch (getDistributionNPP()){
 	case DIST_RECTANGULAR: 		cout	<< "  DistributionNPP:   RECTANGULAR\n"; break;
 	case DIST_SPHERICAL: 		cout	<< "  DistributionNPP:   SPHERICAL\n"; break;
 	case DIST_ADD_STOCH:		cout	<< "  DistributionNPP:   ADD_STOCH\n";
-	//<< "  operator_q        " << getOperator_q() << "\n"
 	switch (getOperator_q()){
 	case Q_STANDARD: 		cout	<< "  operator_q:        STANDARD\n"; break;
 	case Q_GAUSSIAN: 		cout	<< "  operator_q:        GAUSSIAN\n"; break;
@@ -992,18 +997,6 @@ void Configuration::printParameters(){
 	}
 	break;
 	}
-	//<< "  vRule             " <<  << "\n"
-	//	switch (getVelocityRule()){
-	//	case VEL_BASIC:					cout	<< "  vRule:             BASIC\n"; break;
-	//	case VEL_STANDARD:				cout	<< "  vRule:             STANDARD\n"; break;
-	//	case VEL_LINEAR:				cout	<< "  vRule:             LINEAR\n"; break;
-	//	case VEL_CONSTRICTED:			cout	<< "  vRule:             CONSTRICTED\n"; break;
-	//	case VEL_GUARAN_CONVERG:		cout	<< "  vRule:             GUARAN_CONVERG\n"; break;
-	//	case VEL_FULLY_INFORMED:		cout	<< "  vRule:             FULLY_INFORMED\n"; break;
-	//	case VEL_LOC_CON_TRANS_INV:		cout	<< "  vRule:             LOC_CON_TRANS_INV\n"; break;
-	//	case VEL_STANDARD2011:			cout	<< "  vRule:             STANDARD2011\n";break;
-	//	case VEL_ROTATION_INV:			cout	<< "  vRule:             ROTATION_INV\n"; break;
-	//	}
 	cout << endl;
 }
 bool Configuration::logOutput(){
@@ -1106,7 +1099,7 @@ double Configuration::getInitialIW(){
 double Configuration::getFinalIW(){
 	return (finalIW);
 }
-unsigned int Configuration::getIWSchedule(){
+int Configuration::getIWSchedule(){
 	return (iwSchedule);
 }
 double Configuration::get_iw_par_eta(){
@@ -1136,8 +1129,8 @@ void Configuration::setOmega3(double new_omega3){
 bool Configuration::isVelocityClamped(){
 	return (useVelClamping);
 }
-bool Configuration::useIndStrategies(){
-	return (indStrategies);
+bool Configuration::usePerturbedlBest(){
+	return (perturbedlBest);
 }
 //Position
 bool Configuration::useReinitialization(){
@@ -1148,6 +1141,15 @@ void Configuration::setReinitialization(bool reinit){
 }
 void Configuration::setVelocityClamped(bool clamping){
 	useVelClamping = clamping;
+}
+bool Configuration::detectParticleStagnated(){
+	return (detectStagnation);
+}
+void Configuration::setOverallOFchange(double change){
+	overallOFchange = change;
+}
+double Configuration::getOverallOFchange(){
+	return (overallOFchange);
 }
 short Configuration::getModelOfInfluence(){
 	return (modelOfInfluence);

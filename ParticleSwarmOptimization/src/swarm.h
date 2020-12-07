@@ -18,8 +18,8 @@
 
 /* Simplified swarm structure */
 struct ssArray {
-	long double* eval = NULL;   /* value of the solution */
-	int* id = NULL;  		     /* particle id */
+	long double* eval;   /* value of the solution */
+	int* id;  		     /* particle id */
 };
 
 class Swarm {
@@ -102,7 +102,7 @@ public:
 	void rankParticles(vector<SimplifySwarm> &sSwarm);
 	void mergeSort(ssArray* arr, int l, int r);
 	void merge(ssArray* arr, int l, int m, int r);
-	void reinitializeParticlePosition(Configuration* config);
+	void reinitializeParticlePosition(Configuration* config, long int iteration);
 };
 
 #endif /* SWARM_H_ */

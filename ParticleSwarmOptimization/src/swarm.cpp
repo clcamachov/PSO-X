@@ -141,7 +141,7 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	//Self-explanatory
 	clearResizeSimpSwarm(config, iteration);
 
-	//For the cases in which the entire swarm is using omega1 with the same value
+	//The entire swarm is using the same omega1
 	computeOmega1(config, iteration, -1, true); // -1 is a place holder for the id of the particle
 
 	//We call this method here because some models of influence need to initialize things
@@ -150,20 +150,13 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	//Compute the acceleration coefficients of the entire swarm
 	computeAccelerationCoefficients(config, iteration);
 
-	//	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
 	for (unsigned int i=0;i<swarm.size();i++){
-
-		int sizeInformants = getInformants(config, i, iteration); //Get the informants of i
-
-		//If using a self-adaptive strategy compute omega1, otherwise this function simply returns the value already computed
-		double omega1 = computeOmega1(config, iteration, i, false);
-
 		//Note that here computeOmega1 receives the number of the particle and the flag = false
 		swarm.at(i)->move(config, minBound, maxBound, iteration,
-				omega1,
+				computeOmega1(config, iteration, i, false), //Compute self-adaptive omega1, otherwise this function returns the value already computed
 				computeOmega2(config),
 				computeOmega3(config),
-				sizeInformants,
+				getInformants(config, i, iteration), //Get the informants of i
 				lastLevelComplete,
 				sol_improved);
 	}
@@ -172,32 +165,30 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	//Update best_particle
 	for (unsigned int i=0;i<swarm.size();i++){
 		if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
-			//Update best_particle of the Swarm (gBest) -- not to be confused with the gBest of a particle, which depends on the topology and MoI
-			Swarm::updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
+			//Update best_particle of the Swarm (gBest) -- not to be confused with the lbest of a particle, which depends on the topology and MoI
+			updateGlobalBest(swarm.at(i)->getPbestPosition(), swarm.at(i)->getPbestEvaluation());
 			best_particle = swarm.at(i);
 		}
 	}
 
-	if (config->useIndStrategies())
-		//Reinitialize particle position and set v=0 if it is "too" similar to gBest
-		reinitializeParticlePosition(config);
+	if(config->useReinitialization())
+		reinitializeParticlePosition(config, iteration); //There are two strategies available (one is commented)
+	config->setOverallOFchange(0);
 
 	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval, iteration);
 
 	//Compute the number of solutions that improved in the last iteration
 	sol_improved = countImprovedSolutions(config, iteration);
-
-
 }
 
-int Swarm::getInformants(Configuration* config, int partPosinSwarm, long int iteration){
-	if (partPosinSwarm != -1){
+int Swarm::getInformants(Configuration* config, int pPosinSwarm, long int iteration){
+	if (pPosinSwarm != -1){
 		//Best of neighborhood
 		if (config->getModelOfInfluence() == MOI_BEST_OF_N){
 			if (config->getTopology() == TOP_HIERARCHICAL){
 				int Array_size = 0;		//variable to get the the size of Informants
 				int TMP_Array[lastLevelComplete];
-				getParticleParentsIDs(partPosinSwarm, TMP_Array); //Get parents of the particle
+				getParticleParentsIDs(pPosinSwarm, TMP_Array); //Get parents of the particle
 				for (int i=0; i<=lastLevelComplete; i++){
 					if (TMP_Array[i] != -2){ //-2 indicates an empty position
 						Array_size++;
@@ -207,50 +198,50 @@ int Swarm::getInformants(Configuration* config, int partPosinSwarm, long int ite
 				}
 
 				//Clear the vector
-				swarm.at(partPosinSwarm)->InformantsPos.clear();
+				swarm.at(pPosinSwarm)->InformantsPos.clear();
 
-				double bestEval = swarm.at(partPosinSwarm)->neighbours.at(0)->getPbestEvaluation();
+				double bestEval = swarm.at(pPosinSwarm)->neighbours.at(0)->getPbestEvaluation();
 				int bestPos = 0;
 				int iter = 0;
 				//We need to find the position of the particle in neighbors vector that has the best PbestEvaluation
 				//We have to do that by finding the corresponding IDs in TMP_Array and neighbours.at(i)->getID()
-				for (unsigned int i=0; i<swarm.at(partPosinSwarm)->neighbours.size(); i++){
+				for (unsigned int i=0; i<swarm.at(pPosinSwarm)->neighbours.size(); i++){
 					for (int j=0; j<Array_size; j++){
-						if (swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == TMP_Array[j]){
+						if (swarm.at(pPosinSwarm)->neighbours.at(i)->getID() == TMP_Array[j]){
 							if (iter == 0){
 								bestPos = i;
-								bestEval = swarm.at(partPosinSwarm)->neighbours.at(i)->getPbestEvaluation();
+								bestEval = swarm.at(pPosinSwarm)->neighbours.at(i)->getPbestEvaluation();
 								iter++;
 							}
 							else{
-								if (bestEval > swarm.at(partPosinSwarm)->neighbours.at(i)->getPbestEvaluation()){
+								if (bestEval > swarm.at(pPosinSwarm)->neighbours.at(i)->getPbestEvaluation()){
 									bestPos = i;
-									bestEval = swarm.at(partPosinSwarm)->neighbours.at(i)->getPbestEvaluation();
+									bestEval = swarm.at(pPosinSwarm)->neighbours.at(i)->getPbestEvaluation();
 									iter++;
 								}
 							}
 						}
 						//Add the particle itself to the the InformantsPos array
-						if (swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == swarm.at(partPosinSwarm)->getID())
-							swarm.at(partPosinSwarm)->InformantsPos.push_back(i);//
+						if (swarm.at(pPosinSwarm)->neighbours.at(i)->getID() == swarm.at(pPosinSwarm)->getID())
+							swarm.at(pPosinSwarm)->InformantsPos.push_back(i);//
 					}
 				}
-				swarm.at(partPosinSwarm)->InformantsPos.push_back(bestPos);//
-				return (1);
+				swarm.at(pPosinSwarm)->InformantsPos.push_back(bestPos);//
+				return (2);
 			}
 			else {
 				//Clear the vector
-				swarm.at(partPosinSwarm)->InformantsPos.clear();
+				swarm.at(pPosinSwarm)->InformantsPos.clear();
 
-				int bestID = swarm.at(partPosinSwarm)->getgBestID();
+				int bestID = swarm.at(pPosinSwarm)->getlBestID();
 
 				//We need to find the position index of the IDs in TMP_Array in the particles neighbors vector
-				for (unsigned int i=0; i<swarm.at(partPosinSwarm)->neighbours.size(); i++){
-					if (swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == bestID ||
-							swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == swarm.at(partPosinSwarm)->getID())
-						swarm.at(partPosinSwarm)->InformantsPos.push_back(i);
+				for (unsigned int i=0; i<swarm.at(pPosinSwarm)->neighbours.size(); i++){
+					if (swarm.at(pPosinSwarm)->neighbours.at(i)->getID() == bestID ||
+							swarm.at(pPosinSwarm)->neighbours.at(i)->getID() == swarm.at(pPosinSwarm)->getID())
+						swarm.at(pPosinSwarm)->InformantsPos.push_back(i);
 				}
-				return (1);
+				return (swarm.at(pPosinSwarm)->InformantsPos.size());
 			}
 		}
 		//Fully informed
@@ -258,7 +249,7 @@ int Swarm::getInformants(Configuration* config, int partPosinSwarm, long int ite
 			if (config->getTopology() == TOP_HIERARCHICAL ){
 				int Array_size = 0;		//variable to the the size of Informants
 				int TMP_Array[lastLevelComplete];
-				getParticleParentsIDs(partPosinSwarm, TMP_Array); //Get parents of the particle
+				getParticleParentsIDs(pPosinSwarm, TMP_Array); //Get parents of the particle
 				for (int i=0; i<=lastLevelComplete; i++){
 					if (TMP_Array[i] != -2){ //-2 indicates an empty position
 						Array_size++;
@@ -267,59 +258,57 @@ int Swarm::getInformants(Configuration* config, int partPosinSwarm, long int ite
 						break;
 				}
 				//Clear the vector
-				swarm.at(partPosinSwarm)->InformantsPos.clear();
+				swarm.at(pPosinSwarm)->InformantsPos.clear();
 
 				//We need to find the position index of the IDs in TMP_Array in the particles neighbors vector
-				for (unsigned int i=0; i<swarm.at(partPosinSwarm)->neighbours.size(); i++){
+				for (unsigned int i=0; i<swarm.at(pPosinSwarm)->neighbours.size(); i++){
 					for (int j=0; j<Array_size; j++){
-						if (swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == TMP_Array[j])
-							swarm.at(partPosinSwarm)->InformantsPos.push_back(i);
+						if (swarm.at(pPosinSwarm)->neighbours.at(i)->getID() == TMP_Array[j])
+							swarm.at(pPosinSwarm)->InformantsPos.push_back(i);
 					}
-					if (swarm.at(partPosinSwarm)->neighbours.at(i)->getID() == swarm.at(partPosinSwarm)->getID())
-							swarm.at(partPosinSwarm)->InformantsPos.push_back(i);//
+					if (swarm.at(pPosinSwarm)->neighbours.at(i)->getID() == swarm.at(pPosinSwarm)->getID())
+						swarm.at(pPosinSwarm)->InformantsPos.push_back(i);//
 				}
-				return (Array_size);
+				return (Array_size+1);
 			}
 			else {
 				//Since some topologies are dynamic, the size of informants may change from iteration to iteration
 				//Clear the vector
-				swarm.at(partPosinSwarm)->InformantsPos.clear();
+				swarm.at(pPosinSwarm)->InformantsPos.clear();
 
-				for (unsigned int i=0;i<swarm.at(partPosinSwarm)->neighbours.size();i++){
-					swarm.at(partPosinSwarm)->InformantsPos.push_back(i); //we use the indexes of neighbors
+				for (unsigned int i=0;i<swarm.at(pPosinSwarm)->neighbours.size();i++){
+					swarm.at(pPosinSwarm)->InformantsPos.push_back(i); //we use the indexes of neighbors
 				}
-				return (swarm.at(partPosinSwarm)->InformantsPos.size());
+				return (swarm.at(pPosinSwarm)->InformantsPos.size());
 			}
 		}
 		//Ranked fully informed
 		else if (config->getModelOfInfluence() == MOI_RANKED_FI) {
 			//Clear the vector
-			swarm.at(partPosinSwarm)->InformantsPos.clear();
+			swarm.at(pPosinSwarm)->InformantsPos.clear();
 
 			//Container to sort the neighbors
 			vector< vector<int> > TMP_vect;
 			//Resize vector
-			TMP_vect.resize((swarm.at(partPosinSwarm)->neighbours.size()), vector<int>(2));
+			TMP_vect.resize((swarm.at(pPosinSwarm)->neighbours.size()), vector<int>(2));
 
 			//This is the same as Fully informed
-			for (unsigned int i=0;i<swarm.at(partPosinSwarm)->neighbours.size();i++){
+			for (unsigned int i=0;i<swarm.at(pPosinSwarm)->neighbours.size();i++){
 				TMP_vect.at(i).at(0) = i; ///we use the indexes of neighbors
-				TMP_vect.at(i).at(1) = swarm.at(partPosinSwarm)->neighbours.at(i)->getRanking();
+				TMP_vect.at(i).at(1) = swarm.at(pPosinSwarm)->neighbours.at(i)->getRanking();
 			}
 
-			//we sort by the second column (see sortcol driver function above)
+			//we sort by the second column (see sortcol prototype function above)
 			sort(TMP_vect.begin(), TMP_vect.end(), sortcol);
 
 			//copy informants ID to Informants sorted
 			for (unsigned int i=0; i<TMP_vect.size(); i++){ //rows
-				swarm.at(partPosinSwarm)->InformantsPos.push_back(TMP_vect[i][0]);
-				//Informants[i] = TMP_vect[i][0];
+				swarm.at(pPosinSwarm)->InformantsPos.push_back(TMP_vect[i][0]);
 				TMP_vect[i].clear();
 			}
 			TMP_vect.clear();
 
-			//			if (config->verboseMode()) cout << "Size of Informants: " << swarm.at(particleID)->InformantsPos.size(); ;
-			return (swarm.at(partPosinSwarm)->InformantsPos.size());
+			return (swarm.at(pPosinSwarm)->InformantsPos.size());
 		}
 		else {
 			cerr << "No model of influence matches the available options" << endl;
@@ -716,33 +705,75 @@ void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParti
 	}
 }
 
-void Swarm::reinitializeParticlePosition(Configuration* config){
+void Swarm::reinitializeParticlePosition(Configuration* config, long int iteration){
 	//Reinitialize particles that are too close to gbest
-	if (config->useReinitialization()){
+	/*
+	 * First strategy: using standard deviation and overall change in the O.F.
+	 */
+	static long int reinitSchedule = 10*config->getProblemDimension()/swarm.size();
+	static long double previousgBestEval = best_particle->getPbestEvaluation();
+	double stdSwarm = 0;
+	double mean = 0;
+
+	//Mean value of the O.F. value of the swarm
+	for (unsigned int i=0;i<swarm.size();i++)
+		mean += swarm.at(i)->getPbestEvaluation();
+	mean = mean/swarm.size();
+
+	//Standard deviation of the O.F. value of the swarm
+	for (unsigned int i=0;i<swarm.size();i++)
+		stdSwarm += pow(swarm.at(i)->getPbestEvaluation()-mean,2);
+	stdSwarm = sqrt(stdSwarm/swarm.size());
+
+	//Reinitialize particles if stdSwarm is lower than REINIT_PRECISION
+	if (stdSwarm < REINIT_PRECISION){
+		if (config->verboseMode()) cout << "\n\tRestarting particles using: random values in bounds\n";
 		for (unsigned int i=0;i<swarm.size();i++){
-			//Check that the particle is different to itself before reinitializing its position
-			if (swarm.at(i)->getID() != swarm.at(i)->getgBestID()){
-				double* gBestPos = 0;
-				double* particlePos = swarm.at(i)->getCurrentPosition();
-				double similarity = 0; //distance between x and gBest
-				//Find gBest of particle by id
-				for (unsigned int r=0;r<swarm.size();r++){
-					if (swarm.at(i)->getgBestID() == swarm.at(r)->getID()){
-						gBestPos = swarm.at(r)->getCurrentPosition();
-					}
-				}
-				//Compute similarity between particle and gBest
-				for (int j=0;j<config->getProblemDimension();j++){
-					similarity +=  particlePos[j] / gBestPos[j];
-				}
-				similarity = similarity/config->getProblemDimension();
-				if (fabs(1-similarity) < REINIT_PRECISION){
-					//Reinitialize particle to a random position and set v=0
-					swarm.at(i)->initializePosition(config,100, false);
+			if (swarm.at(i)->getID() != best_particle->getID()) //exclude gBest
+				swarm.at(i)->setRandomPositionInBoundsWithProbability(config);
+		}
+	}
+
+	//Check if Overall change in the O.F: is below OBJECTIVE_FUNCTION_CHANGE_THRESHOLD
+	if (iteration%reinitSchedule == 0){
+		//Reinitialize particles if the best solution has not improved after reinitSchedule iterations
+		if (fabs(previousgBestEval - best_particle->getPbestEvaluation()) < OBJECTIVE_FUNCTION_CHANGE_THRESHOLD){
+			if (config->verboseMode()) cout << "\n\tRestarting particles using: gbest derivative\n";
+			for (unsigned int i=0;i<swarm.size();i++){
+				if (swarm.at(i)->getID() != best_particle->getID()){ //exclude gBest
+					swarm.at(i)->setRandomPositiongBestDerivative(config, best_particle->getPbestPosition());
 				}
 			}
 		}
+		previousgBestEval = best_particle->getPbestEvaluation();
 	}
+
+	/*
+	 * Second strategy: using similarity (It works, you can uncomment it!)
+	 */
+	//	for (unsigned int i=0;i<swarm.size();i++){
+	//		//Check that the particle is different to itself before reinitializing its position
+	//		if (swarm.at(i)->getID() != swarm.at(i)->getgBestID()){
+	//			double* gBestPos = 0;
+	//			double* particlePos = swarm.at(i)->getCurrentPosition();
+	//			double similarity = 0; //distance between x and gBest
+	//			//Find gBest of particle by id
+	//			for (unsigned int r=0;r<swarm.size();r++){
+	//				if (swarm.at(i)->getgBestID() == swarm.at(r)->getID()){
+	//					gBestPos = swarm.at(r)->getCurrentPosition();
+	//				}
+	//			}
+	//			//Compute similarity between particle and gBest
+	//			for (int j=0;j<config->getProblemDimension();j++){
+	//				similarity +=  particlePos[j] / gBestPos[j];
+	//			}
+	//			similarity = similarity/config->getProblemDimension();
+	//			if (fabs(1-similarity) < REINIT_PRECISION){
+	//				//Reinitialize particle to a random position and set v=0
+	//				swarm.at(i)->initializePosition(config,100, false);
+	//			}
+	//		}
+	//	}
 }
 
 /*Update global best solution found */
@@ -793,8 +824,8 @@ void Swarm::computeAccelerationCoefficients(Configuration* config, long int iter
 	case AC_EXTRAPOLATED:{
 		for (unsigned int i=0; i<swarm.size(); i++){
 			double varPhi1 = exp((double)(-iteration/config->getMaxIterations()));
-			double distanceToGbest = (swarm.at(swarm.at(i)->getgBestID())->getCurrentEvaluation()-swarm.at(i)->getCurrentEvaluation())/
-					swarm.at(swarm.at(i)->getgBestID())->getCurrentEvaluation();
+			double distanceToGbest = (swarm.at(swarm.at(i)->getlBestID())->getCurrentEvaluation()-swarm.at(i)->getCurrentEvaluation())/
+					swarm.at(swarm.at(i)->getlBestID())->getCurrentEvaluation();
 			swarm.at(i)->setPhi1(varPhi1);
 			swarm.at(i)->setPhi2(exp(varPhi1*distanceToGbest));
 		}
@@ -1240,7 +1271,7 @@ void Swarm::getParticleParentsIDs(int particleID, int *ParentsArray1D){
 	//This is the case of the particle in the root node
 	if (aParent==-1){
 		ParentsArray1D[0] = swarm.at(index)->getID();
-		swarm.at(particleID)->setgBestID(swarm.at(index)->getID());
+		swarm.at(particleID)->setlBestID(swarm.at(index)->getID());
 	}
 	else{
 		int pos = 0;
@@ -1487,7 +1518,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 	static double deltaOmega = (((double)config->getFinalIW()) - config->getInitialIW())/config->getMaxIterations(); //IW_SELF_REGULATING - 11 - Self-regulating
 	static double T_0_95 = 95*config->getMaxIterations()/100; //iteration at which 95% of search process is completed IW_VELOCITY_BASED - 12 - Based on velocity information
 
-	double OmegaToReturn = 0;
+	double OmegaToReturn = config->getOmega1();
 
 	//If all particle use the same inertia value, it is more efficient
 	//to compute it once at the beginning of the iteration
@@ -1513,9 +1544,9 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					config->setOmega1(config->getFinalIW());
 			}
 			else{
-				config->setOmega1( config->getFinalIW() +
+				config->setOmega1( config->getInitialIW() +
 						(((double)(iteration)/config->getMaxIterations())*
-								(config->getInitialIW()-config->getFinalIW()))
+								(config->getFinalIW()-config->getInitialIW()))
 				);
 			}
 			OmegaToReturn =config->getOmega1();
@@ -1534,9 +1565,8 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 					config->setOmega1(config->getFinalIW());
 			}
 			else {
-				config->setOmega1( config->getInitialIW() +
-						(((double)(iteration)/config->getMaxIterations())*
-								(config->getFinalIW()-config->getInitialIW()))
+				config->setOmega1( config->getFinalIW() +
+								((config->getInitialIW()-config->getFinalIW())*iteration)/config->getMaxIterations()
 				);
 			}
 			OmegaToReturn =config->getOmega1();
@@ -1640,7 +1670,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 		//IW_RANKS_BASED - 14 - Rank-based
 		else if (config->getOmega1CS() == IW_RANKS_BASED) {
 			rankParticles(simpSwarm);
-			OmegaToReturn = 0;
+			OmegaToReturn = CONSTRICTION_COEFFICIENT;
 		}
 		//IW_SUCCESS_BASED - 15 Success-based
 		else if (config->getOmega1CS() == IW_SUCCESS_BASED) {
