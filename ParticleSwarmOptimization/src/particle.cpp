@@ -5,6 +5,7 @@
  *      Author: christian
  */
 
+
 #include "float.h"
 #include "particle.h"
 #include "iostream"
@@ -310,9 +311,6 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 		vector<vector< double> > vect_PbestMinusPosition;
 		vect_PbestMinusPosition.resize(numInformants, vector<double>(size));
 
-		if(config->useReinitialization())
-			config->setOverallOFchange(config->getOverallOFchange()+pbest.eval);
-
 		/*** DISTRIBUTION VECTOR (DNNPs)***/
 		if (config->getDistributionNPP() == DIST_RECTANGULAR) {
 			computeSubtractionPerturbationRotation(
@@ -389,8 +387,16 @@ void Particle::move(Configuration* config, double minBound, double maxBound, lon
 	//Evaluate the objective function and update pbest if a new one has been found
 	evaluateSolution();
 
-	if(config->useReinitialization())
-		config->setOverallOFchange(config->getOverallOFchange()-pbest.eval);
+	if (config->verboseMode()){
+			cout << "\tvec::p[" << id << "].x(new):  [ ";
+			for(int i=0; i<size; i++){
+				cout << fixed << current.x[i] << " ";
+			} cout << "]" << endl;
+		}
+
+	if (config->verboseMode()) cout << "\n\tParticle with ID:[" << this->id << "].status()::MOVED" << endl;
+	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
+
 }
 
 void Particle::detectStagnation(Configuration* config, double minBound, double maxBound){
@@ -454,21 +460,25 @@ void Particle::computeSubtractionPerturbationRotation(
 			for (int i=0; i<size; i++)
 				l[i] = lbest.x[i];
 	}
-	//	try {
+	if (config->verboseMode()){
+		cout << "\tvec::p[" << id << "].x:  [ ";
+		for(int i=0; i<size; i++){
+			cout << fixed << current.x[i] << " ";
+		} cout << "]" << endl;
+	}
 	//2.- Get the p^k-x^i of all Informants
 	for (int j=0; j<numInformants; j++){
-		if ((neighbours.at(InformantsPos[j])->getID() == lbestID) && (id == lbestID)){
-			//informant-wise perturbation magnitude
 
+		if ((neighbours.at(InformantsPos[j])->getID() == lbestID) && (id == lbestID)){
 
 			if (config->verboseMode()){
-				cout << "\tvec::current.x[";
+				cout << "\tvec::inf.p[" << lbestID << "].pb:    [ ";
 				for(int i=0;i<size;i++){
-					cout << current.x[i] << " ";
+					cout << fixed << l[i] << " ";
 				}
 				cout << "]" << endl;
 			}
-
+			//informant-wise perturbation magnitude
 			setPerturbation1Magnitude(config, pertMagnitude, current.x, l);
 
 			for (int i=0; i<size; i++){
@@ -478,6 +488,13 @@ void Particle::computeSubtractionPerturbationRotation(
 			}
 		}
 		else{
+			if (config->verboseMode()){
+				cout << "\tvec::inf.p[" << neighbours[InformantsPos[j]]->getID() << "].pb:    [ ";
+				for(int i=0;i<size;i++){
+					cout << fixed << neighbours[InformantsPos[j]]->pbest.x[i] << " ";
+				}
+				cout << "]" << endl;
+			}
 			//informant-wise perturbation magnitude
 			setPerturbation1Magnitude(config, pertMagnitude, current.x, neighbours.at(InformantsPos[j])->pbest.x);
 
@@ -760,19 +777,32 @@ double Particle::applyInformedPerturbation(Configuration* config, double pertMag
 
 //Perturbation 1
 void Particle::setPerturbation1Magnitude(Configuration* config, double pertMagnitude[], double * pos_x, double * pbest_x){
-	int wait;
 	if (config->getMagnitude1CS() == MAGNITUDE_EUC_DISTANCE){
 		double distance = 0.0;
 		//Compute the norm of pos_x - pbest_x
 		for(int i=0;i<size;i++){
 			distance += pow(pos_x[i]-pbest_x[i],2);
-//			cout << "pos_x[i]: " << pos_x[i] << " pbest_x[i]: " << pbest_x[i] << " distance: " << distance << endl;
+			//			cout << "pos_x[i]: " << pos_x[i] << " pbest_x[i]: " << pbest_x[i] << " distance: " << distance << endl;
 		}
 		distance = sqrt(distance);
-//		cout << "√distance: " << distance << endl;
+
+		if (isnan(distance)){
+//			if (config->verboseMode()){
+				cout << "\tvec::pos_x[";
+				for(int i=0;i<size;i++)
+					cout << pos_x[i] <<  " ";
+				cout << "]" << endl;
+				cout << "\tvec::pbest_x[";
+				for(int i=0;i<size;i++)
+					cout << pbest_x[i] <<  " ";
+				cout << "]" << endl;
+//			}
+
+			cout << "√distance: " << distance << endl;
+			exit(-1);
+		}
 
 		if (distance == 0){ //use the last computed value
-			cin >> wait;
 			for(int i=0;i<size;i++)
 				pertMagnitude[i] = config->getMagnitude1();
 		}

@@ -129,13 +129,23 @@ int Swarm::countImprovedSolutions(Configuration* config, long int iteration){
 
 
 /*Move the swarm to new solutions */
-void Swarm::moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound) {
+void Swarm::moveSwarm(Configuration* config, const long int iteration, const double minBound, const double maxBound) {
 	static int sol_improved = 0;
+
+	//Print info of the particles
+	if (config->verboseMode()){
+		cout << "iteration: " << iteration << endl; //remove
+		cout << "\tvar::swarm.size()" << swarm.size() << "\n" << endl; //remove
+	}
 
 	//Update lBest of each particle
 	for (unsigned int i=0;i<swarm.size();i++){
+		if (config->verboseMode())
+			cout << "\tParticle [" << swarm.at(i)->getID() << "] -- lBest.at(t-1) [" << swarm.at(i)->getlBestID() << "] -- "; //<< endl; //remove
 		//The id of the gBest particle depends on the topology and model of influence
 		swarm.at(i)->getBestOfNeibourhood();
+		if (config->verboseMode())
+			cout << "lBest.at(t) [" << swarm.at(i)->getlBestID() << "]" << endl;
 	}
 
 	//Self-explanatory
@@ -150,7 +160,27 @@ void Swarm::moveSwarm(Configuration* config, long int iteration, const double mi
 	//Compute the acceleration coefficients of the entire swarm
 	computeAccelerationCoefficients(config, iteration);
 
+	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
 	for (unsigned int i=0;i<swarm.size();i++){
+		if (config->verboseMode()){
+			cout << "\tParticle [" << swarm.at(i)->getID() << "] -- ";
+			//print all neighbors
+//			cout << "\n\tNeighbors ids:  [ ";
+//			for (unsigned int j=0; j<swarm.at(i)->neighbours.size(); j++){
+//				cout << swarm.at(i)->neighbours[j]->getID() << " ";
+//			} cout << "]" << endl;
+//			//print all neighbors
+//			cout << "\tInformants pos: [ ";
+//			for (unsigned int j=0; j<swarm.at(i)->InformantsPos.size(); j++){
+//				cout << swarm.at(i)->InformantsPos[j] << " ";
+//			}
+//			cout << "]" << endl;
+//			cout << "\tInformants ids: [ ";
+//			for (unsigned int j=0; j<swarm.at(i)->InformantsPos.size(); j++){
+//				cout << swarm.at(i)->neighbours[swarm.at(i)->InformantsPos[j]]->getID() << " ";
+//			}
+			cout << "]"<< endl;
+		}
 		//Note that here computeOmega1 receives the number of the particle and the flag = false
 		swarm.at(i)->move(config, minBound, maxBound, iteration,
 				computeOmega1(config, iteration, i, false), //Compute self-adaptive omega1, otherwise this function returns the value already computed
@@ -241,6 +271,8 @@ int Swarm::getInformants(Configuration* config, int pPosinSwarm, long int iterat
 							swarm.at(pPosinSwarm)->neighbours.at(i)->getID() == swarm.at(pPosinSwarm)->getID())
 						swarm.at(pPosinSwarm)->InformantsPos.push_back(i);
 				}
+				if(swarm.at(pPosinSwarm)->InformantsPos.size() == 1)
+					swarm.at(pPosinSwarm)->InformantsPos.push_back(swarm.at(pPosinSwarm)->InformantsPos[0]);
 				return (swarm.at(pPosinSwarm)->InformantsPos.size());
 			}
 		}
@@ -788,11 +820,10 @@ void Swarm::printGbest(unsigned int dimensions){
 	//print best solution
 	cout << "[ " ;
 	for(unsigned int i=0; i< dimensions; i++){
-		cout << scientific << getGlobalBest().x[i] << "  ";
+		cout << fixed << getGlobalBest().x[i] << "  ";
 	}
 	cout << " ]\n" << endl;
 }
-
 
 Solution Swarm::getGlobalBest(){
 	return (global_best);
@@ -1566,7 +1597,7 @@ double Swarm::computeOmega1(Configuration* config, long int iteration, long int 
 			}
 			else {
 				config->setOmega1( config->getFinalIW() +
-								((config->getInitialIW()-config->getFinalIW())*iteration)/config->getMaxIterations()
+						((config->getInitialIW()-config->getFinalIW())*iteration)/config->getMaxIterations()
 				);
 			}
 			OmegaToReturn =config->getOmega1();

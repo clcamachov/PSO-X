@@ -752,20 +752,18 @@ int main(int argc, char *argv[] ){
 		}
 
 		if (config->verboseMode() && swarm->getGlobalBest().eval < prevgBestEval){
-			cout << "iteration: " << iterations ;
-			//		cout << "\tvar::mean: " <<  mean << "\n";
-			//		cout << "\tvar::stdSwarm: " <<  stdSwarm << "\n";
+			//	cout << "\tvar::mean: " <<  mean << "\n";
+			//	cout << "\tvar::stdSwarm: " <<  stdSwarm << "\n";
 			//	cout << "\n\tvar::iterCounter: " <<  iterCounter << "\n";
 			//	cout << "\tvar::reinitSchedule: " << reinitSchedule << "\n";
-			cout.precision(10);
-			cout << " best solution found: " << scientific <<  swarm->getGlobalBest().eval << endl;
+			//cout.precision(10);
+			cout << "\t\t****New best solution found**** (" << scientific <<  swarm->getGlobalBest().eval << ")" << endl;
 			prevgBestEval = swarm->getGlobalBest().eval;
 		}
 
 	}
 	cout.precision(16);
 	cout << "Best " << scientific << swarm->getGlobalBest().eval << endl;
-	//cout << "Best solution vector: "; swarm->printGbest(config->getProblemDimension());
 
 	//Stop timer
 	gettimeofday(&end, NULL);
@@ -774,13 +772,14 @@ int main(int argc, char *argv[] ){
 	time_taken = (time_taken + (end.tv_usec - start.tv_usec)) * 1e-6;
 	outfile << "Total time: " << fixed << time_taken << setprecision(6) << " sec" << endl;
 
-	//		cout << "\n\n**************************************************\n"
-	//				<<  "            Execution ended correctly"
-	//				<< "\n**************************************************" << endl;
-	//		cout << "Best solution cost: " << fixed << swarm->getGlobalBest().eval << endl;
-	//		cout << "Best solution components: "; swarm->printGbest(config->getProblemDimension());
-	//		cout << "Total time: " << fixed << time_taken << setprecision(6) << " sec" << endl;
-
+	if (config->verboseMode()){
+		cout << "\n\n**************************************************\n"
+				<<  "            Execution ended correctly"
+				<< "\n**************************************************" << endl;
+		cout << "Best solution cost: " << fixed << swarm->getGlobalBest().eval << endl;
+		cout << "Best solution vector: "; swarm->printGbest(config->getProblemDimension());
+		cout << "Total time: " << fixed << time_taken << setprecision(6) << " sec" << endl;
+	}
 	//close the file
 	if (config->logOutput())
 		closeLogFile(outfile);

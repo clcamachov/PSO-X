@@ -49,7 +49,7 @@ public:
 	//Swarm& operator= (const Swarm& s);
 
 	void updateGlobalBest(double* new_x, double eval);
-	void moveSwarm(Configuration* config, long int iteration, const double minBound, const double maxBound);
+	void moveSwarm(Configuration* config, const long int iteration, const double minBound, const double maxBound);
 	int getInformants(Configuration* config, int particleID, long int iteration);	//returns the number of informants of a particle
 
 	// Inertia and acceleration coefficients
