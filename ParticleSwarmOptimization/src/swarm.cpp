@@ -129,7 +129,7 @@ int Swarm::countImprovedSolutions(Configuration* config, long int iteration){
 
 
 /*Move the swarm to new solutions */
-void Swarm::moveSwarm(Configuration* config, const long int iteration, const double minBound, const double maxBound) {
+void Swarm::moveSwarm(Configuration* config, const long int iteration) {
 	static int sol_improved = 0;
 
 	//Print info of the particles
@@ -165,24 +165,24 @@ void Swarm::moveSwarm(Configuration* config, const long int iteration, const dou
 		if (config->verboseMode()){
 			cout << "\tParticle [" << swarm.at(i)->getID() << "] -- ";
 			//print all neighbors
-//			cout << "\n\tNeighbors ids:  [ ";
-//			for (unsigned int j=0; j<swarm.at(i)->neighbours.size(); j++){
-//				cout << swarm.at(i)->neighbours[j]->getID() << " ";
-//			} cout << "]" << endl;
-//			//print all neighbors
-//			cout << "\tInformants pos: [ ";
-//			for (unsigned int j=0; j<swarm.at(i)->InformantsPos.size(); j++){
-//				cout << swarm.at(i)->InformantsPos[j] << " ";
-//			}
-//			cout << "]" << endl;
-//			cout << "\tInformants ids: [ ";
-//			for (unsigned int j=0; j<swarm.at(i)->InformantsPos.size(); j++){
-//				cout << swarm.at(i)->neighbours[swarm.at(i)->InformantsPos[j]]->getID() << " ";
-//			}
+			cout << "\n\tNeighbors ids:  [ ";
+			for (unsigned int j=0; j<swarm.at(i)->neighbours.size(); j++){
+				cout << swarm.at(i)->neighbours[j]->getID() << " ";
+			} cout << "]" << endl;
+			//print all neighbors
+			cout << "\tInformants pos: [ ";
+			for (unsigned int j=0; j<swarm.at(i)->InformantsPos.size(); j++){
+				cout << swarm.at(i)->InformantsPos[j] << " ";
+			}
+			cout << "]" << endl;
+			cout << "\tInformants ids: [ ";
+			for (unsigned int j=0; j<swarm.at(i)->InformantsPos.size(); j++){
+				cout << swarm.at(i)->neighbours[swarm.at(i)->InformantsPos[j]]->getID() << " ";
+			}
 			cout << "]"<< endl;
 		}
 		//Note that here computeOmega1 receives the number of the particle and the flag = false
-		swarm.at(i)->move(config, minBound, maxBound, iteration,
+		swarm.at(i)->move(config, iteration,
 				computeOmega1(config, iteration, i, false), //Compute self-adaptive omega1, otherwise this function returns the value already computed
 				computeOmega2(config),
 				computeOmega3(config),
@@ -203,7 +203,6 @@ void Swarm::moveSwarm(Configuration* config, const long int iteration, const dou
 
 	if(config->useReinitialization())
 		reinitializeParticlePosition(config, iteration); //There are two strategies available (one is commented)
-	config->setOverallOFchange(0);
 
 	updatePerturbationVariables(config, prev_Gbest_eval, global_best.eval, iteration);
 

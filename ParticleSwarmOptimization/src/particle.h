@@ -42,8 +42,6 @@ protected:
 
 	/*Velocity and acceleration coefficients variables*/
 	double* velocity;
-	double* perturbationValues;
-	bool hasVelocitybounds;
 	double minVelLimit;
 	double maxVelLimit;
 	double inertia;
@@ -62,8 +60,8 @@ public:
 	Particle (const Particle &p);  										/* copy constructor */
 	Particle& operator= (const Particle& p);  							/* overriding of '=' */
 
-	void move(Configuration* config, double minBound, double maxBound, long int iteration,
-			double omega1, double omega2, double omega3, int numInformants, int lastLevelComplete, int solImproved);
+	void move(Configuration* config, long int iteration, double omega1, double omega2, double omega3,
+			int numInformants, int lastLevelComplete, int solImproved);
 
 	double* getCurrentPosition();
 	long double getCurrentEvaluation();
@@ -99,19 +97,16 @@ public:
 	void printNeighborByID(int id);
 
 	//Velocity and position computation
-	void computeSubtractionPerturbationRotation(Configuration* config, vector< vector<double> > &vect_PbestMinusPosition, int &numInformants,
+	void computeSubtractionPerturbationRotation(Configuration* config, vector< vector<double> > &vect_PbestMinusPosition,
 			long int iteration, int solImprov);
-	void getRectangularDNPP(Configuration* config, double vect_distribution[], int numInformants,
-			vector< vector< double> > &vect_PbestMinusPosition);
-	void getSphericalDNPP(Configuration* config, double vect_distribution[], int numInformants,
-			vector< vector< double> > &vect_PbestMinusPosition);
-	void getAdditiveStochasticDNPP(double vect_distribution[], int numInformants,
-			vector< vector< double> > &vect_PbestMinusPosition, bool randNeighbor, int operatorQ, double CG_parm_r);
+	void getRectangularDNPP(Configuration* config, double vect_distribution[], vector< vector< double> > &vect_PbestMinusPosition);
+	void getSphericalDNPP(Configuration* config, double vect_distribution[], vector< vector< double> > &vect_PbestMinusPosition);
+	void getAdditiveStochasticDNPP(Configuration* config, double vect_distribution[], vector< vector< double> > &vect_PbestMinusPosition);
 
-	void computeAC(Configuration* config, double &c1, double &c2, int numInformants);
-	int getRandomInformantPosition(int numInformants);
-	int getPositionOfpBest(int numInformants);
-	void detectStagnation(Configuration* config, double minBound, double maxBound);
+	void computeAC(Configuration* config, double &c1, double &c2);
+	int getRandomInformantPosition();
+	int getPositionOfpBest();
+	void detectStagnation(Configuration* config);
 
 	//Perturbation
 	void setPerturbation1Magnitude(Configuration* config, double pertMagnitude[], double * pos_x, double * pbest_x);

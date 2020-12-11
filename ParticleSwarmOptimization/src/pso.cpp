@@ -110,20 +110,28 @@ Problem* initializeProblem() {
 		/////////UNIMODAL FUNCTIONS //////////////////////////////////////////////////
 		case SHIFTED_SPHERE:{
 			problem = new Sphere(config, SHIFTED);
-			config->setMinInitRange(-100.0);	//lower bound of the function
-			config->setMaxInitRange(100.0);	//upper bound of the function
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_HIGH_CONDITIONED_ELLIPTIC:{
 			problem = new Elliptic(config, SHIFTED_ROTATED_HIGH_CONDITIONED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case ROTATED_BENT_CIGER:{
 			problem = new Cigar(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case ROTATED_DISCUS:{
 			problem = new Discus(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHWEFEL221:{
 			problem = new Schwefel221(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHWEFEL12:{
 			problem = new Schwefel12(config, SHIFTED);
@@ -132,6 +140,8 @@ Problem* initializeProblem() {
 		}break;
 		case SHIFTED_SCHWEFELS12_NOISE_IN_FITNESS:{
 			problem = new Schwefel12(config, NOISE_SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHWEFEL222:{
 			problem = new Schwefel222(config, SHIFTED);
@@ -140,15 +150,23 @@ Problem* initializeProblem() {
 		}break;
 		case SHIFTED_EXTENDED_F10:{
 			problem = new ExtendedF10(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_BOHACHEVSKY:{
 			problem = new Bohachevsky(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHAFFER:{
 			problem = new Schaffer(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SCHWEFEL26_GLOBAL_OPTIMUM_ON_BOUNDS:{
 			problem = new Schwefel26(config, BASIC_GLOBAL_OPTIMUM_ON_BOUNDS);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		///////////////////////////////////////////MULTIMODAL FUNCTIONS
 		case SHIFTED_ACKLEY:{
@@ -158,12 +176,18 @@ Problem* initializeProblem() {
 		}break;
 		case SHIFTED_ROTATED_ACKLEY:{
 			problem = new Ackley(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROSENBROCK:{
 			problem = new Rosenbrock(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_ROSENBROCK:{
 			problem = new Rosenbrock(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_GRIEWANK:{
 			problem = new Griewank(config, SHIFTED);
@@ -172,37 +196,59 @@ Problem* initializeProblem() {
 		}break;
 		case SHIFTED_ROTATED_GRIEWANK:{
 			problem = new Griewank(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_RASTRIGIN:{
 			problem = new Rastrigin(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_RASTRIGIN:{
 			problem = new Rastrigin(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHWEFEL:{
 			problem = new Schwefel(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_SCHWEFEL:{
 			problem = new Schwefel(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_WEIERSTRASS:{
 			problem = new Weierstrass(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_KATSUURA:{
 			problem = new Katsuura(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_HAPPYCAT:{
 			problem = new Happycat(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_HGBAT:{
 			problem = new Hgbat(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		/////////////////////////////////////HYBRID FUNCTIONS
 		case H1_SOCO:{
 			problem = new Hybrid1(config, BASIC);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H2_SOCO:{
 			problem = new Hybrid2(config, BASIC);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H3_SOCO:{
 			problem = new Hybrid3(config, BASIC);
@@ -216,9 +262,13 @@ Problem* initializeProblem() {
 		}break;
 		case H7_SOCO:{
 			problem = new Hybrid7(config, BASIC);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H8_SOCO:{
 			problem = new Hybrid8(config, BASIC);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H9_SOCO:{
 			problem = new Hybrid9(config, BASIC);
@@ -232,15 +282,23 @@ Problem* initializeProblem() {
 		}break;
 		case H1_CEC14:{
 			problem = new Hybrid1CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H2_CEC14:{
 			problem = new Hybrid2CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H3_CEC14:{
 			problem = new Hybrid3CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H4_CEC14:{
 			problem = new Hybrid4CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H5_CEC14:{
 			problem = new Hybrid5CEC14(config, SHIFTED_ROTATED);
@@ -249,6 +307,8 @@ Problem* initializeProblem() {
 		}break;
 		case H6_CEC14:{
 			problem = new Hybrid6CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		/////////////////////////// COMPOSITION FUNCTIONS
 		case COMPOSITION_F1:{
@@ -308,15 +368,23 @@ Problem* initializeProblem() {
 		switch(config->getProblemID()){
 		case SHIFTED_SPHERE_SOCO:{
 			problem = new Sphere(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHWEFEL221_SOCO:{
 			problem = new Schwefel221(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROSENBROCK_SOCO:{
 			problem = new Rosenbrock(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_RASTRIGIN_SOCO:{
 			problem = new Rastrigin(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_GRIEWANK_SOCO:{
 			problem = new Griewank(config, SHIFTED);
@@ -340,18 +408,28 @@ Problem* initializeProblem() {
 		}break;
 		case SHIFTED_EXTENDED_F10_SOCO:{
 			problem = new ExtendedF10(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_BOHACHEVSKY_SOCO:{
 			problem = new Bohachevsky(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHAFFER_SOCO:{
 			problem = new Schaffer(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H1:{
 			problem = new Hybrid1(config, BASIC);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H2:{
 			problem = new Hybrid2(config, BASIC);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H3:{
 			problem = new Hybrid3(config, BASIC);
@@ -365,9 +443,13 @@ Problem* initializeProblem() {
 		}break;
 		case H7:{
 			problem = new Hybrid7(config, BASIC);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H8:{
 			problem = new Hybrid8(config, BASIC);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H9:{
 			problem = new Hybrid9(config, BASIC);
@@ -386,44 +468,68 @@ Problem* initializeProblem() {
 		switch(config->getProblemID()){
 		case SHIFTED_SPHERE_CEC05:{
 			problem = new Sphere(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHWEFEL12_CEC05:{
 			problem = new Schwefel12(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_HIGH_CONDITIONED_ELLIPTIC_CEC05:{
 			problem = new Elliptic(config, SHIFTED_ROTATED_HIGH_CONDITIONED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case NOISE_SHIFTED_SCHWEFEL12_CEC05:{
 			problem = new Schwefel12(config, NOISE_SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SCHWEFEL26_GLOBAL_OPTIMUM_ON_BOUNDS_CEC05:{
 			problem = new Schwefel26(config, BASIC_GLOBAL_OPTIMUM_ON_BOUNDS);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROSENBROCK_CEC05:{
 			problem = new Rosenbrock(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_GRIEWANK_CEC05:{
 			problem = new Griewank(config, ROTATED_WITHOUT_BOUNDS);
-			config->setMinInitRange(numeric_limits<double>::max()*-1.0);	//lower bound of the function
+			config->setMinInitRange(numeric_limits<double>::lowest());	//lower bound of the function
 			config->setMaxInitRange(numeric_limits<double>::max());	//upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_ACKLEY_GOOB_CEC05:{
 			problem = new Ackley(config, SHIFTED_ROTATED_GLOBAL_OPTIMUM_ON_BOUNDS);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_RASTRIGIN_CEC05:{
 			problem = new Rastrigin(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_RASTRIGIN_CEC05:{
 			problem = new Rastrigin(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_WEIERSTRASS_CEC05:{
 			problem = new Weierstrass(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case BASIC_SCHWEFEL213_CEC05:{
 			problem = new Schwefel213(config, BASIC);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_EXPANDED_GRIEWANKROSENBROCK_CEC05:{
 			problem = new GriewankRosenbrock(config, SHIFTED_EXPANDED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_EXPANDED_SCHAFFERF6_CEC05:{
 			problem = new SchafferF6(config, SHIFTED_ROTATED_EXPANDED);
@@ -480,8 +586,8 @@ Problem* initializeProblem() {
 		}break;
 		case ROTATED_HYBRIDCOMPOSITION4_NO_BOUNDS:{
 			problem = new HC_4(config, ROTATED_WITHOUT_BOUNDS);
-			config->setMinInitRange(DBL_MAX*-1.0);	//lower bound of the function
-			config->setMaxInitRange(DBL_MAX);	//upper bound of the function
+			config->setMinInitRange(numeric_limits<double>::lowest());	//lower bound of the function
+			config->setMaxInitRange(numeric_limits<double>::max());	//upper bound of the function
 		}break;
 		}
 	}
@@ -490,60 +596,98 @@ Problem* initializeProblem() {
 		switch(config->getProblemID()){
 		case SHIFTED_ROTATED_HIGH_CONDITIONED_ELLIPTIC_CEC14:{
 			problem = new Elliptic(config, SHIFTED_ROTATED_HIGH_CONDITIONED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case ROTATED_BENT_CIGER_CEC14:{
 			problem = new Cigar(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case ROTATED_DISCUS_CEC14:{
 			problem = new Discus(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_ACKLEY_CEC14:{
 			problem = new Ackley(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_ROSENBROCK_CEC14:{
 			problem = new Rosenbrock(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_GRIEWANK_CEC14:{
 			problem = new Griewank(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_RASTRIGIN_CEC14:{
 			problem = new Rastrigin(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHWEFEL_CEC14:{
 			problem = new Schwefel(config, SHIFTED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_SCHWEFEL_CEC14:{
 			problem = new Schwefel(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_WEIERSTRASS_CEC14:{
 			problem = new Weierstrass(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_KATSUURA_CEC14:{
 			problem = new Katsuura(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_HAPPYCAT_CEC14:{
 			problem = new Happycat(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_HGBAT_CEC14:{
 			problem = new Hgbat(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H1_CEC14_CEC14:{
 			problem = new Hybrid1CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H2_CEC14_CEC14:{
 			problem = new Hybrid2CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H3_CEC14_CEC14:{
 			problem = new Hybrid3CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H4_CEC14_CEC14:{
 			problem = new Hybrid4CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H5_CEC14_CEC14:{
 			problem = new Hybrid5CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		case H6_CEC14_CEC14:{
 			problem = new Hybrid6CEC14(config, SHIFTED_ROTATED);
+			config->setMinInitRange(-100.0); //lower bound of the function
+			config->setMaxInitRange(100.0);	 //upper bound of the function
 		}break;
 		}
 	}
@@ -724,9 +868,8 @@ int main(int argc, char *argv[] ){
 	if (config->logOutput())
 		openLogFile(config, outfile);
 
-	//		config->printParameters();
-	//		problem->printProblem();
-	//		cout << "\n";
+	if (config->verboseMode())
+		config->printParameters();
 
 	long double prevgBestEval = swarm->getGlobalBest().eval;
 
@@ -734,7 +877,7 @@ int main(int argc, char *argv[] ){
 		iterations++;
 
 		//Move swarm
-		swarm->moveSwarm(config, iterations, config->getMinInitBound(),config->getMaxInitBound());
+		swarm->moveSwarm(config, iterations);
 		evaluations=evaluations + config->getSwarmSize();
 
 		//Update dynamic topologies

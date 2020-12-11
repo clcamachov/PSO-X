@@ -44,12 +44,9 @@ public:
 	Swarm ();
 	~Swarm();
 	Swarm (Problem* problem, Configuration* config); /*Create swarm structure*/
-	//Swarm (const Swarm &s, Configuration* config);
-
-	//Swarm& operator= (const Swarm& s);
 
 	void updateGlobalBest(double* new_x, double eval);
-	void moveSwarm(Configuration* config, const long int iteration, const double minBound, const double maxBound);
+	void moveSwarm(Configuration* config, const long int iteration);
 	int getInformants(Configuration* config, int particleID, long int iteration);	//returns the number of informants of a particle
 
 	// Inertia and acceleration coefficients
@@ -59,7 +56,6 @@ public:
 	double computeOmega2(Configuration* config);
 	double computeOmega3(Configuration* config);
 	double computeAvgVelocity(Configuration* config);
-	//void rankParticles(SimplifySwarm* particles);
 
 	// GlobalBest particle
 	Solution getGlobalBest();
@@ -86,7 +82,6 @@ public:
 
 	//Perturbation
 	void updatePerturbationVariables(Configuration* config, double previousGbest_eval, double currentGbest_eval, long int iteration);
-	//double computeAngleOfRRM(Configuration* config, long int iteration);
 	int countImprovedSolutions(Configuration* config, long int iteration);
 
 	//Population size

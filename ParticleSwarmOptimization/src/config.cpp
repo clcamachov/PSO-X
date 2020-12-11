@@ -623,7 +623,6 @@ void Configuration::setDefaultParameters(){
 	perturbedlBest = false;
 	detectStagnation = false;
 	reinitializePosition = false;			//reinitialize particles' position with precision of 10^-5
-	overallOFchange = LDBL_MAX;
 
 	/** Population **/
 	particles = 10;							//particles (swarm size)
@@ -1048,9 +1047,6 @@ double Configuration::getMaxInitBound(){
 }
 
 //PSO
-bool Configuration::useVelocityClamping(){
-	return (useVelClamping);
-}
 long int Configuration::getSwarmSize(){
 	return (particles);
 }
@@ -1126,7 +1122,7 @@ double Configuration::getOmega3(){
 void Configuration::setOmega3(double new_omega3){
 	omega3 = new_omega3;
 }
-bool Configuration::isVelocityClamped(){
+bool Configuration::useVelocityClamping(){
 	return (useVelClamping);
 }
 bool Configuration::usePerturbedlBest(){
@@ -1139,17 +1135,8 @@ bool Configuration::useReinitialization(){
 void Configuration::setReinitialization(bool reinit){
 	reinitializePosition = reinit;
 }
-void Configuration::setVelocityClamped(bool clamping){
-	useVelClamping = clamping;
-}
 bool Configuration::detectParticleStagnated(){
 	return (detectStagnation);
-}
-void Configuration::setOverallOFchange(double change){
-	overallOFchange = change;
-}
-double Configuration::getOverallOFchange(){
-	return (overallOFchange);
 }
 short Configuration::getModelOfInfluence(){
 	return (modelOfInfluence);

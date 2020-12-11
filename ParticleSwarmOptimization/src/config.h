@@ -323,7 +323,6 @@ private:
 	bool useVelClamping;
 	bool reinitializePosition;
 	bool detectStagnation;
-	double overallOFchange;
 
 	//Population
 	long int particles;
