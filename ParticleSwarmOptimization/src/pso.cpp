@@ -894,13 +894,8 @@ int main(int argc, char *argv[] ){
 			outfile << "iteration: " << iterations << " func_evaluations: " << evaluations  << " best: " << scientific << swarm->getGlobalBest().eval << endl;
 		}
 
-		if (config->verboseMode() && swarm->getGlobalBest().eval < prevgBestEval){
-			//	cout << "\tvar::mean: " <<  mean << "\n";
-			//	cout << "\tvar::stdSwarm: " <<  stdSwarm << "\n";
-			//	cout << "\n\tvar::iterCounter: " <<  iterCounter << "\n";
-			//	cout << "\tvar::reinitSchedule: " << reinitSchedule << "\n";
-			//cout.precision(10);
-			cout << "\t\t****New best solution found**** (" << scientific <<  swarm->getGlobalBest().eval << ")" << endl;
+		if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_SOLUTION) && (swarm->getGlobalBest().eval < prevgBestEval)){
+			cout << "\titeration " << iterations << " ****New best solution found**** (" << scientific <<  swarm->getGlobalBest().eval << ")" << endl;
 			prevgBestEval = swarm->getGlobalBest().eval;
 		}
 

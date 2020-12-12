@@ -313,6 +313,8 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			//cout << "\n no logs - suppress logs \n";
 		} else if (strcmp(argv[i], "--verbose") == 0) {
 			verbose = true;
+			levelVerbose = atoi(argv[i+1]);
+			i++;
 			//cout << "\n no logs - suppress logs \n";
 		} else if (strcmp(argv[i], "--output-path") == 0) {
 			outputPath = argv[i+1];
@@ -480,7 +482,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			magnitude1CS = MAGNITUDE_CONSTANT;
 			magnitude1 = 0.001;
 		}
-		if (magnitude1CS == MAGNITUDE_EUC_DISTANCE)
+		if (magnitude1CS == MAGNITUDE_EUC_DISTANCE || magnitude1CS == MAGNITUDE_OBJ_F_DISTANCE)
 			magnitude1 = 1;
 	}
 	//Check valid combinations of Perturbation2 and Magnitude2
@@ -493,7 +495,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			magnitude2CS = MAGNITUDE_CONSTANT;
 			magnitude2 = 0.001;
 		}
-		if (magnitude2CS == MAGNITUDE_NONE)
+		if (magnitude2CS == MAGNITUDE_EUC_DISTANCE || magnitude2CS == MAGNITUDE_OBJ_F_DISTANCE)
 			magnitude2 = 1;
 	}
 
@@ -529,18 +531,24 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		populationCS != POP_CONSTANT ? max_iterations = maxFES/initialPopSize : max_iterations = maxFES/particles;
 
 	//Check parameters value
-	if(mag1_parm_l_CS == MAG_PARAM_L_INDEPENDENT){
+	if (mag1_parm_l_CS == MAG_PARAM_L_INDEPENDENT){
 		//scaling factor for MAGNITUDE_EUC_DISTANCE a1=0.911, a2=0.21, a3=0.51, a4=0.58
 		mag1_parm_l = 0.911*0.51/(pow((particles/problemDimension),0.21)*pow(problemDimension,0.58));
 		if (mag1_parm_l > 0.03) mag1_parm_l = 0.03;
 		if (mag1_parm_l < 1E-15) mag1_parm_l = 1E-15;
 	}
-	if(mag2_parm_l_CS == MAG_PARAM_L_INDEPENDENT){
+	if (mag2_parm_l_CS == MAG_PARAM_L_INDEPENDENT){
 		//scaling factor for MAGNITUDE_EUC_DISTANCE a1=0.911, a2=0.21, a3=0.51, a4=0.58
 		mag2_parm_l = 0.911*0.51/(pow((particles/problemDimension),0.21)*pow(problemDimension,0.58));
 		if (mag2_parm_l > 0.03) mag2_parm_l = 0.03;
 		if (mag2_parm_l < 1E-15) mag2_parm_l = 1E-15;
 	}
+	//Get the level of information output to the console
+	if (levelVerbose < VERBOSE_LEVEL_QUIET || levelVerbose > VERBOSE_LEVEL_COMPUTATIONS)
+		levelVerbose = 0;
+	if (verbose == false)
+		levelVerbose = 0;
+
 	return(true);
 }
 
@@ -709,6 +717,7 @@ void Configuration::setDefaultParameters(){
 	/** Logs **/
 	useLogs = true;							//create a folder an log the execution of the algorithm
 	verbose = false;
+	levelVerbose = 0;
 	outputPath = "../";
 }
 
@@ -1003,6 +1012,9 @@ bool Configuration::logOutput(){
 }
 bool Configuration::verboseMode(){
 	return (verbose);
+}
+short Configuration::verboseLevel(){
+	return (levelVerbose);
 }
 std::string Configuration::getOutputPath(){
 	return (outputPath);

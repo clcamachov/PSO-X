@@ -133,18 +133,18 @@ void Swarm::moveSwarm(Configuration* config, const long int iteration) {
 	static int sol_improved = 0;
 
 	//Print info of the particles
-	if (config->verboseMode()){
+	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_VARIABLE)){
 		cout << "iteration: " << iteration << endl; //remove
-		cout << "\tvar::swarm.size()" << swarm.size() << "\n" << endl; //remove
+		cout << "\tvar::swarm.size() = " << swarm.size() << "\n" << endl; //remove
 	}
 
 	//Update lBest of each particle
 	for (unsigned int i=0;i<swarm.size();i++){
-		if (config->verboseMode())
+		if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS))
 			cout << "\tParticle [" << swarm.at(i)->getID() << "] -- lBest.at(t-1) [" << swarm.at(i)->getlBestID() << "] -- "; //<< endl; //remove
 		//The id of the gBest particle depends on the topology and model of influence
 		swarm.at(i)->getBestOfNeibourhood();
-		if (config->verboseMode())
+		if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS))
 			cout << "lBest.at(t) [" << swarm.at(i)->getlBestID() << "]" << endl;
 	}
 
@@ -160,9 +160,9 @@ void Swarm::moveSwarm(Configuration* config, const long int iteration) {
 	//Compute the acceleration coefficients of the entire swarm
 	computeAccelerationCoefficients(config, iteration);
 
-	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
+	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_VARIABLE)) cout << "\t------------------------------------------" << endl;
 	for (unsigned int i=0;i<swarm.size();i++){
-		if (config->verboseMode()){
+		if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
 			cout << "\tParticle [" << swarm.at(i)->getID() << "] -- ";
 			//print all neighbors
 			cout << "\n\tNeighbors ids:  [ ";
@@ -758,7 +758,8 @@ void Swarm::reinitializeParticlePosition(Configuration* config, long int iterati
 
 	//Reinitialize particles if stdSwarm is lower than REINIT_PRECISION
 	if (stdSwarm < REINIT_PRECISION){
-		if (config->verboseMode()) cout << "\n\tRestarting particles using: random values in bounds\n";
+		if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_VARIABLE))
+			cout << "\n\tRestarting particles using random values in bounds\n";
 		for (unsigned int i=0;i<swarm.size();i++){
 			if (swarm.at(i)->getID() != best_particle->getID()) //exclude gBest
 				swarm.at(i)->setRandomPositionInBoundsWithProbability(config);
@@ -769,7 +770,8 @@ void Swarm::reinitializeParticlePosition(Configuration* config, long int iterati
 	if (iteration%reinitSchedule == 0){
 		//Reinitialize particles if the best solution has not improved after reinitSchedule iterations
 		if (fabs(previousgBestEval - best_particle->getPbestEvaluation()) < OBJECTIVE_FUNCTION_CHANGE_THRESHOLD){
-			if (config->verboseMode()) cout << "\n\tRestarting particles using: gbest derivative\n";
+			if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS))
+				cout << "\n\tRestarting particles using gbest derivative\n";
 			for (unsigned int i=0;i<swarm.size();i++){
 				if (swarm.at(i)->getID() != best_particle->getID()){ //exclude gBest
 					swarm.at(i)->setRandomPositiongBestDerivative(config, best_particle->getPbestPosition());

@@ -139,38 +139,11 @@
 #define COMPOSITION_F9						48 //CEC05
 #define COMPOSITION_F10						49 //CEC05
 
-//BBOB
-//#define SPHERE_FUNCTION_BBOB											0 //BBOB
-//#define ELLIPSOIDAL_FUNCTION_BBOB										1 //BBOB
-//#define RASTRIGIN_FUNCTION_BBOB											2 //BBOB
-//#define BUCHE_RASTRIGIN_FUNCTION_BBOB									3 //BBOB
-//#define LINEAR_SLOPE_BBOB												4 //BBOB
-//#define ATTRACTIVE_SECTOR_FUNCTION_BBOB									5 //BBOB
-//#define STEP_ELLIPSOIDAL_FUNCTION_BBOB									6 //BBOB
-//#define ROSENBROCK_FUNCTION_ORIGINAL_BBOB								7 //BBOB
-//#define ROSENBROCK_FUNCTION_ROTATED_BBOB								8 //BBOB
-//#define ELLIPSOIDAL_FUNCTION_BBOB										9 //BBOB
-//#define DISCUS_FUNCTION_BBOB											10 //BBOB
-//#define BENT_CIGAR_FUNCTION_BBOB										11 //BBOB
-//#define SHARP_RIDGE_FUNCTION_BBOB										12 //BBOB
-//#define DIFFERENT_POWERS_FUNCTION_BBOB									13 //BBOB
-//#define RASTRIGIN_FUNCTION_BBOB											14 //BBOB
-//#define WEIERSTRASS_FUNCTION_BBOB										15 //BBOB
-//#define SCHAFFERS_F7_FUNCTION_BBOB										16 //BBOB
-//#define SCHAFFERS_F7_FUNCTION_MODERATELY_ILL_CONDITIONED_BBOB			17 //BBOB
-//#define COMPOSITE_GRIEWANK_ROSENBROCK_FUNCTION_F8F2_BBOB				18 //BBOB
-//#define SCHWEFEL_FUNCTION_BBOB											19 //BBOB
-//#define GALLAGHER_GAUSSIAN_101_ME_PEAKS_FUNCTION_BBOB					20 //BBOB
-//#define GALLAGHER_GAUSSIAN_21_HI_PEAKS_FUNCTION_BBOB					21 //BBOB
-//#define KATSUURA_FUNCTION_BBOB											22 //BBOB
-//#define LUNACEK_BI_RASTRIGIN_FUNCTION_BBOB								23 //BBOB
-
 //competitions
 #define CEC05	 				0
 #define CEC14					1
 #define SOFT_COMPUTING 			2
 #define MIXTURE					3
-#define BBOB					4
 
 //Useful constants
 #define PI acos(-1)
@@ -299,6 +272,12 @@
 #define PARTICLE_INIT_RANDOM 			0
 #define PARTICLE_INIT_MODEL 			1
 
+#define VERBOSE_LEVEL_QUIET				0
+#define VERBOSE_LEVEL_SOLUTION			1
+#define VERBOSE_LEVEL_VARIABLE			2
+#define VERBOSE_LEVEL_COMPUTATIONS		3
+
+
 class Configuration {
 
 private:
@@ -318,6 +297,7 @@ private:
 	double startTime; // to calculate time elapsed
 	bool useLogs;
 	bool verbose;
+	short levelVerbose;
 	std::string outputPath;
 	bool perturbedlBest;
 	bool useVelClamping;
@@ -422,6 +402,7 @@ public:
 	void print();
 	bool logOutput();
 	bool verboseMode();
+	short verboseLevel();
 	std::string getOutputPath();
 
 	//Problem
@@ -564,7 +545,6 @@ public:
 
 	void setTopologyUpdatePeriod(int period);
 	int getTopologyUpdatePeriod();
-
 };
 
 #endif /* CONFIG_H_ */

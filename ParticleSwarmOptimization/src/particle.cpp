@@ -160,11 +160,11 @@ void Particle::setRandomPositionInBoundsWithProbability(Configuration* config){
 	for (int j=0; j<size; j++){
 		if (RNG::randVal(0,1) < (1/size)){
 			if(config->getCompetitionID() == CEC05 && config->getProblemID() == SHIFTED_ROTATED_GRIEWANK_CEC05)
-				current.x[j] = RNG::randVal(0,1) * (-600);
+				current.x[j] = RNG::randVal(0.0,600.0);
 			else if(config->getCompetitionID() == CEC05 && config->getProblemID() == ROTATED_HYBRIDCOMPOSITION4_NO_BOUNDS)
-				current.x[j] = 2 + (RNG::randVal(0,1) * -3);
+				current.x[j] = RNG::randVal(2.0,5.0);
 			else
-				current.x[j] = config->getMinInitBound() + (RNG::randVal(0,1) * (config->getMaxInitRange()-config->getMinInitBound()));
+				current.x[j] = RNG::randVal(config->getMinInitBound(),config->getMaxInitBound());
 		}
 	}
 	//	initializeVelocity(config);
@@ -224,6 +224,8 @@ void Particle::setVelocityLimits(Configuration* config){
 		else {
 			maxVelLimit = ((config->getMaxInitRange()-config->getMinInitRange())/2.0);
 			minVelLimit = (-maxVelLimit);
+//			maxVelLimit = config->getMaxInitRange();
+//			minVelLimit = config->getMinInitRange();
 		}
 	}
 	else {
@@ -237,7 +239,7 @@ void Particle::setVelocityLimits(Configuration* config){
 			minVelLimit = (config->getMinInitRange()*2);
 		}
 	}
-	if (config->verboseMode()){
+	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
 		cout    << "  maxVelLimit:       " << maxVelLimit << "\n"
 				<< "  minVelLimit:       " << minVelLimit << "\n";
 	}
@@ -384,16 +386,15 @@ void Particle::move(Configuration* config, long int iteration, double omega1, do
 	//Evaluate the objective function and update pbest if a new one has been found
 	evaluateSolution();
 
-	if (config->verboseMode()){
+	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS) ){
 		cout << "\tvec::p[" << id << "].x(new): [";
 		for(int i=0; i<size; i++){
 			cout << fixed << current.x[i] << " ";
 		} cout << "]" << endl;
 	}
 
-	if (config->verboseMode()) cout << "\n\tParticle with ID:[" << id << "].status()::MOVED" << endl;
-	if (config->verboseMode()) cout << "\t------------------------------------------" << endl;
-
+	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_VARIABLE)) cout << "\n\tParticle with ID:[" << id << "].status()::MOVED" << endl;
+	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_VARIABLE)) cout << "\t------------------------------------------" << endl;
 }
 
 void Particle::detectStagnation(Configuration* config){
@@ -456,7 +457,7 @@ void Particle::computeSubtractionPerturbationRotation(
 			for (int i=0; i<size; i++)
 				l[i] = lbest.x[i];
 	}
-	if (config->verboseMode()){
+	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
 		cout << "\tvec::p[" << id << "].x:\t  [";
 		for(int i=0; i<size; i++){
 			cout << fixed << current.x[i] << " ";
@@ -467,7 +468,7 @@ void Particle::computeSubtractionPerturbationRotation(
 
 		if ((neighbours.at(InformantsPos[j])->getID() == lbestID) && (id == lbestID)){
 
-			if (config->verboseMode()){
+			if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
 				cout << "\tvec::inf.p[" << lbestID << "].pb: [";
 				for(int i=0;i<size;i++){
 					cout << fixed << l[i] << " ";
@@ -484,7 +485,7 @@ void Particle::computeSubtractionPerturbationRotation(
 			}
 		}
 		else{
-			if (config->verboseMode()){
+			if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
 				cout << "\tvec::inf.p[" << neighbours[InformantsPos[j]]->getID() << "].pb: [";
 				for(int i=0;i<size;i++){
 					cout << fixed << neighbours[InformantsPos[j]]->pbest.x[i] << " ";
@@ -518,24 +519,13 @@ void Particle::computeSubtractionPerturbationRotation(
 			delete [] rndMatrix[i];
 		delete [] rndMatrix;
 	}
-
-//	//Check if a nan was computed
-//	for (unsigned int j=0; j<InformantsPos.size(); j++){
-//		for (int i=0; i<size; i++){
-//			if (isnan(vect_PbestMinusPosition.at(j).at(i))){
-//				cout << "vec::vect_PbestMinusPosition isnan";
-//				exit(-1);
-//			}
-//		}
-//	}
 }
 
 //This function returns a random position in InformantsPos different from the pBest of the particle
 int Particle::getRandomInformantPosition(){
 	int randomIndex = 0;
 
-	//numInformants, independently of the topology and model of influences, is at least 2.
-	//That is, InformantsPos contains always pbest and the pbest of some other particle
+	//The size of InformantsPos is at least 1
 	for (unsigned int i=0; i<InformantsPos.size(); i++) {
 		randomIndex = (int)floor(RNG::randVal(0.0,(double)InformantsPos.size()));
 
@@ -553,8 +543,7 @@ int Particle::getRandomInformantPosition(){
 int Particle::getPositionOfpBest(){
 	int pBestIndex = 0;
 
-	//numInformants, independently of the topology and model of influences, is at least 2.
-	//That is, InformantsPos contains always pbest and the pbest of some other particle
+	//The size of InformantsPos is at 1
 	for (unsigned int i=0; i<InformantsPos.size(); i++) {
 		if (neighbours.at(InformantsPos[i])->getID() == id){
 			pBestIndex = i;
@@ -640,16 +629,6 @@ void Particle::computeAC(Configuration* config, double &c1, double &c2){
 		c1=phi_1;
 		c2=phi_2;
 	}
-
-//	if (isnan(c1)){
-//		cout << "var::c1 isnan";
-//		exit(-1);
-//	}
-//	if (isnan(c2)){
-//		cout << "var::c2 isnan";
-//		exit(-1);
-//	}
-
 }
 
 void Particle::getRectangularDNPP(Configuration* config, double vect_distribution[],
@@ -657,7 +636,6 @@ void Particle::getRectangularDNPP(Configuration* config, double vect_distributio
 
 	double varPhi1=0;
 	double varPhi2=0;
-	//double dummyVariable = 0;
 
 	//Compute vect_distribution
 	for (int i=0; i<size; i++){
@@ -665,36 +643,17 @@ void Particle::getRectangularDNPP(Configuration* config, double vect_distributio
 		computeAC(config, varPhi1, varPhi2);
 
 		for (unsigned int j=0; j<InformantsPos.size(); j++){
-			if (this->id == neighbours.at(InformantsPos[j])->getID()){
+			if (id == neighbours.at(InformantsPos[j])->getID())
 				vect_distribution[i] += (varPhi1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
-//				if (isnan(vect_distribution[i])){
-//					cout << "\n\n  vect_PbestMinusPosition[" << j << "][" << i << "]"
-//							<< vect_PbestMinusPosition[j][i] << "\tvarPhi1:" << varPhi1 << endl;
-//					exit(-1);
-//				}
-			}
-
 			else {
 				if (j==0 && config->getModelOfInfluence() == MOI_RANKED_FI)
 					varPhi2 = phi_2*((double)(InformantsPos.size()-1)/InformantsPos.size());
 				if (j>0 && config->getModelOfInfluence() == MOI_RANKED_FI)
 					varPhi2 = varPhi2/2;
 				vect_distribution[i] += (varPhi2 * vect_PbestMinusPosition[j][i]); //social coefficient phi_2
-//				if (isnan(vect_distribution[i])){
-//					cout << "\n\n  vect_PbestMinusPosition[" << j << "][" << i << "]"
-//							<< vect_PbestMinusPosition[j][i] << "\tvarPhi2:" << varPhi2 << endl;
-//					exit(-1);
-//				}
 			}
 		}
 	}
-//	//Check if a nan was computed
-//	for (int i=0; i<size; i++){
-//		if (isnan(vect_distribution[i])){
-//			cout << "vec::vect_distribution isnan";
-//			exit(-1);
-//		}
-//	}
 }
 
 // The computation of the radius and the random point in the HyperSphere
@@ -817,22 +776,6 @@ void Particle::setPerturbation1Magnitude(Configuration* config, double pertMagni
 		}
 		distance = sqrt(distance);
 
-//		if (isnan(distance)){
-//			//			if (config->verboseMode()){
-//			cout << "\t\t    pos_x [";
-//			for(int i=0;i<size;i++)
-//				cout << pos_x[i] <<  " ";
-//			cout << "]" << endl;
-//			cout << "\t\t  pbest_x [";
-//			for(int i=0;i<size;i++)
-//				cout << pbest_x[i] <<  " ";
-//			cout << "]" << endl;
-//			//			}
-//
-//			cout << "√distance: " << distance << endl;
-//			exit(-1);
-//		}
-
 		if (distance == 0){ //use the last computed value
 			for(int i=0;i<size;i++)
 				pertMagnitude[i] = config->getMagnitude1();
@@ -846,22 +789,19 @@ void Particle::setPerturbation1Magnitude(Configuration* config, double pertMagni
 	}
 	if (config->getMagnitude1CS() == MAGNITUDE_OBJ_F_DISTANCE){
 		double ob_distance = 0.0;
+
 		//Compute the distance in terms of the objective function
-		if (this->id == this->lbestID){
-			if (config->getMagnitude1() > 0)
-				ob_distance = config->getMagnitude1();
+		ob_distance = (lbest.eval-current.eval)/lbest.eval;
+
+		if (ob_distance == 0){ //use the last computed value
+			for(int i=0;i<size;i++)
+				pertMagnitude[i] = config->getMagnitude1();
 		}
-		else
-			ob_distance = (lbest.eval-current.eval)/lbest.eval;
-
-		//If the algorithm is stagnated, this can happen
-		if (config->getMagnitude1() <= 0)
-			ob_distance = RNG::randVal(PERTURBATION_PRECISION,0.1);
-
-		config->setMagnitude1(ob_distance);
-
-		for(int i=0;i<size;i++)
-			pertMagnitude[i] = config->getMag1_parm_m()*(ob_distance);
+		else{
+			for(int i=0;i<size;i++)
+				pertMagnitude[i] = config->getMag1_parm_m()*ob_distance;
+		}
+		config->setMagnitude1(pertMagnitude[0]);
 	}
 	if (config->getMagnitude1CS() == MAGNITUDE_SUCCESS || config->getMagnitude1CS() == MAGNITUDE_CONSTANT){
 		for(int i=0;i<size;i++){
@@ -891,34 +831,23 @@ void Particle::getRandomAdditivePerturbation(Configuration* config, double vect_
 		distance = sqrt(distance);
 
 		if (distance == 0){ //use the last computed value
-			if (config->getMagnitude2() > 0)
-				for(int i=0;i<size;i++)
-					PM = config->getMag2_parm_l() * config->getMagnitude2();
-			else
-				for(int i=0;i<size;i++)
-					PM = config->getMag2_parm_l();
+			PM = config->getMagnitude2();
 		}
 		else
-			for(int i=0;i<size;i++){
-				PM = config->getMag2_parm_l()*distance;
-			}
+			PM = config->getMag2_parm_l()*distance;
 		config->setMagnitude2(PM);
 	}
 	else if (config->getMagnitude2CS() == MAGNITUDE_OBJ_F_DISTANCE){
 		double ob_distance = 0;
+
 		//Compute the distance in terms of the objective function
-		if (this->id == this->lbestID){
-			if (config->getMagnitude2() > 0)
-				ob_distance = config->getMagnitude2();
-		}
+		ob_distance = (lbest.eval-current.eval)/lbest.eval;
+
+		if (ob_distance == 0)
+			PM = config->getMagnitude2();
 		else
-			ob_distance = (lbest.eval-current.eval)/lbest.eval;
+			PM = config->getMag2_parm_m()*ob_distance;
 
-		//If the algorithm is stagnated, this can happen
-		if (config->getMagnitude2() <= 0)
-			ob_distance = RNG::randVal(PERTURBATION_PRECISION,0.1);
-
-		PM = config->getMag2_parm_m()*ob_distance;
 		config->setMagnitude2(PM);
 	}
 	else if (config->getMagnitude2CS() == MAGNITUDE_SUCCESS)
