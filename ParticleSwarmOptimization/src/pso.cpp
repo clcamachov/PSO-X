@@ -498,7 +498,7 @@ Problem* initializeProblem() {
 		}break;
 		case SHIFTED_ROTATED_GRIEWANK_CEC05:{
 			problem = new Griewank(config, ROTATED_WITHOUT_BOUNDS);
-			config->setMinInitRange(numeric_limits<double>::lowest());	//lower bound of the function
+			config->setMinInitRange(-numeric_limits<double>::max());	//lower bound of the function
 			config->setMaxInitRange(numeric_limits<double>::max());	//upper bound of the function
 		}break;
 		case SHIFTED_ROTATED_ACKLEY_GOOB_CEC05:{
@@ -586,7 +586,7 @@ Problem* initializeProblem() {
 		}break;
 		case ROTATED_HYBRIDCOMPOSITION4_NO_BOUNDS:{
 			problem = new HC_4(config, ROTATED_WITHOUT_BOUNDS);
-			config->setMinInitRange(numeric_limits<double>::lowest());	//lower bound of the function
+			config->setMinInitRange(-numeric_limits<double>::max());	//lower bound of the function
 			config->setMaxInitRange(numeric_limits<double>::max());	//upper bound of the function
 		}break;
 		}
@@ -698,7 +698,7 @@ Problem* initializeProblem() {
 /* Termination condition */
 bool terminationCondition(long int iterations, long int evaluations, long int swarmSize) {
 	//Budget based on iterations
-	if (config->getMaxIterations() != 0 && iterations >= config->getMaxIterations()-2) {
+	if (config->getMaxIterations() != 0 && iterations > config->getMaxIterations()) {
 		return (true);
 	}
 	//Budget based on evaluations of the objective function
@@ -895,7 +895,7 @@ int main(int argc, char *argv[] ){
 		}
 
 		if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_SOLUTION) && (swarm->getGlobalBest().eval < prevgBestEval)){
-			cout << "\titeration " << iterations << " ****New best solution found**** (" << scientific <<  swarm->getGlobalBest().eval << ")" << endl;
+			cout << "\titeration " << iterations << " evaluations " << evaluations << " ****New best solution found**** (" << scientific <<  swarm->getGlobalBest().eval << ")" << endl;
 			prevgBestEval = swarm->getGlobalBest().eval;
 		}
 

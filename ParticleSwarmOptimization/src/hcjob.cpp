@@ -15,11 +15,11 @@ using namespace std;
 //HCJob::~HCJob(){}
 
 // Coverage range for each basic function
-double HCJob::sigma[] = {} ;
+double HCJob::sigma[] = {0} ;
 // Biases for each basic function
-double HCJob::biases[] = {} ;
+double HCJob::biases[] = {0} ;
 // Stretch / compress each basic function
-double HCJob::lambda[] = {} ;
+double HCJob::lambda[] = {0} ;
 
 long double HCJob::hybrid_composition(int dim, const double* x) {
 

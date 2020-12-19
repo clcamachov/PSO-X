@@ -528,7 +528,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		maxFES = 5000 * problemDimension;
 
 	if (max_iterations < 0)
-		populationCS != POP_CONSTANT ? max_iterations = maxFES/initialPopSize : max_iterations = maxFES/particles;
+		(populationCS == POP_CONSTANT) ? max_iterations = maxFES/particles : max_iterations = maxFES/initialPopSize;
 
 	//Check parameters value
 	if (mag1_parm_l_CS == MAG_PARAM_L_INDEPENDENT){

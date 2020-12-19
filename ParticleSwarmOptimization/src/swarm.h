@@ -47,7 +47,7 @@ public:
 
 	void updateGlobalBest(double* new_x, double eval);
 	void moveSwarm(Configuration* config, const long int iteration);
-	int getInformants(Configuration* config, int particleID, long int iteration);	//returns the number of informants of a particle
+	void getInformants(Configuration* config, int particleID, long int iteration);	//returns the number of informants of a particle
 
 	// Inertia and acceleration coefficients
 	void computeAccelerationCoefficients(Configuration* config, long int iteration);
@@ -71,7 +71,7 @@ public:
 
 	//Hierarchical topology
 	void createHierarchical(int branching, int finalPopSize);
-	void printTree(int branching, long swarm_size);
+	void printTree(int branching);
 	void swapNodes(int newParent, int newH, int newWidth, int parentNode, int parentH, int parentWidth, int branching, int h, int width, int iterCount);
 	void updateTree(int branching);
 	bool isHierarchical();

@@ -52,8 +52,8 @@ protected:
 
 public:
 
-	vector < Particle* > neighbours;  /* vector of neighbors particles */
-	vector < int > InformantsPos;
+	vector < Particle* > neighbors;  /* vector of neighbors particles */
+	vector < int > informants;
 	Particle ();  														/* empty constructor */
 	~Particle();  														/* destructor */
 	Particle (Problem* problem, Configuration* config, int identifier, long int iteration);	/* constructor */
@@ -61,7 +61,7 @@ public:
 	Particle& operator= (const Particle& p);  							/* overriding of '=' */
 
 	void move(Configuration* config, long int iteration, double omega1, double omega2, double omega3,
-			int numInformants, int lastLevelComplete, int solImproved);
+			int lastLevelComplete, int solImproved);
 
 	double* getCurrentPosition();
 	long double getCurrentEvaluation();
