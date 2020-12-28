@@ -59,16 +59,31 @@ bool Configuration::getConfig(int argc, char *argv[]){
 			i++;
 			//cout << "\n number of particles has been received \n";
 		} else if (strcmp(argv[i], "--clamped") == 0){
-			useVelClamping = true;
+			if (atoi(argv[i+1]) == 0)
+				useVelClamping = false;
+			if (atoi(argv[i+1]) == 1)
+				useVelClamping = true;
+			i++;
 			//cout << "\n velocity clamping has been set to true \n";
 		} else if (strcmp(argv[i], "--reinitialized") == 0){
-			reinitializePosition = true;
-			//cout << "\n reinitializePosition has been set to true \n";
-		} else if (strcmp(argv[i], "--perturbed-lb") == 0){
-			perturbedlBest = true;
+			if (atoi(argv[i+1]) == 0)
+				reinitializePosition = false;
+			if (atoi(argv[i+1]) == 1)
+				reinitializePosition = true;
+			i++;
+		} else if (strcmp(argv[i], "--perturbed_lb") == 0){
+			if (atoi(argv[i+1]) == 0)
+				perturbedlBest = false;
+			if (atoi(argv[i+1]) == 1)
+				perturbedlBest = true;
+			i++;
 			//cout << "\n use indStrategies has been set to true \n";
 		} else if (strcmp(argv[i], "--unstuck") == 0){
-			detectStagnation = true;
+			if (atoi(argv[i+1]) == 0)
+				detectStagnation = false;
+			if (atoi(argv[i+1]) == 1)
+				detectStagnation = true;
+			i++;
 			//cout << "\n use detectStagnation has been set to true \n";
 		} else if (strcmp(argv[i], "--populationCS") == 0) {
 			populationCS = atoi(argv[i+1]);

@@ -155,8 +155,8 @@ Problem* initializeProblem() {
 		}break;
 		case SHIFTED_BOHACHEVSKY:{
 			problem = new Bohachevsky(config, SHIFTED);
-			config->setMinInitRange(-100.0); //lower bound of the function
-			config->setMaxInitRange(100.0);	 //upper bound of the function
+			config->setMinInitRange(-15.0); //lower bound of the function
+			config->setMaxInitRange(15.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHAFFER:{
 			problem = new Schaffer(config, SHIFTED);
@@ -383,8 +383,8 @@ Problem* initializeProblem() {
 		}break;
 		case SHIFTED_RASTRIGIN_SOCO:{
 			problem = new Rastrigin(config, SHIFTED);
-			config->setMinInitRange(-100.0); //lower bound of the function
-			config->setMaxInitRange(100.0);	 //upper bound of the function
+			config->setMinInitRange(-5.0); //lower bound of the function
+			config->setMaxInitRange(5.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_GRIEWANK_SOCO:{
 			problem = new Griewank(config, SHIFTED);
@@ -413,8 +413,8 @@ Problem* initializeProblem() {
 		}break;
 		case SHIFTED_BOHACHEVSKY_SOCO:{
 			problem = new Bohachevsky(config, SHIFTED);
-			config->setMinInitRange(-100.0); //lower bound of the function
-			config->setMaxInitRange(100.0);	 //upper bound of the function
+			config->setMinInitRange(-15.0); //lower bound of the function
+			config->setMaxInitRange(15.0);	 //upper bound of the function
 		}break;
 		case SHIFTED_SCHAFFER_SOCO:{
 			problem = new Schaffer(config, SHIFTED);

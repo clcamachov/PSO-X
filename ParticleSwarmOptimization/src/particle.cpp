@@ -296,18 +296,15 @@ void Particle::move(Configuration* config, long int iteration, double omega1, do
 	double vect_distribution[size];
 	double vect_perturbation[size];
 
-	if (config->getPerturbation2CS() == PERT2_NONE || config->getOmega3CS() == O3_ZERO){
-		for (int i=0; i<size; i++){
-			vect_perturbation[i]=0;
-		}
+	for (int i=0; i<size; i++){
+		vect_perturbation[i]=0;
+		vect_distribution[i]=0;
 	}
-	else{
+
+	if (config->getPerturbation2CS() != PERT2_NONE && config->getOmega3CS() != O3_ZERO){
 		/*** PERTURBATION 2	(additive)	--->	It has to be computed per dimension, but only once per particle  ***/
 		getRandomAdditivePerturbation(config, vect_perturbation); //Random additive perturbation
 	}
-
-	for (int i=0; i<size; i++)
-		vect_distribution[i]=0;
 
 	if (config->getOmega2CS() != O2_ZERO){
 		/* vect_PbestMinusPosition is a 2D vector for computing:
@@ -443,63 +440,32 @@ void Particle::computeSubtractionPerturbationRotation(
 		long int iteration,
 		int solImprov) {
 
-	double l[size]; 				//particle's lbest
 	double pertMagnitude[size];		//vector containing the magnitude of the perturbation that will be applied to each dimension
 
 
-	//1.1- Check if the particle is pbest == lbest and create a perturbed lbest position
-	if (id == lbestID){
-		if (config->usePerturbedlBest()) {
-			for (int i=0; i<size; i++)
-				l[i] = RNG::randVal(config->getMinInitBound(),config->getMaxInitBound()) + RNG::randVal(0,1)*(lbest.x[i]-current.x[i]);
-		}
-		else
-			for (int i=0; i<size; i++)
-				l[i] = lbest.x[i];
-	}
 	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
 		cout << "\n\tvec::p[" << id << "].x:\t  [";
 		for(int i=0; i<size; i++){
 			cout << fixed << current.x[i] << " ";
 		} cout << "]" << endl;
 	}
-	//2.- Get the p^k-x^i of all Informants
+	//Get the p^k-x^i of all Informants
 	for (unsigned int j=0; j<informants.size(); j++){
 
-		if ((neighbors.at(informants[j])->getID() == lbestID) && (id == lbestID)){
-
-			if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
-				cout << "\tvec::inf.p[" << lbestID << "].pb: [";
-				for(int i=0;i<size;i++){
-					cout << fixed << l[i] << " ";
-				}
-				cout << "]" << endl;
+		if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
+			cout << "\tvec::inf.p[" << neighbors[informants[j]]->getID() << "].pb: [";
+			for(int i=0;i<size;i++){
+				cout << fixed << neighbors[informants[j]]->pbest.x[i] << " ";
 			}
-			//informant-wise perturbation magnitude
-			setPerturbation1Magnitude(config, pertMagnitude, current.x, l);
-
-			for (int i=0; i<size; i++){
-				vect_PbestMinusPosition.at(j).at(i) = applyInformedPerturbation(config, pertMagnitude, l[i], i, iteration);
-				if (config->getDistributionNPP() != DIST_ADD_STOCH)
-					vect_PbestMinusPosition.at(j).at(i) = vect_PbestMinusPosition.at(j).at(i)-current.x[i];
-			}
+			cout << "]" << endl;
 		}
-		else{
-			if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
-				cout << "\tvec::inf.p[" << neighbors[informants[j]]->getID() << "].pb: [";
-				for(int i=0;i<size;i++){
-					cout << fixed << neighbors[informants[j]]->pbest.x[i] << " ";
-				}
-				cout << "]" << endl;
-			}
-			//informant-wise perturbation magnitude
-			setPerturbation1Magnitude(config, pertMagnitude, current.x, neighbors.at(informants[j])->pbest.x);
+		//informant-wise perturbation magnitude
+		setPerturbation1Magnitude(config, pertMagnitude, current.x, neighbors.at(informants[j])->pbest.x);
 
-			for (int i=0; i<size; i++){
-				vect_PbestMinusPosition.at(j).at(i) = applyInformedPerturbation(config, pertMagnitude, neighbors.at(informants[j])->pbest.x[i], i, iteration);
-				if (config->getDistributionNPP() != DIST_ADD_STOCH)
-					vect_PbestMinusPosition.at(j).at(i) = vect_PbestMinusPosition.at(j).at(i)-current.x[i];
-			}
+		for (int i=0; i<size; i++){
+			vect_PbestMinusPosition.at(j).at(i) = applyInformedPerturbation(config, pertMagnitude, neighbors.at(informants[j])->pbest.x[i], i, iteration);
+			if (config->getDistributionNPP() != DIST_ADD_STOCH)
+				vect_PbestMinusPosition.at(j).at(i) = vect_PbestMinusPosition.at(j).at(i) -current.x[i];
 		}
 	}
 	if (config->getDistributionNPP() != DIST_ADD_STOCH) {
@@ -510,6 +476,7 @@ void Particle::computeSubtractionPerturbationRotation(
 		for(int i=0; i<size; i++){
 			rndMatrix[i] = new double[size];
 		}
+		//Create the matrix and multiply vect_PbestMinusPosition by the matrix
 		for (unsigned int j=0; j<informants.size(); j++){ //the rest of informants
 			computeRndMatrix(config, rndMatrix, config->getRandomMatrix(), getAnAngle(config, solImprov, iteration));
 			multiplyVectorByRndMatrix(config, vect_PbestMinusPosition, j, rndMatrix, config->getRandomMatrix(), solImprov, iteration);
@@ -662,8 +629,8 @@ void Particle::getRectangularDNPP(Configuration* config, double vect_distributio
 // https://www.particleswarm.info/Programs.html
 void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[], vector<vector< double> > &vect_PbestMinusPosition){
 	double V2[size];
-	double V1[size]; //working space arrays
-	double G[size];	//center of the sphere
+	double V1[size]; 		//working space arrays
+	double G[size];			//center of the sphere
 	double radius = 0.0;	//radius G-X
 	double pw=1./(double)size;
 
@@ -677,7 +644,7 @@ void Particle::getSphericalDNPP(Configuration* config, double vect_distribution[
 
 		double R = 0.0;
 		for (unsigned int j=0; j<informants.size(); j++){
-			if (this->id == neighbors.at(informants[j])->getID())
+			if (id == neighbors.at(informants[j])->getID())
 				R += current.x[i] + (phi_1 * vect_PbestMinusPosition[j][i]); //personal coefficient phi_1
 			else {
 				if (j==0 && config->getModelOfInfluence() == MOI_RANKED_FI)
@@ -1057,9 +1024,8 @@ void Particle::evaluateSolution() {
  * corresponding solution value eval = f(x)
  */
 void Particle::updatelBestParticle(double* x, double eval){
-	for(int j=0;j <size;j++){
+	for(int j=0; j<size; j++)
 		lbest.x[j]= x[j];
-	}
 	lbest.eval = eval;
 }
 
@@ -1127,8 +1093,8 @@ int Particle::getBestOfNeibourhood(){
 		}
 	}
 	//New best particle in the neighborhood
-	if(lbestID != neighbors.at(pos)->getID()){
-		updatelBestParticle(neighbors[pos]->getPbestPosition(), neighbors[pos]->getPbestEvaluation());
+	if(neighbors.at(pos)->getID() != lbestID ){
+		updatelBestParticle(neighbors.at(pos)->getPbestPosition(), neighbors.at(pos)->getPbestEvaluation());
 		lbestID = neighbors.at(pos)->getID();
 		return (neighbors.at(pos)->getID());
 	}
@@ -1198,7 +1164,6 @@ int Particle::getRandomNonAdjacentNeighborID(Configuration* config){
 					else
 						continue;
 				}
-
 			}
 		}
 	}

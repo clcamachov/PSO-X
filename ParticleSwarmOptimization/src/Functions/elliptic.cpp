@@ -66,9 +66,7 @@ Elliptic::Elliptic(Configuration* config, int variantID):Problem(config, variant
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}
-
 	}	
-
 }
 
 Elliptic::~Elliptic(){

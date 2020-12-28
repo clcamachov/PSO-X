@@ -1,0 +1,18 @@
+suite = 'bbob', funcId = 24, DIM = 2, Precision = 1.000e-08, algId = 'ALG', coco_version = '2.4', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f24/bbobexp_f24_DIM2_i1.dat, 1:4|3.1e+01, 2:4|1.0e+01, 3:4|2.1e+01, 4:4|2.2e+01, 5:4|3.6e+01, 71:4|2.5e+01, 72:4|2.7e+01, 73:4|2.1e+01, 74:4|2.2e+01, 75:4|3.2e+01, 76:4|1.7e+01, 77:4|1.9e+01, 78:4|1.4e+01, 79:4|2.3e+01, 80:4|1.8e+01
+suite = 'bbob', funcId = 24, DIM = 3, Precision = 1.000e-08, algId = 'ALG', coco_version = '2.4', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f24/bbobexp_f24_DIM3_i1.dat, 1:6|2.2e+01, 2:6|3.9e+01, 3:6|4.5e+01, 4:6|3.1e+01, 5:6|5.2e+01, 71:6|3.5e+01, 72:6|3.7e+01, 73:6|2.9e+01, 74:6|5.1e+01, 75:6|5.8e+01, 76:6|4.4e+01, 77:6|2.4e+01, 78:6|3.8e+01, 79:6|1.3e+01, 80:6|5.1e+01
+suite = 'bbob', funcId = 24, DIM = 5, Precision = 1.000e-08, algId = 'ALG', coco_version = '2.4', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f24/bbobexp_f24_DIM5_i1.dat, 1:10|6.0e+01, 2:10|6.4e+01, 3:10|9.6e+01, 4:10|5.9e+01, 5:10|6.9e+01, 71:10|7.3e+01, 72:10|1.0e+02, 73:10|7.8e+01, 74:10|9.1e+01, 75:10|5.5e+01, 76:10|6.9e+01, 77:10|8.4e+01, 78:10|6.1e+01, 79:10|5.7e+01, 80:10|6.0e+01
+suite = 'bbob', funcId = 24, DIM = 10, Precision = 1.000e-08, algId = 'ALG', coco_version = '2.4', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f24/bbobexp_f24_DIM10_i1.dat, 1:20|1.4e+02, 2:20|1.4e+02, 3:20|1.5e+02, 4:20|1.9e+02, 5:20|1.8e+02, 71:20|1.6e+02, 72:20|1.9e+02, 73:20|1.7e+02, 74:20|1.6e+02, 75:20|1.4e+02, 76:20|1.4e+02, 77:20|1.2e+02, 78:20|1.7e+02, 79:20|1.4e+02, 80:20|1.8e+02
+suite = 'bbob', funcId = 24, DIM = 20, Precision = 1.000e-08, algId = 'ALG', coco_version = '2.4', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f24/bbobexp_f24_DIM20_i1.dat, 1:40|3.1e+02, 2:40|3.4e+02, 3:40|3.3e+02, 4:40|3.8e+02, 5:40|3.1e+02, 71:40|3.4e+02, 72:40|4.0e+02, 73:40|3.5e+02, 74:40|2.7e+02, 75:40|2.7e+02, 76:40|3.0e+02, 77:40|3.4e+02, 78:40|3.5e+02, 79:40|3.2e+02, 80:40|3.4e+02
+suite = 'bbob', funcId = 24, DIM = 40, Precision = 1.000e-08, algId = 'ALG', coco_version = '2.4', logger = 'bbob', data_format = 'bbob-new2'
+%
+data_f24/bbobexp_f24_DIM40_i1.dat, 1:80|6.6e+02, 2:80|6.7e+02, 3:80|6.4e+02, 4:80|5.8e+02, 5:80|6.3e+02, 71:80|6.6e+02, 72:80|6.0e+02, 73:80|5.8e+02, 74:80|6.2e+02, 75:80|7.0e+02, 76:80|6.7e+02, 77:80|5.7e+02, 78:80|6.1e+02, 79:80|6.1e+02, 80:80|6.5e+02

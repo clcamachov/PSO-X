@@ -1303,7 +1303,7 @@ void Swarm::getParticleParentsIDs(int particleID, int *ParentsArray1D){
 	for (int i=0; i<=lastLevelComplete; i++)
 		ParentsArray1D[i] = -2;
 
-	//Find particle index in the swarm by its ID
+	//Find particle's index in the swarm by its ID
 	long int index=0;
 	for(unsigned int i=0; i<swarm.size(); i++){
 		if (particleID == swarm.at(i)->getID()){
