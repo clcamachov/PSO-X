@@ -16,7 +16,7 @@ Weierstrass::Weierstrass(Configuration* config, int variantID):Problem(config, v
 	optimum = 0.0;
 
 	if(vID == SHIFTED_ROTATED){
-		if(config->getCompetitionID() == CEC05){
+		if(config->getCompetitionID() == CEC05 || config->getCompetitionID() == MIXTURE){
 			z = new double[dimension];
 			m_r = new double[dimension];
 
@@ -43,7 +43,7 @@ Weierstrass::Weierstrass(Configuration* config, int variantID):Problem(config, v
 			Utils::loadRowVectorFromFile(file_data, dimension, shift_vector);
 			Utils::loadMatrixFromFile(file_m, dimension, dimension, rotation_matrix);
 		}else
-			if(config->getCompetitionID() == MIXTURE || config->getCompetitionID() == CEC14){
+			if(config->getCompetitionID() == CEC14){
 				z = new double[dimension];
 				m_r = new double[dimension];
 

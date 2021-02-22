@@ -569,65 +569,198 @@ bool Configuration::getConfig(int argc, char *argv[]){
 
 //TODO: Create complete man page
 void Configuration::printUsage(){
+	//### Parameter file for the PSO-X software
 	cout << "" << endl;
-	cout << "PSO-2020: A flexible and configurable particle swarm optimization framework" << endl;
+	cout << "Manual entry for PSO-X: A configurable, component-based framework for particle swarm optimization." << endl;
+
+
 	cout << "" << endl;
 	cout << "General parameters:" << endl;
-	cout << "\t--competition <competitionID>" << endl;
-	cout << "\t\t We have three benchmark options:" << endl;
-	cout << "\t\t CEC05 or 0, CEC14 or 1, SOFT_COMPUTING or 2, MIXTURE or 3." << endl;
-	cout << "\t--problem <problemID>" << endl;
-	cout << "\t\t For CEC05 can be from 0 to 24, " << endl;
-	cout << "\t\t for CEC14 can be from 0 to 18, " << endl;
-	cout << "\t\t for SOFT_COMPUTING can be from 0 to 18 and" << endl;
-	cout << "\t\t for MIXTURE can be from 0 to 49." << endl;
-	cout << "\t--dimensions <problemDimension>" << endl;
-	cout << "\t\t To run tests: 10, 30 and 50." << endl;
-	cout << "\t\t To tune the algorithm from 10 to 59." << endl;
-	cout << "\t--seed <rngSeed>" << endl;
-	cout << "\t\t Seed for random numbers." << endl;
-	cout << "\t--evaluations <maxFES>" << endl;
-	cout << "\t\t Maximum number of function evaluation, for running tests is recommended (10,000 * dimensions)." << endl;
-	cout << "\t--iterations <max_iterations>" << endl;
-	cout << "\t\t Maximum number of iterations." << endl;
-	cout << "\t--particles" << endl;
-	cout << "\t\t This is the swarm size, for running test the number of particles recommended are 20, 40 or 60." << endl;
-	cout << "\t--inertia" << endl;
-	cout << "\t\t Value of the inertia weight use when updating the velocity" << endl;
-	cout << "\t--phi1" << endl;
-	cout << "\t\t ValuinitialIWe of the personal coefficient" << endl;
-	cout << "\t--phi2" << endl;
-	cout << "\t\t Value of the social coefficient" << endl;
+	//######--- general parameters ---######
+	cout << "\t--useLogs|--noLogs" << endl;
+	cout << "\t--verbose|--quiet" << endl;
+	cout << "\t--levelVerbose <0, 1, 2, 3>" << endl;
+	    cout << "\t\t 0=print minimum information, 1=print general information, 2=print variables, 3=print pretty much everything" << endl;
+	cout << "\t--outputPath" << endl;
+	    cout << "\t\t If --noLogs, this option is ignored" << endl;
+
+	cout << "\t--competition <0, 1, 2, 3>" << endl;
+	    cout << "\t\t 0=CEC05, 1=CEC14, 2=SOFT_COMPUTING, and 3=MIXTURE." << endl;
+	cout << "\t--problem <0,...,24|18|18|49>" << endl;
+	    cout << "\t\t For CEC05, it can be from 0 to 24, " << endl;
+	    cout << "\t\t for CEC14, it can be from 0 to 18, " << endl;
+	    cout << "\t\t for SOFT_COMPUTING, it can be from 0 to 18 and" << endl;
+	    cout << "\t\t for MIXTURE, it can be from 0 to 49." << endl;
+	cout << "\t--dimensions <1,...,d>" << endl;
+	    cout << "\t\t Number of dimensions of the problem." << endl;
+	cout << "\t--seed <positive integer> (not too large)" << endl;
+	    cout << "\t\t Seed for random numbers generator (Gnu Scientific Library, gsl)." << endl;
+	cout << "\t--evaluations <1,...,n>" << endl;
+	    cout << "\t\t Maximum number of function evaluation." << endl;
+	cout << "\t--iterations <1,...,n>" << endl;
+	    cout << "\t\t Maximum number of iterations." << endl;
+
+
 	cout << "" << endl;
-	cout << "Available neighborhood structures:" << endl;
-	cout << "\t--fullyConnected" << endl;
-	cout << "\t\t TOP_FULLYCONNECTED or 0." << endl;
-	cout << "\t--ring" << endl;
-	cout << "\t\t TOP_RING or 1." << endl;
-	cout << "\t--star" << endl;
-	cout << "\t\t TOP_STAR or 2." << endl;
-	cout << "\t--random" << endl;
-	cout << "\t\t TOP_RANDOM or 3." << endl;
-	cout << "\t--vonneumann" << endl;
-	cout << "\t\t TOP_VONNEUMANN or 4." << endl;
-	cout << "\t--timevarying" << endl;
-	cout << "\t\t TOP_TIMEVARYING or 5." << endl;
-	cout << "\t--tSchedule" << endl;
-	cout << "\t\t When using --timevarying topology is necessary to set the topology update schedule. The value is computed as tSchedule * n, where n=particles." << endl;
-	cout << "\t\t The chosen value will be multiplied by n=particles" << endl;
-	cout << "\t--scalefree" << endl;
-	cout << "\t\t TOP_SCALEFREE or 6." << endl;
+	cout << "Population parameters:" << endl;
+	//######--- population parameters ---######
+	cout << "\t--populationCS        <0, 1, 2>" << endl;
+	    cout << "\t\t population control strategy: 0=FIXED, 1=TIME-VARYING, 2=INCREMENTAL." << endl;
+	cout << "\t--particles           <2,...,n>" << endl;
+	    cout << "\t\t This value is ignored when used with populationCS=2." << endl;
+	cout << "\t--initialPopSize      <2,...,n>" << endl;
+	    cout << "\t\t When populationCS=1, this value is the minimum population size, and whe populationCS=2, this is the initial population size." << endl;
+	cout << "\t--finalPopSize        <2,...,n>" << endl;
+	    cout << "\t\t When populationCS=1, this value is the maximum population size, and whe populationCS=2, this is the final population size" << endl;
+	cout << "\t--particlesToAdd      <1,...,n>" << endl;
+	    cout << "\t\t Number of particles to use when populationCS=2." << endl;
+	cout << "\t--pIntitType          <0, 1>" << endl;
+	    cout << "\t\t 0=random initialization, 1=horizontal learning initialization." << endl;
+	cout << "\t--popTViterations     <1,...,n>" << endl;
+	    cout << "\t\t Number of iterations to add/remove one particle when populationCS=1." << endl;
+
+
+
 	cout << "" << endl;
-	cout << "\t--clamped" << endl;
-	cout << "\t\t Use velocity (step size) and position clamping." << endl;
-	cout << "\t--iwSchedule" << endl;
-	cout << "\t\t When using --inertiaCS is necessary to set the the inertia weight schedule. The value used is computed as initialIW * n^2, where n=particles." << endl;
-	cout << "\t--initialIW" << endl;
-	cout << "\t\t To be described." << endl;
-	cout << "\t--finalIW" << endl;
-	cout << "\t\t To be described." << endl;
-	cout << "\t--vRule" << endl;
-	cout << "\t\t To be described." << endl;
+	cout << "Distribution of all next possible positions parameters:" << endl;
+	//######--- distribution of all next possible positions parameters ---######
+	cout << "\t--DNPP                <0, 1, 2>" << endl;
+	    cout << "\t\t Distribution of all possible positions, 0=DNPP-RECTANGULAR, 1=DNPP-SPHERICAL, 2=DNPP-ADDITIVE-STOCHASTIC." << endl;
+	cout << "\t--operator_q          <0, 1, 2, 3>" << endl;
+	    cout << "\t\t Type of q-operator to use when DNPP=2: 0=Standard, 1=Gaussian, 2=Discrete, 3=Cauchy-Gaussian." << endl;
+	cout << "\t--randNeighbor        <0, 1>" << endl;
+	    cout << "\t\t When DNPP=2, use a random neighbor instead of lbest: 0=use lbest, 1=use random neighbor." << endl;
+	cout << "\t--operatorCG_parm_r   <0.00, 1.00>" << endl;
+	    cout << "\t\t Probability for the Cauchy distribution to be used when operator_q=3." << endl;
+
+
+	cout << "" << endl;
+	cout << "Topology parameters:" << endl;
+	//######--- topology parameters ---######
+	cout << "\t--topology            <0, 1, 2, 3, 4, 5, 6>" << endl;
+	    cout << "\t\t Population topology: 0=FULLY CONNECTED, 1=TOP_RING, 2=TOP_WHEEL, 3=TOP_RANDOM, 4=TOP_VONNEUMANN, 5=TOP_TIMEVARYING, 6=TOP_HIERARCHICAL." << endl;
+	cout << "\t--modInfluence        <0, 1, 2>" << endl;
+	    cout << "\t\t Model of influence: 0=MOI_BEST_OF_N, 1=MOI_FI, 2=MOI_RANKED_FI." << endl;
+	cout << "\t--branching           <2, 20>" << endl;
+	    cout << "\t\t Specifies the branching degree of the tree when topology=6." << endl;
+	cout << "\t--tSchedule           <2, 10>" << endl;
+	    cout << "\t\t Specifies the velocity at which the topology is desconnected when topology=5, its value is multiplied by the swarm size before the algorithm execution." << endl;
+
+
+	cout << "" << endl;
+	cout << "Acceleration coefficients parameters:" << endl;
+	//######--- acceleration coefficients parameters ---######
+	cout << "\t--accelCoeffCS        <0, 1, 2, 3>" << endl;
+	    cout << "\t\t Acceleration coefficients computation strategies: 0=AC_CONSTANT, 1=AC_TIME_VARYING, 2=AC_EXTRAPOLATED, 3=AC_RANDOM." << endl;
+	cout << "\t--phi1                <0.00, 2.50>" << endl;
+	    cout << "\t\t Value of phi1 when accelCoeffCS=0." << endl;
+	cout << "\t--phi2                <0.00, 2.50>" << endl;
+	    cout << "\t\t Value of phi2 when accelCoeffCS=0." << endl;
+	cout << "\t--initialPhi1         <0.00, 2.50>" << endl;
+	    cout << "\t\t Initial value of phi1 when accelCoeffCS=<1, 3>." << endl;
+	cout << "\t--finalPhi1           <0.00, 2.50>" << endl;
+	    cout << "\t\t Final value of phi1 when accelCoeffCS=<1, 3>." << endl;
+	cout << "\t--initialPhi2         <0.00, 2.50>" << endl;
+	    cout << "\t\t Initial value of phi2 when accelCoeffCS=<1, 3>." << endl;
+	cout << "\t--finalPhi2           <0.00, 2.50>" << endl;
+	    cout << "\t\t Final value of phi2 when accelCoeffCS=<1, 3>." << endl;
+
+
+	cout << "" << endl;
+	cout << "Random (additive) perturbation parameters:" << endl;
+	//######--- "random" perturbation parameters ---######
+	cout << "\t--perturbation2       <0, 1, 2>" << endl;
+	    cout << "\t\t Random (additive) perturbation strategies: 0=NONE, 1=RECTANGULAR, 2=NOISY." << endl;
+	cout << "\t--magnitude2CS        <1, 2, 3, 4>" << endl;
+	    cout << "\t\t Wen perturbation2=<1, 2> is used, the perturbation magnitude control strategies can be computed using: 1=CONSTANT, 2=EUCLIDEAN_DISTANCE, 3=OBJECTIVE FUNCTION DISTANCE, 4=SUCCESS RATE." << endl;
+	cout << "\tmagnitude2            <0.0, 1.0>" << endl;
+	    cout << "\t\t magnitude2 specifies a constant value for the perturbation magnitude (magnitude2CS=1), or the initial value of the perturbation magnitude (magnitude2CS=4)." << endl;
+	cout << "\t--mag2_parm_l_CS      <0, 1>" << endl;
+	    cout << "\t\t Strategy to compute the value of epsilon used in magnitude2CS=2: 0=INDEPENDENT, 1=USER_SUPPLIED." << endl;
+	cout << "\t--mag2_par_l          <0.0, 1.0>" << endl;
+	    cout << "\t\t When mag2_parm_l_CS=1, mag2_par_l specifies the value of epsilon." << endl;
+	cout << "\t--mag2_par_m          <0.0, 1.0>" << endl;
+	    cout << "\t\t Value of the m used when magnitude2CS=3." << endl;
+	cout << "\t--mag2_parm_success   <1, 50>" << endl;
+	    cout << "\t\t Value of parameter sc when magnitude2CS=4." << endl;
+	cout << "\t--mag2_parm_failure   <1, 50>" << endl;
+	    cout << "\t\t Value of parameter fc when magnitude2CS=4." << endl;
+
+
+	cout << "" << endl;
+	cout << "omega1 parameters:" << endl;
+	//######--- omega1 parameters ---######
+	cout << "\t--omega1CS            <0,...,16>" << endl;
+	    cout << "\t\t Control strategies for the omega1 parameter (inertia weight): 0=CONSTANT, 1=LINEAR INCREASING, 2=LINEAR_DECREASION, 3=RANDOM, 4=NON-LINEAR_DECECREASING, 5=NON-LINEAR_DECREASING_IMPROVED, 6=NON-LINEAR_DECREASING_TIME, 7=CHAOTIC_DECREASING, 8=EXPONENTIAL_DECREASING, 9=OSCILLATING, 10=LOGARITHMIC_DECREASING, 11=SELF_REGULATING, 12=VELOCITY_BASED, 13=DOUBLE_EXPONENTIAL, 14=RANK_BASED, 15=SUCCESS_BASED, 16=CONVERGE_BASED." << endl;
+	cout << "\t--inertia             <0.00, 0.90>" << endl;
+	    cout << "\t\t When omega1CS=0, inertia specifies the value of the parameter." << endl;
+	cout << "\t--initialIW           <0.00, 0.90>" << endl;
+	    cout << "\t\t Initial value of the inertia when omega1CS=<2, 3, 11, 12, 13, 14, 15 ,16>." << endl;
+	cout << "\t--finalIW             <0.00, 0.90>" << endl;
+	    cout << "\t\t Final value of the inertia when omega1CS=<2, 3, 11, 12, 13, 14, 15 ,16>." << endl;
+	cout << "\t--iwSchedule          <1, 10>" << endl;
+	    cout << "\t\t When omega1CS=2, this parameter specifies the velocity at which the value of the inertia decreases, its value is multiplied by the swarm size before the algorithm execution." << endl;
+	cout << "\t--iw_par_eta          <0.10, 1.00>" << endl;
+	    cout << "\t\t Value of parameter eta when omega1CS=11." << endl;
+	cout << "\t--iw_par_deltaOmega   <0.10, 1.00>" << endl;
+	    cout << "\t\t Value of parameter lambda when omega1CS=12." << endl;
+	cout << "\t--iw_par_alpha_2      <0.00, 1.00>" << endl;
+	    cout << "\t\t Value of parameter a when omega1CS=16." << endl;
+	cout << "\t--iw_par_beta_2       <0.00, 1.00>" << endl;
+	    cout << "\t\t Value of parameter b when omega1CS=16." << endl;
+
+
+	cout << "" << endl;
+	cout << "omega2 and omega3 parameters:" << endl;
+	//######--- omega2 and omega3 parameters ---######
+	cout << "\t--omega2CS            <0, 1, 2, 3, 4>" << endl;
+	    cout << "\t\t Strategies for computing the value of omega2: 0=EQUAL_TO_OMEGA1, 1=ZERO, 2=ONE, 3=rANDOM, 4=CONSTANT." << endl;
+	cout << "\t--omega2              <0.0, 1.0>" << endl;
+	    cout << "\t\t Value of omega2 when omega2CS=4." << endl;
+	cout << "\t--omega3CS            <0, 2, 3, 4>" << endl;
+	    cout << "\t\t When perturbation2=<1, 2>, the value of omega3 can be computed using: 0=EQUAL_TO_OMEGA1, 1=ZERO, 2=ONE, 3=rANDOM, 4=CONSTANT." << endl;
+	cout << "\t--omega3              <0.0, 1.0>" << endl;
+	    cout << "\t\t Value of omega3 when omega3CS=4." << endl;
+
+
+	cout << "" << endl;
+	cout << "Informed perturbation parameters:" << endl;
+	//######--- "informed" perturbation parameters ---######
+	cout << "\t--perturbation1       <0, 1, 2, 3>" << endl;
+	    cout << "\t\t When omega2CS=<0, 2, 3, 4>, the informed perturbation can be: 0=NONE, 1=GAUSSIAN, 2=LEVY, 3=UNIFORM." << endl;
+	cout << "\t--magnitude1CS        <1, 2, 3, 4>" << endl;
+	    cout << "\t\t When perturbation1=<1, 2, 3>, the strategies for computing the value of the perturbation magnitude are: 1=CONSTANT, 2=EUCLIDEAN_DISTANCE, 3=OBJECTIVE FUNCTION DISTANCE, 4=SUCCESS RATE." << endl;
+	cout << "\t--magnitude1          <0.0, 1.0>" << endl;
+	    cout << "\t\t magnitude1 specifies a constant value for the perturbation magnitude (magnitude1CS=1), or the initial value of the perturbation magnitude (magnitude1CS=4)." << endl;
+	cout << "\t--mag1_parm_l_CS      <0, 1>" << endl;
+	    cout << "\t\t Strategy to compute the value of epsilon used in magnitude1CS=2: 0=INDEPENDENT, 1=USER_SUPPLIED." << endl;
+	cout << "\t--mag1_par_l          <0.0, 1.0>" << endl;
+	    cout << "\t\t When mag1_parm_l_CS=1, mag1_par_l specifies the value of epsilon." << endl;
+	cout << "\t--mag1_par_m          <0.0, 1.0>" << endl;
+	    cout << "\t\t Value of the m used when magnitude1CS=3." << endl;
+	cout << "\t--mag1_parm_success   <1, 50>" << endl;
+	    cout << "\t\t Value of parameter sc when magnitude1CS=4." << endl;
+	cout << "\t--mag1_parm_failure   <1, 50>" << endl;
+	    cout << "\t\t Value of parameter fc when magnitude1CS=4." << endl;
+
+
+	cout << "" << endl;
+	cout << "Random matrices parameters:" << endl;
+	//######--- random matrices parameters ---######
+	cout << "\t--randomMatrix        <0, 1, 2, 3, 4, 5>" << endl;
+	    cout << "\t\t When DNPP=<0, 1>, the following option are available for creating a random matrix: 0=NONE, 1=DIAGONAL, 2=LINEAR, 3=RRM_EXPONENTIAL_MAP, 4=RRM_EUCLIDEAN_ONE_PLANE, 5=RRM_EUCLIDEAN_ALLPLANES." << endl;
+	cout << "\t--angleCS             <0, 1, 2>" << endl;
+	    cout << "\t\t When randomMatrix=<3, 4>, the rotation angle can be computed using: 0=CONSTANT, 1=NORMAL, 2=ADAPTIVE." << endl;
+	cout << "\t--rotation_angle      <0, 40>" << endl;
+	    cout << "\t\t If angleCS=0, this parameter specifies the value of the ration angle." << endl;
+	cout << "\t--angleSD             <0.01, 40.00>" << endl;
+	    cout << "\t\t If angleCS=1, this parameter specifies the standar deviation of a Normal distribution." << endl;
+	cout << "\t--angle_par_alpha     <1, 40>" << endl;
+	    cout << "\t\t Value of parameter zita when angleCS=2." << endl;
+	cout << "\t--angle_par_beta      <0.01, 0.90>" << endl;
+	    cout << "\t\t Value of parameter rho when angleCS=2." << endl;
+
+
 }
 
 /*Default parameters (KISS)*/
@@ -653,7 +786,7 @@ void Configuration::setDefaultParameters(){
 	initialPopSize = 2;						//initial population
 	finalPopSize= 1000;						//final or maximum number of individuals allowed
 	particlesToAdd = 1;						//number of particles added in a non-constant PopCS
-	p_intitType = PARTICLE_INIT_RANDOM;      //type of initialization of particles in a non-constant PopCS
+	p_intitType = PARTICLE_INIT_RANDOM;     //type of initialization of particles in a non-constant PopCS
 	popTViterations = 2;
 
 	/** Acceleration coefficients **/
@@ -739,7 +872,7 @@ void Configuration::setDefaultParameters(){
 /*Print parameters */
 void Configuration::printParameters(){
 
-	cout << "\nPSO-X parameters:\n";
+	cout << "\nPSO-X is being executed with the next parameters:\n";
 	switch (getCompetitionID()){
 	case CEC05: 			cout	<< "  competition:       CEC05\n"; break;
 	case CEC14: 			cout	<< "  competition:       CEC14\n"; break;
