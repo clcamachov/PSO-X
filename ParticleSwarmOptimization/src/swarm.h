@@ -49,6 +49,10 @@ public:
 	void moveSwarm(Configuration* config, const long int iteration);
 	void getInformants(Configuration* config, int particleID, long int iteration);	//returns the number of informants of a particle
 
+	// Randon matrix component
+	void computeRandomMatrixGroupedIncreasing(Configuration* config, long int iteration);
+
+
 	// Inertia and acceleration coefficients
 	void computeAccelerationCoefficients(Configuration* config, long int iteration);
 	void decomposePhi2(int modelOfInflu, int part_id, int numInformants);

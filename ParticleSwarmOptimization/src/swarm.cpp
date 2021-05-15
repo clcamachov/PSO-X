@@ -164,6 +164,9 @@ void Swarm::moveSwarm(Configuration* config, const long int iteration) {
 	//Compute the acceleration coefficients of the entire swarm
 	computeAccelerationCoefficients(config, iteration);
 
+	//Compute the random diagonal matrix using the increasing stochastic scaling grouping
+	computeRandomMatrixGroupedIncreasing(config, iteration);
+
 	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_VARIABLE))
 		cout << "\n\t------------------------------------------" << endl;
 
@@ -178,20 +181,20 @@ void Swarm::moveSwarm(Configuration* config, const long int iteration) {
 			}
 			//print all neighbors
 			if (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS){
-			cout << "\tNeighbors ids:  [ ";
-			for (unsigned int j=0; j<swarm.at(i)->neighbors.size(); j++){
-				cout << swarm.at(i)->neighbors.at(j)->getID() << " ";
-			} cout << "]" << endl;
-			//print the informants positions in swarm
-			cout << "\tInformants pos: [ ";
-			for (unsigned int j=0; j<swarm.at(i)->informants.size(); j++)
-				cout << swarm.at(i)->informants.at(j) << " ";
-			cout << "]" << endl;
-			//print the informants IDs
-			cout << "\tInformants ids: [ ";
-			for (unsigned int j=0; j<swarm.at(i)->informants.size(); j++)
-				cout << swarm.at(i)->neighbors.at(swarm.at(i)->informants.at(j))->getID() << " ";
-			cout << "]"<< endl;
+				cout << "\tNeighbors ids:  [ ";
+				for (unsigned int j=0; j<swarm.at(i)->neighbors.size(); j++){
+					cout << swarm.at(i)->neighbors.at(j)->getID() << " ";
+				} cout << "]" << endl;
+				//print the informants positions in swarm
+				cout << "\tInformants pos: [ ";
+				for (unsigned int j=0; j<swarm.at(i)->informants.size(); j++)
+					cout << swarm.at(i)->informants.at(j) << " ";
+				cout << "]" << endl;
+				//print the informants IDs
+				cout << "\tInformants ids: [ ";
+				for (unsigned int j=0; j<swarm.at(i)->informants.size(); j++)
+					cout << swarm.at(i)->neighbors.at(swarm.at(i)->informants.at(j))->getID() << " ";
+				cout << "]"<< endl;
 			}
 		}
 		//Note that here computeOmega1 receives the number of the particle and the flag = false
@@ -220,6 +223,52 @@ void Swarm::moveSwarm(Configuration* config, const long int iteration) {
 
 	//Compute the number of solutions that improved in the last iteration
 	sol_improved = countImprovedSolutions(config, iteration);
+}
+
+void Swarm::computeRandomMatrixGroupedIncreasing(Configuration* config, long int iteration){
+	double * Matrix;
+	Matrix= new double[config->getProblemDimension()];
+
+	if (config->getRandomMatrix() == MATRIX_GROUPED_INCREASING){
+
+		int groups = ((double)(config->getProblemDimension()-1) / (double)(config->getMaxIterations()-1)) * (iteration-1) + 1;
+		if (config->verboseLevel() >= VERBOSE_LEVEL_VARIABLE) {
+			cout << " -- groups = " << groups << endl;
+//			cout << " -- iteration = " << iteration << endl;
+//			cout << " -- dimensions = " << (config->getProblemDimension()-1) << endl;
+//			cout << " -- iterations = " << (config->getMaxIterations()-1) << endl;
+//			cout << " -- fraction = " << ((double)(config->getProblemDimension()-1) / (double)(config->getMaxIterations()-1)) << endl;
+		}
+		int dCounter = 0;
+		double lastRandom = 0;
+
+		//check that groups has a valid value
+		if (groups<1) groups = 1;
+		if (groups > config->getProblemDimension()) groups = config->getProblemDimension();
+
+		//Create a random vector divided in groups
+		for (int j=0; j<groups; j++){
+			double randonNumber = RNG::randVal(0,1);
+			for (int i=j*(config->getProblemDimension()/groups); i<(j*(config->getProblemDimension()/groups))+(config->getProblemDimension()/groups); i++){
+				Matrix[i] =randonNumber;
+				dCounter++;
+				lastRandom=randonNumber;
+			}
+		}
+		for (int k=dCounter; k<config->getProblemDimension(); k++)
+			Matrix[k] =lastRandom;
+	}
+	else{
+		for (int i=0; i<config->getProblemDimension(); i++)
+			Matrix[i]=1.0;
+	}
+	if (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS){
+		cout << "\t Random diagonal matrix [";
+		for (int i=0; i<config->getProblemDimension(); i++)
+			cout << " " << Matrix[i];
+		cout << "]" << endl;
+	}
+	config->setMatrixGI(Matrix);
 }
 
 void Swarm::getInformants(Configuration* config, int pPosinSwarm, long int iteration){

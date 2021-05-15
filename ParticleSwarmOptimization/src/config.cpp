@@ -861,6 +861,7 @@ void Configuration::setDefaultParameters(){
 	operator_q = Q_STANDARD;				//q_operator in simple dynamics PSO
 	randNeighbor = true;					//chose a random neighbor as p2 in operator_q
 	operatorCG_parm_r = 0.5;				//probability for the Cauchy distribution
+	MatrixGI = new double[problemDimension];//random vector to be used for the grouping strategy
 
 	/** Logs **/
 	useLogs = true;							//create a folder an log the execution of the algorithm
@@ -1139,6 +1140,7 @@ void Configuration::printParameters(){
 	break;
 	}
 	break;
+	case MATRIX_GROUPED_INCREASING:	cout	<< "  randomMatrix:      GROUPED INCREASING\n"; break;
 	}
 	switch (getDistributionNPP()){
 	case DIST_RECTANGULAR: 		cout	<< "  DistributionNPP:   RECTANGULAR\n"; break;
@@ -1411,7 +1413,12 @@ double Configuration::get_angle_par_alpha(){
 double Configuration::get_angle_par_beta(){
 	return (angle_par_beta);
 }
-
+double * Configuration::getMatrixGI(){
+	return (MatrixGI);
+}
+void Configuration::setMatrixGI(double * new_MatrixGI){
+	MatrixGI = new_MatrixGI;
+}
 double Configuration::getRotationAgle(){
 	return (rotation_angle);
 }

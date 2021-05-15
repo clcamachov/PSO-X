@@ -981,6 +981,13 @@ void Particle::computeRndMatrix(Configuration* config, double ** rndMatrix, int 
 		for (int i=0; i<size; i++)
 			rndMatrix[i][i] = 1.0;
 	}
+	if (RmatrixType == MATRIX_GROUPED_INCREASING){//Random diagonal matrix using the increasing stochastic scaling grouping
+		double * theMatrixGI;
+		theMatrixGI = new double[size];
+		theMatrixGI = config->getMatrixGI();
+		for (int i=0; i<size; i++)
+			rndMatrix[i][i] = theMatrixGI[i];
+	}
 }
 
 //This function returns an angle in radian

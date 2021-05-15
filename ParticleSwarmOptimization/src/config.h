@@ -260,6 +260,7 @@
 #define MATRIX_RRM_EXP_MAP				3
 #define MATRIX_RRM_EUCLIDEAN_ONE		4
 #define MATRIX_RRM_EUCLIDEAN_ALL		5
+#define MATRIX_GROUPED_INCREASING		6
 
 #define ANGLE_CONSTANT					0
 #define ANGLE_NORMAL					1
@@ -379,7 +380,8 @@ private:
 	double angleSD;
 	double angle_par_alpha;
 	double angle_par_beta;
-	double rotation_angle; //self-explanatory
+	double rotation_angle;
+	double * MatrixGI;
 
 	//DNPP
 	short distributionNPP;
@@ -528,6 +530,8 @@ public:
 	void setAngleSD(double angle_sd);
 	double get_angle_par_alpha();
 	double get_angle_par_beta();
+	double * getMatrixGI();
+	void setMatrixGI(double * new_MatrixGI);
 
 	//DNPP
 	short getDistributionNPP();
