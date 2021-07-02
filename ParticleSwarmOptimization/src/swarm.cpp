@@ -206,7 +206,6 @@ void Swarm::moveSwarm(Configuration* config, const long int iteration) {
 				sol_improved);
 	}
 	long double prev_Gbest_eval = global_best.eval; //best solution at iteration t-1
-
 	//Update best_particle
 	for (unsigned int i=0;i<swarm.size();i++){
 		if (swarm.at(i)->getPbestEvaluation() < global_best.eval){
@@ -795,6 +794,8 @@ void Swarm::reinitializeParticlePosition(Configuration* config, long int iterati
 	static long double previousgBestEval = best_particle->getPbestEvaluation();
 	double stdSwarm = 0;
 	double mean = 0;
+	if (reinitSchedule == 0)
+		reinitSchedule=1;
 
 	//Mean value of the O.F. value of the swarm
 	for (unsigned int i=0;i<swarm.size();i++)
@@ -820,8 +821,14 @@ void Swarm::reinitializeParticlePosition(Configuration* config, long int iterati
 	if (iteration%reinitSchedule == 0){
 		//Reinitialize particles if the best solution has not improved after reinitSchedule iterations
 		if (fabs(previousgBestEval - best_particle->getPbestEvaluation()) < OBJECTIVE_FUNCTION_CHANGE_THRESHOLD){
-			if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS))
+			//cout << "\nSo far, so good"<< endl;
+
+			if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
 				cout << "\n\tRestarting particles using gbest derivative\n";
+				cout << "\t\tvar::iteration " << iteration << endl;
+				cout << "\t\tvar::reinitSchedule " << reinitSchedule << endl;
+				cout << "\t\tvar::previousgBestEval " << previousgBestEval << endl;
+			}
 			for (unsigned int i=0;i<swarm.size();i++){
 				if (swarm.at(i)->getID() != best_particle->getID()){ //exclude gBest
 					swarm.at(i)->setRandomPositiongBestDerivative(config, best_particle->getPbestPosition());
