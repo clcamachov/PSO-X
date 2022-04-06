@@ -2,7 +2,7 @@
  * config.h
  *
  *  Created on: May 31, 2019
- *      Author: christian
+ *      Author: Christian L. Camacho Villalón
  */
 
 #ifndef CONFIG_H_

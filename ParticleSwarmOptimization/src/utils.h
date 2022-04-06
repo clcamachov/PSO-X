@@ -2,7 +2,7 @@
  * utils.h
  *
  *  Created on: May 31, 2019
- *      Author: christian
+ *      Author: Christian L. Camacho Villalón
  */
 
 #ifndef UTILS_H_
