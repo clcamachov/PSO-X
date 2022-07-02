@@ -27,8 +27,6 @@ Particle::Particle(){
 	stereotype = -1;
 	lbestID = -1;
 	velocity = NULL;
-	//	perturbationValues = NULL;
-	//	hasVelocitybounds = false;
 	minVelLimit = 0;					//minimum velocity -v_max = (x_max-x_min)/2
 	maxVelLimit = 0;					//maximum velocity  v_max
 	phi_1 = 0;
@@ -224,8 +222,6 @@ void Particle::setVelocityLimits(Configuration* config){
 		else {
 			maxVelLimit = ((config->getMaxInitRange()-config->getMinInitRange())/2.0);
 			minVelLimit = (-maxVelLimit);
-			//			maxVelLimit = config->getMaxInitRange();
-			//			minVelLimit = config->getMinInitRange();
 		}
 	}
 	else {
@@ -239,10 +235,6 @@ void Particle::setVelocityLimits(Configuration* config){
 			minVelLimit = (config->getMinInitRange()*2);
 		}
 	}
-	//	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_COMPUTATIONS)){
-	//		cout    << "  maxVelLimit:       " << maxVelLimit << "\n"
-	//				<< "  minVelLimit:       " << minVelLimit << "\n";
-	//	}
 }
 
 double Particle::getMinVelLimit(){
@@ -533,7 +525,7 @@ void Particle::getAdditiveStochasticDNPP(Configuration* config, double vect_dist
 		p2Index = 0;
 
 	switch (config->getOperator_q()) {
-	//we need to discount current.x[i] in all these operators because it will be added later in the GVU formula
+	//Discount current.x[i] in all these operators; it will be added later in the GVU formula
 	case Q_STANDARD:
 		for (int i=0; i<size; i++){
 			vect_distribution[i] = (
@@ -577,7 +569,7 @@ void Particle::getAdditiveStochasticDNPP(Configuration* config, double vect_dist
 
 void Particle::computeAC(Configuration* config, double &c1, double &c2){
 
-	//When the MoI is BoN there is not need to do any change in the values
+	//When the MoI is BoN there is not need to make any change in the values
 	if (config->getModelOfInfluence() == MOI_BEST_OF_N){
 		c1=phi_1;
 		c2=phi_2;
@@ -728,7 +720,6 @@ double Particle::applyInformedPerturbation(Configuration* config, double pertMag
 	}
 	else
 		returnVal = pos_xi;
-
 
 	return (returnVal);
 }
@@ -997,13 +988,13 @@ double Particle::getAnAngle(Configuration* config, int solImprov, long int itera
 	if (config->getAngleCS() == ANGLE_CONSTANT) //use the same rotation angle in every iteration
 		angle = (config->getRotationAgle()*PI)/180;
 
-	if (config->getAngleCS() ==  ANGLE_NORMAL) //map the angle from a Normal distribution with µ=0 and s.d. = angleSD
+	if (config->getAngleCS() ==  ANGLE_NORMAL) //draw the angle from a Normal distribution with µ=0 and s.d. = angleSD
 		angle = (RNG::randGauss(config->getAngleSD())*PI)/180;
 
-	if (config->getAngleCS() ==  ANGLE_ADAPTIVE){ //map the angle from a Normal distribution with µ=0 using an adaptive s.d.
+	if (config->getAngleCS() ==  ANGLE_ADAPTIVE){ //draw the angle from a Normal distribution with µ=0 using an adaptive s.d.
 		double alpha = config->get_angle_par_alpha();
 		double beta = config->get_angle_par_beta();
-		//Since the strategy is based on success, we will use simpSwarm.
+		//use simpSwarm: the strategy is based on success.
 		if (iteration == 1) { //define simpSwarm if it does not exist
 			angle =  (RNG::randGauss(beta)*PI)/180;
 		}

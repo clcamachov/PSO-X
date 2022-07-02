@@ -446,7 +446,7 @@ bool Configuration::getConfig(int argc, char *argv[]){
 		finalPhi2 = finalPhi1;
 	}
 
-	//The topology schedule should be maximum six times the swarm size, i.e. it goes from n to 6n
+	//The topology schedule should be maximum ten times the swarm size, i.e. it goes from n to 10n
 	if (tSchedule > 10)
 		tSchedule = 10;
 	if (tSchedule < 1)
@@ -567,7 +567,6 @@ bool Configuration::getConfig(int argc, char *argv[]){
 	return(true);
 }
 
-//TODO: Create complete man page
 void Configuration::printUsage(){
 	//### Parameter file for the PSO-X software
 	cout << "" << endl;
@@ -763,7 +762,7 @@ void Configuration::printUsage(){
 
 }
 
-/*Default parameters (KISS)*/
+/*Default parameters */
 void Configuration::setDefaultParameters(){
 	/** General parameters **/
 	/** Problem parameters **/
@@ -1482,7 +1481,6 @@ int Configuration::getTopologyUpdatePeriod(){
 void Configuration::setStartTime(double stime){
 	startTime = stime;
 }
-
 double Configuration::getStartTime(){
 	return (startTime);
 }

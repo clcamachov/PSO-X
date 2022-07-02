@@ -216,17 +216,6 @@
 #define AC_EXTRAPOLATED					2
 #define AC_RANDOM						3
 
-// available velocity update rules
-#define VEL_BASIC						0
-#define VEL_STANDARD					1
-#define VEL_LINEAR						2
-#define VEL_CONSTRICTED					3
-#define VEL_GUARAN_CONVERG				4
-#define VEL_FULLY_INFORMED				5
-#define VEL_LOC_CON_TRANS_INV			6
-#define VEL_STANDARD2011				7	//rotation invariant
-#define VEL_ROTATION_INV				8	//random matrix
-
 #define DIST_RECTANGULAR				0
 #define DIST_SPHERICAL					1
 #define DIST_ADD_STOCH 					2
@@ -338,7 +327,7 @@ private:
 	double inertia;				// actual variable of inertia. If no inertiaCS is given, this value is fixed during the
 	double initialIW;
 	double finalIW;
-	int iwSchedule;	//n^2 , 2n^2 , 3n^2 , 4n^2, etc. (the lower the value the faster)
+	int iwSchedule;				//n^2 , 2n^2 , 3n^2 , 4n^2, etc. (the lower the value the faster)
 	short omega2CS;
 	double omega2;
 	short omega3CS;

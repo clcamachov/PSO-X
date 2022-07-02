@@ -289,7 +289,6 @@ void Problem::oszfunc (double *x, double *xosz, int dim)
 	}
 }
 
-
 double Problem::xRound(double x, double o){
 	return ((fabs(x - o) < 0.5) ? x : (roundVal(2.0 * x) / 2.0));
 }

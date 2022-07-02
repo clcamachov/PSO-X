@@ -83,18 +83,6 @@
 
 using namespace std;
 
-/* This software has three classes containing:
- * 1) a bunch of options -- Configuration: parameters given by the user
- * 2) a bunch of continuous functions -- Problem: continuous optimization problem
- * 3) a bunch of PSO variants -- Swarm: swarm of particles
- *
- * Extending the components of this framework:
- * 	- More neighborhoods structures (topologies) can be added in class Swarm
- * 	- More velocity update strategies can be added in class Particle
- * 	- To use and/or configure components extending the framework is needed to included
- * 	  parameters, arguments, etc., in class Configure and other referenced classes.
- * */
-
 Configuration* config;
 Problem* problem;
 Swarm* swarm;
@@ -103,7 +91,7 @@ Swarm* swarm;
 Problem* initializeProblem() {
 
 	//Available problems
-	//ABC-X (CEC05, CEC14 and SOCO)
+	//From ABC-X (CEC05, CEC14 and SOCO)
 	if(config->getCompetitionID() == MIXTURE){
 		//Problem initialization
 		switch(config->getProblemID()){
@@ -713,15 +701,12 @@ int dirExists(const char *path) {
 	struct stat info;
 
 	if(stat( path, &info ) != 0){
-		//printf( "cannot access %s\n", path );
 		return (0);
 	}
 	else if(info.st_mode & S_IFDIR){
-		//printf( "%s is a directory\n", path );
 		return (1);
 	}
 	else{
-		//printf( "%s is no directory\n", path );
 		return (0);
 	}
 }
@@ -749,7 +734,7 @@ void openLogFile(Configuration* config, fstream &outfile){
 	seed << config->getRNGSeed();
 
 
-	//Remove last / if sent in the path
+	//Remove last "/" if sent in the path
 	size_t found = config->getOutputPath().find_last_of("/\\n");
 	string thePath = config->getOutputPath().substr(0,found);
 	if (config->getOutputPath().substr(found) != "/")
@@ -867,7 +852,6 @@ int main(int argc, char *argv[] ){
 	fstream outfile;
 	if (config->logOutput())
 		openLogFile(config, outfile);
-
 	if (config->verboseMode())
 		config->printParameters();
 

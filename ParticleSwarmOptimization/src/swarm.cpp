@@ -67,7 +67,6 @@ Swarm::Swarm (Problem* problem, Configuration* config){
 		exit (-1);
 	}
 
-	//Select one of the available topologies
 	if (config->getTopology() == TOP_FULLYCONNECTED) {
 		createFullyConnectedTopology();
 	} else if (config->getTopology() == TOP_HIERARCHICAL) {
@@ -105,7 +104,6 @@ int Swarm::countImprovedSolutions(Configuration* config, long int iteration){
 			simpSwarm.at(i).id = swarm.at(i)->getID();
 			simpSwarm.at(i).eval = swarm.at(i)->getCurrentEvaluation();
 		}
-		//}
 		return (0);
 	}
 	else {
@@ -127,11 +125,10 @@ int Swarm::countImprovedSolutions(Configuration* config, long int iteration){
 	}
 }
 
-/*Move the swarm to new solutions */
+/*Move the swarm to create new solutions */
 void Swarm::moveSwarm(Configuration* config, const long int iteration) {
 	static int sol_improved = 0;
 
-	//Print info of the particles
 	if (config->verboseMode() && (config->verboseLevel() >= VERBOSE_LEVEL_VARIABLE)){
 		cout << "\niteration: " << iteration << endl; //remove
 		cout << "\tvar::swarm.size() = " << swarm.size() << endl;
@@ -158,7 +155,7 @@ void Swarm::moveSwarm(Configuration* config, const long int iteration) {
 	//The entire swarm is using the same omega1
 	computeOmega1(config, iteration, -1, true); // -1 is a place holder for the id of the particle
 
-	//We call this method here because some models of influence need to initialize things
+	//Call this method here cause' some models of influence need to initialize things
 	getInformants(config, -1, iteration);	// -1 is a place holder for the id of the particle
 
 	//Compute the acceleration coefficients of the entire swarm
@@ -197,7 +194,7 @@ void Swarm::moveSwarm(Configuration* config, const long int iteration) {
 				cout << "]"<< endl;
 			}
 		}
-		//Note that here computeOmega1 receives the number of the particle and the flag = false
+		//Here, computeOmega1 always receives the number of the particle and the flag = false
 		swarm.at(i)->move(config, iteration,
 				computeOmega1(config, iteration, i, false), //Compute self-adaptive omega1, otherwise this function returns the value already computed
 				computeOmega2(config),
@@ -233,10 +230,6 @@ void Swarm::computeRandomMatrixGroupedIncreasing(Configuration* config, long int
 		int groups = ((double)(config->getProblemDimension()-1) / (double)(config->getMaxIterations()-1)) * (iteration-1) + 1;
 		if (config->verboseLevel() >= VERBOSE_LEVEL_VARIABLE) {
 			cout << " -- groups = " << groups << endl;
-//			cout << " -- iteration = " << iteration << endl;
-//			cout << " -- dimensions = " << (config->getProblemDimension()-1) << endl;
-//			cout << " -- iterations = " << (config->getMaxIterations()-1) << endl;
-//			cout << " -- fraction = " << ((double)(config->getProblemDimension()-1) / (double)(config->getMaxIterations()-1)) << endl;
 		}
 		int dCounter = 0;
 		double lastRandom = 0;
@@ -274,7 +267,6 @@ void Swarm::getInformants(Configuration* config, int pPosinSwarm, long int itera
 	if (pPosinSwarm == -1){
 		//Only implement ranks if particles are not using them already
 		if (config->getModelOfInfluence() == MOI_RANKED_FI && config->getOmega1CS() != IW_RANKS_BASED)
-			//Rank particles
 			rankParticles(simpSwarm);
 	}
 	else {
@@ -300,8 +292,8 @@ void Swarm::getInformants(Configuration* config, int pPosinSwarm, long int itera
 				int bestPos = 0;
 				int iter = 0;
 				bool itselfAdded = false;
-				//We need to find the position of the particle in neighbors vector that has the best PbestEvaluation
-				//We have to do that by finding the corresponding IDs in TMP_Array and neighbours.at(i)->getID()
+				//Find the position of the particle in neighbors vector that has the best PbestEvaluation
+				//using the corresponding IDs in TMP_Array and neighbours.at(i)->getID()
 				for (unsigned int i=0; i<swarm.at(pPosinSwarm)->neighbors.size(); i++){
 					for (int j=0; j<Array_size; j++){
 						if (swarm.at(pPosinSwarm)->neighbors.at(i)->getID() == TMP_Array[j]){
@@ -359,7 +351,7 @@ void Swarm::getInformants(Configuration* config, int pPosinSwarm, long int itera
 				//Clear the vector
 				swarm.at(pPosinSwarm)->informants.clear();
 
-				//We need to find the position index of the IDs in TMP_Array in the particles neighbors vector
+				//Find the index of the IDs in TMP_Array in the particles neighbors vector
 				for (unsigned int i=0; i<swarm.at(pPosinSwarm)->neighbors.size(); i++){
 					for (int j=0; j<Array_size; j++){
 						if (swarm.at(pPosinSwarm)->neighbors.at(i)->getID() == TMP_Array[j])
@@ -395,7 +387,7 @@ void Swarm::getInformants(Configuration* config, int pPosinSwarm, long int itera
 				TMP_vect.at(i).at(1) = swarm.at(pPosinSwarm)->neighbors.at(i)->getRanking();
 			}
 
-			//we sort by the second column (see sortcol prototype function above)
+			//Sort by the second column (see sortcol prototype function above)
 			sort(TMP_vect.begin(), TMP_vect.end(), sortcol);
 
 			//copy informants ID to Informants sorted
@@ -630,7 +622,7 @@ void Swarm::updateTopologyConnections(Configuration* config, long previous_size,
 		}
 		if (config->getTopology() == TOP_TIMEVARYING){
 			if (iteration < config->getTopologySchedule()){
-				//We connect a particle randomly with swarm ensuring that the particle is connected to the adjacent neighbors (RING)
+				//Connect a particle randomly with swarm ensuring that the particle is connected to the adjacent neighbors (RING)
 				//Get average connections number of the swarm.
 				int averageConnections = 0;
 				for(unsigned int i=0; i<swarm.size(); i++){
@@ -697,7 +689,7 @@ void Swarm::removeOneParticle(Configuration* config){
 		//Get the number of particles in the last level complete
 		for (int i=0; i<pow(config->getBranchingDegree(),lastLevelComplete+1); i++){
 			if (hierarchy.at(lastLevelComplete+1).at(i) != -2) {
-				//Since hierarchy contains the ID of particles, we need to look for the particle in swarm with that ID
+				//Since hierarchy contains the ID of particles, look for the particle with that ID
 				for (unsigned int j=0;j<swarm.size();j++){
 					if (swarm.at(j)->getID() == hierarchy.at(lastLevelComplete+1).at(i)){
 						//If its the first iteration there's nothing to compare, just keep the quality in pQuality
@@ -727,7 +719,6 @@ void Swarm::removeOneParticle(Configuration* config){
 		//Update lastLevelComplete in case there are no more particles in that level
 		if(childsInLastLevel == 1)
 			lastLevelComplete--;
-
 	}
 	//Find worst particle
 	else {
@@ -786,10 +777,11 @@ void Swarm::addParticles(Problem* problem, Configuration* config, int numOfParti
 }
 
 void Swarm::reinitializeParticlePosition(Configuration* config, long int iteration){
-	//Reinitialize particles that are too close to gbest
 	/*
-	 * First strategy: using standard deviation and overall change in the O.F.
+	 * Reinitialize particles that are too close to gbest
 	 */
+
+	//First strategy: using standard deviation and overall change in the O.F.
 	static long int reinitSchedule = 10*config->getProblemDimension()/swarm.size();
 	static long double previousgBestEval = best_particle->getPbestEvaluation();
 	double stdSwarm = 0;
@@ -838,9 +830,7 @@ void Swarm::reinitializeParticlePosition(Configuration* config, long int iterati
 		previousgBestEval = best_particle->getPbestEvaluation();
 	}
 
-	/*
-	 * Second strategy: using similarity (It works, you can uncomment it!)
-	 */
+	// Second strategy: using similarity (It works, you can uncomment it!)
 	//	for (unsigned int i=0;i<swarm.size();i++){
 	//		//Check that the particle is different to itself before reinitializing its position
 	//		if (swarm.at(i)->getID() != swarm.at(i)->getgBestID()){
@@ -893,8 +883,6 @@ void Swarm::decomposePhi2(int modelOfInflu, int part_id, int numInformants){
 }
 
 void Swarm::computeAccelerationCoefficients(Configuration* config, long int iteration){
-	//If the strategy involves all particles using the same acceleration coefficients value,
-	//it is more efficient to compute it once at the beginning of the iteration
 	//Constant value
 	switch (config->getAccelCoeffCS()) {
 	case AC_CONSTANT:{
@@ -940,7 +928,7 @@ void Swarm::updatePerturbationVariables(Configuration* config, double previousGb
 	if (config->getMagnitude1CS() == MAGNITUDE_SUCCESS){
 		//Success
 		if (previousGbest_eval != currentGbest_eval){
-			config->set_mag1_sc(config->get_mag1_sc()+1); //increase success
+			config->set_mag1_sc(config->get_mag1_sc()+1); //increase successes
 			config->set_mag1_fc(0); //set failures to 0
 		}
 		//Failure
@@ -961,7 +949,7 @@ void Swarm::updatePerturbationVariables(Configuration* config, double previousGb
 	if (config->getMagnitude2CS() == MAGNITUDE_SUCCESS){
 		//Success
 		if (previousGbest_eval != currentGbest_eval){
-			config->set_mag2_sc(config->get_mag2_sc()+1); //increase success
+			config->set_mag2_sc(config->get_mag2_sc()+1); //increase successes
 			config->set_mag2_fc(0); //set failures to 0
 		}
 		//Failure
@@ -1028,10 +1016,10 @@ void Swarm::createWheelTopology(){        //Particles are neighbors of one centr
 	}
 }
 
-void Swarm::createRandomEdge(){			//Or random edge topology
+void Swarm::createRandomEdge(){			//Random edge topology
 	long int randomEdge;
 
-	//First: make all particles neighbors of themselves
+	//First: make each particle a neighbor of itself
 	for(unsigned int i=0; i<swarm.size(); i++)
 		swarm.at(i)->addNeighbour(swarm.at(i));
 
@@ -1136,7 +1124,6 @@ void Swarm::updateTimeVaryingTopology(Configuration* config, long int iterations
 }
 
 void Swarm::createHierarchical(int branching, int finalPopSize){
-	//cout  << "\nCreating hierarchical topology..." << endl;
 	//The topology is fully-connected, but we use a hierarchy as a model of influence
 	long int firstPart = 1;		//id of the last particle that can be added in a complete level without exceeding size
 	int actualSpace=1;			//actual number of nodes than can be stored in a given level. This depends on the swarm size and the branching degree
@@ -1151,7 +1138,7 @@ void Swarm::createHierarchical(int branching, int finalPopSize){
 		firstPart+=pow(branching,lastLevelComplete);
 	}
 	//It can be the case that for a very large branching degree the firstPart variable
-	//is larger than the size of the swarm. In that case, we need to find the last level complete
+	//is larger than the size of the swarm. In that case, find the last level complete
 	//without exceeding the swarm size
 	while ((long unsigned)firstPart > swarm.size()){
 		lastLevelComplete--;
@@ -1249,9 +1236,6 @@ void Swarm::createHierarchical(int branching, int finalPopSize){
 			parent = hierarchy.at(lastLevelComplete).at(nodesCounter);
 		}
 	}
-	//updateTree(branching);
-	//printTree(branching, swarm.size());
-	//printAllParentNodes();
 }
 
 void Swarm::updateHierarchical(int branching, long previous_size){
@@ -1265,17 +1249,16 @@ void Swarm::updateHierarchical(int branching, long previous_size){
 		}
 	}
 
-
-	//If the new set of particles to be added fits in lastLevelComplete
+	//The number of particles to be added fits in lastLevelComplete
 	if (pow(branching,lastLevelComplete+1)-childsInLastLevel >= nodesToAdd){
 		addParticlesInLastLevel(previous_size, swarm.size(), branching);
 		if (nodesToAdd+childsInLastLevel == pow(branching,lastLevelComplete+1)){
 			lastLevelComplete++;
 		}
 	}
-	//If the number of particles to add is larger than the space in lastLevelComplete
+	//The number of particles to add is larger than the space in lastLevelComplete
 	else {
-		//Add the first part of the particles that fit in the last level
+		//Fill the last level
 		long firstPart = (pow(branching,lastLevelComplete+1)-childsInLastLevel);
 		addParticlesInLastLevel(previous_size, previous_size+firstPart, branching);
 		lastLevelComplete++;
@@ -1329,7 +1312,8 @@ void Swarm::addParticlesInLastLevel(int first, int last, int branching){
 	int iterCount = 0;
 	int parent = hierarchy.at(lastLevelComplete).at(nodesCounter);
 	bool particleAdded = false;
-	//Now we add one node at a time to each node in the last level complete
+
+	//Add one node at a time to each node in the last level complete
 	for (int i=first; i<last; ++i){	//particles to add
 		for (int j=0; j<pow(branching,lastLevelComplete+1); j++){ //maxWidth of the level
 			if (hierarchy.at(lastLevelComplete+1).at(width+(nodesCounter*(branching-1))+iterCount) == -2){ //look for free positions
@@ -1491,7 +1475,7 @@ void Swarm::swapNodes(int newParent, int newH, int newWidth, int parentNode, int
 	hierarchy.at(newH).at(newWidth) = parentNode;
 
 	if (h <= lastLevelComplete) {
-		//Update brothers parentID
+		//Update siblings' parentID
 		for (int k=width-(branching-1); k<=width; k++){
 			swarm.at(hierarchy.at(h).at(k))->setParent(newParent);
 		}
@@ -1506,7 +1490,7 @@ void Swarm::swapNodes(int newParent, int newH, int newWidth, int parentNode, int
 		}
 	}
 	if (h == lastLevelComplete+1) {
-		//Update brothers parentID
+		//Update siblings' parentID
 		for(int k=iterCount*branching;k<(iterCount*branching)+branching;k++){
 			try{
 				swarm.at(hierarchy.at(h).at(k))->setParent(newParent);
@@ -1540,7 +1524,6 @@ void Swarm::printAllParentNodes(){
 void Swarm::printTree(int branching) {
 	//Raw printing of the structure
 	cout << "\nvar::lastLevelComplete " << lastLevelComplete << endl << endl;
-	//	cout << endl << endl;
 	for (int i=0; i<=lastLevelComplete+1; i++){
 		cout << "Level " << i << ": ";
 		for (int j=0; j<pow(branching,i); j++)
@@ -1609,7 +1592,7 @@ void Swarm::clearResizeSimpSwarm(Configuration* config, long int iteration){
 
 // This function computes the inertia weight (omega1 in the GVU formula) according to the selected strategy
 double Swarm::computeOmega1(Configuration* config, long int iteration, long int posIndex, bool newIteration){
-	/*Some of these variable could become parameters of the framework and be optimized with irace*/
+	/*TODO: Some of these static variables could become parameters of the framework and be optimized with irace*/
 	static double alpha = 1/pow(M_PI,2); 			//small positive constant 		IW_NONL_DEC - 4
 	static double omega = 0.3;						//value between [0,1] 			IW_NONL_DEC_IMP - 5
 	static double u = 1.0002;						//value between [1.0001,1.0005] IW_NONL_DEC_IMP - 5
